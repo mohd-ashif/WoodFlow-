@@ -40,6 +40,27 @@ enum AccessRequestStatus {
   CANCELLED
 }
 
+enum ProductType {
+  FINISHED_PRODUCT
+  RAW_MATERIAL
+}
+
+enum StockMovementType {
+  OPENING_STOCK
+  STOCK_ADJUSTMENT_IN
+  STOCK_ADJUSTMENT_OUT
+  STOCK_CORRECTION
+  DAMAGE
+  LOST
+  INITIAL_IMPORT
+  PURCHASE
+  SALE
+  SALES_RETURN
+  PURCHASE_RETURN
+  PRODUCTION_IN
+  MATERIAL_CONSUMPTION
+}
+
 model User {
   id           String      @id @default(cuid())
   name         String
@@ -56,29 +77,36 @@ model User {
   accessRequests   AccessRequest[] @relation("UserAccessRequests")
   reviewedRequests AccessRequest[] @relation("AdminReviewedRequests")
   auditLogs        AuditLog[]
+  stockMovements   StockMovement[]
 
   @@map("users")
 }
 
 model Company {
-  id         String        @id @default(cuid())
-  name       String
-  slug       String        @unique
-  logo       String?
-  email      String?
-  phone      String?
-  address    String?
-  city       String?
-  state      String?
-  country    String?
-  postalCode String?
-  gstNumber  String?
-  status     CompanyStatus @default(ACTIVE)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id                 String          @id @default(cuid())
+  name               String
+  slug               String          @unique
+  logo               String?
+  email              String?
+  phone              String?
+  address            String?
+  city               String?
+  state              String?
+  country            String?
+  postalCode         String?
+  gstNumber          String?
+  status             CompanyStatus   @default(ACTIVE)
+  allowNegativeStock Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
-  members   CompanyMember[]
-  auditLogs AuditLog[]
+  members        CompanyMember[]
+  auditLogs      AuditLog[]
+  categories     Category[]
+  units          Unit[]
+  products       Product[]
+  inventories    Inventory[]
+  stockMovements StockMovement[]
 
   @@map("companies")
 }
@@ -138,4 +166,115 @@ model AuditLog {
   @@index([companyId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  companyId     String
+  name          String
+  sku           String
+  description   String?
+  productType   ProductType
+  categoryId    String
+  unitId        String
+  purchasePrice Float       @default(0)
+  sellingPrice  Float       @default(0)
+  minimumStock  Float       @default(0)
+  openingStock  Float       @default(0)
+  currentStock  Float       @default(0)
+  imageUrl      String?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  company   Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category  Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  unit      Unit            @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  inventory Inventory?
+  movements StockMovement[]
+
+  @@unique([companyId, sku])
+  @@index([companyId])
+  @@index([companyId, name])
+  @@index([companyId, categoryId])
+  @@index([companyId, productType])
+  @@map("products")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("categories")
+}
+
+model Unit {
+  id        String    @id @default(cuid())
+  companyId String
+  name      String
+  shortCode String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([companyId, name])
+  @@unique([companyId, shortCode])
+  @@index([companyId])
+  @@map("units")
+}
+
+model Inventory {
+  id                String   @id @default(cuid())
+  companyId         String
+  productId         String   @unique
+  currentQuantity   Float    @default(0)
+  reservedQuantity  Float    @default(0)
+  availableQuantity Float    @default(0)
+  updatedAt         DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([companyId, productId])
+  @@map("inventories")
+}
+
+model StockMovement {
+  id               String            @id @default(cuid())
+  companyId        String
+  productId        String
+  movementType     StockMovementType
+  quantity         Float
+  previousQuantity Float
+  newQuantity      Float
+  referenceType    String?
+  referenceId      String?
+  reason           String?
+  notes            String?
+  createdBy        String?
+  createdAt        DateTime          @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([companyId, productId])
+  @@index([companyId, createdAt])
+  @@index([companyId, movementType])
+  @@map("stock_movements")
 }

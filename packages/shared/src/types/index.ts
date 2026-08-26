@@ -78,3 +78,89 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   code?: string;
 }
+
+export interface CategorySummary {
+  id: string;
+  companyId: string;
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UnitSummary {
+  id: string;
+  companyId: string;
+  name: string;
+  shortCode: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventorySummary {
+  id: string;
+  companyId: string;
+  productId: string;
+  currentQuantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  updatedAt: string;
+}
+
+export interface ProductSummary {
+  id: string;
+  companyId: string;
+  name: string;
+  sku: string;
+  description?: string | null;
+  productType: 'FINISHED_PRODUCT' | 'RAW_MATERIAL';
+  categoryId: string;
+  unitId: string;
+  purchasePrice: number;
+  sellingPrice: number;
+  minimumStock: number;
+  openingStock: number;
+  currentStock: number;
+  imageUrl?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  category?: CategorySummary;
+  unit?: UnitSummary;
+  inventory?: InventorySummary;
+}
+
+export interface StockMovementSummary {
+  id: string;
+  companyId: string;
+  productId: string;
+  movementType: string;
+  quantity: number;
+  previousQuantity: number;
+  newQuantity: number;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  reason?: string | null;
+  notes?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  product?: {
+    name: string;
+    sku: string;
+  };
+  user?: {
+    name: string;
+  };
+}
+
+export interface InventoryDashboardStats {
+  totalProducts: number;
+  totalFinishedProducts: number;
+  totalRawMaterials: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+  estimatedInventoryValue: number;
+}
+

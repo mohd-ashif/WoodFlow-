@@ -74,6 +74,35 @@ export async function createCompanyWithOnboarding(
       data: { status: 'APPROVED', reviewedBy: adminUserId, reviewedAt: new Date() },
     });
 
+    // 4. Create default categories for the new company (Section 6 Requirement)
+    const defaultCategories = [
+      { name: 'Sofa', description: 'Finished Sofa sets and Couches' },
+      { name: 'Chair', description: 'Finished Chairs and Recliners' },
+      { name: 'Table', description: 'Finished Dining, Coffee, and Study Tables' },
+      { name: 'Bed', description: 'Finished Bed frames and Cots' },
+      { name: 'Wardrobe', description: 'Finished Wardrobes and Cupboards' },
+      { name: 'Dining Furniture', description: 'Finished Dining sets and Credenzas' },
+      { name: 'Office Furniture', description: 'Finished Desks, Office Chairs, and Cabinets' },
+      { name: 'Other Furniture', description: 'Miscellaneous finished furniture' },
+      { name: 'Wood', description: 'Wood lumber and timber logs' },
+      { name: 'Plywood', description: 'Plywood sheets and laminates' },
+      { name: 'Foam', description: 'Upholstery foam padding' },
+      { name: 'Fabric', description: 'Upholstery fabrics and textiles' },
+      { name: 'Hardware', description: 'Screws, nails, and metal hinges' },
+      { name: 'Paint', description: 'Paints and primers' },
+      { name: 'Polish', description: 'Varnishes and polishes' },
+      { name: 'Other Material', description: 'Miscellaneous raw materials' },
+    ];
+
+    await tx.category.createMany({
+      data: defaultCategories.map((cat) => ({
+        companyId: company.id,
+        name: cat.name,
+        description: cat.description,
+        isActive: true,
+      })),
+    });
+
     return { company, member };
   });
 

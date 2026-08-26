@@ -17,6 +17,7 @@ import {
   UserCheck,
   Hammer,
   HelpCircle,
+  Clock,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -120,13 +121,56 @@ export function Sidebar() {
             </div>
 
             <div>
+              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Inventory
+              </h2>
+              <nav className="space-y-1">
+                {[
+                  { name: 'Overview', href: '/inventory', icon: LayoutDashboard },
+                  { name: 'Products', href: '/inventory/products', icon: Package },
+                  { name: 'Categories', href: '/inventory/categories', icon: Building2 },
+                  { name: 'Units', href: '/inventory/units', icon: FileCheck },
+                  { name: 'Low Stock', href: '/inventory/low-stock', icon: HelpCircle },
+                  { name: 'Out of Stock', href: '/inventory/out-of-stock', icon: HelpCircle },
+                  { name: 'Stock Movements', href: '/inventory/movements', icon: Clock || Hammer },
+                ].map((item) => {
+                  const isActive = pathname === item.href || (item.href !== '/inventory' && pathname.startsWith(item.href));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="mt-2 px-3">
+                <Link
+                  href="/inventory/products/new"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                >
+                  <span>+ Add Product</span>
+                </Link>
+              </div>
+            </div>
+
+            <div>
               <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between">
-                <span>Business</span>
+                <span>Business Modules</span>
                 <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">Soon</span>
               </h2>
               <nav className="space-y-1 opacity-60 pointer-events-none">
                 {[
-                  { name: 'Inventory', icon: Package },
                   { name: 'Sales', icon: ShoppingCart },
                   { name: 'Purchases', icon: ShoppingBag },
                   { name: 'Customers', icon: UserCheck },
