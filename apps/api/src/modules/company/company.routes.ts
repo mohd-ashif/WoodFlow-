@@ -13,6 +13,7 @@ router.get('/', controller.getMyCompany);
 router.patch('/', requireRoles([CompanyRole.OWNER]), controller.updateMyCompany);
 
 router.get('/members', controller.getMembers);
+router.post('/members', requireRoles([CompanyRole.OWNER]), controller.createMember);
 router.patch('/members/:id/role', requireRoles([CompanyRole.OWNER]), controller.updateRole);
 router.patch('/members/:id/status', requireRoles([CompanyRole.OWNER]), controller.updateStatus);
 

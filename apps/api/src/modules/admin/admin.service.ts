@@ -194,6 +194,25 @@ export async function assignUserToCompany(
     throw new NotFoundError('Company not found');
   }
 
+  // Check user limit (limit = 5)
+  const existingMembership = await prisma.companyMember.findUnique({
+    where: {
+      userId_companyId: {
+        userId,
+        companyId,
+      },
+    },
+  });
+
+  if (!existingMembership || existingMembership.status !== MemberStatus.ACTIVE) {
+    const activeMembersCount = await prisma.companyMember.count({
+      where: { companyId, status: MemberStatus.ACTIVE },
+    });
+    if (activeMembersCount >= 5) {
+      throw new BadRequestError('This company has reached its maximum user limit of 5 users', 'USER_LIMIT_REACHED');
+    }
+  }
+
   const membership = await prisma.companyMember.upsert({
     where: {
       userId_companyId: {

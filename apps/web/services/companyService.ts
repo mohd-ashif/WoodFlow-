@@ -30,4 +30,11 @@ export const companyService = {
       body: JSON.stringify({ status }),
     });
   },
+
+  async createMember(data: any) {
+    return fetchApi<{ member: CompanyMemberInfo }>('/company/members', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };

@@ -1,8 +1,9 @@
 import { prisma } from '../../config/prisma.js';
 import { CreateCompanyInput, UpdateCompanyInput } from '@furniture-os/shared';
-import { CompanyStatus, MemberStatus, CompanyRole } from '@prisma/client';
+import { CompanyStatus, MemberStatus, CompanyRole, SystemRole, UserStatus } from '@prisma/client';
 import { ConflictError, NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { createAuditLog } from '../audit/audit.service.js';
+import { hashPassword } from '../../utils/auth.js';
 
 export async function createCompanyWithOnboarding(
   input: CreateCompanyInput,
@@ -289,4 +290,121 @@ export async function updateMemberStatus(
   });
 
   return updated;
+}
+
+export async function createCompanyMember(
+  companyId: string,
+  input: {
+    name: string;
+    email: string;
+    phone?: string;
+    passwordHash: string;
+    role: CompanyRole;
+  },
+  actorUserId: string
+) {
+  const email = input.email.toLowerCase();
+
+  // Try to find if user exists
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  // Check user limit (limit = 5)
+  let isAlreadyActive = false;
+  if (user) {
+    const existingMember = await prisma.companyMember.findUnique({
+      where: {
+        userId_companyId: {
+          userId: user.id,
+          companyId,
+        },
+      },
+    });
+    if (existingMember && existingMember.status === MemberStatus.ACTIVE) {
+      isAlreadyActive = true;
+    }
+  }
+
+  if (!isAlreadyActive) {
+    const activeMembersCount = await prisma.companyMember.count({
+      where: { companyId, status: MemberStatus.ACTIVE },
+    });
+    if (activeMembersCount >= 5) {
+      throw new BadRequestError('This company has reached its maximum user limit of 5 users', 'USER_LIMIT_REACHED');
+    }
+  }
+
+  if (user) {
+    // Check if already a member of this company
+    const existingMember = await prisma.companyMember.findUnique({
+      where: {
+        userId_companyId: {
+          userId: user.id,
+          companyId,
+        },
+      },
+    });
+
+    if (existingMember) {
+      throw new BadRequestError('User is already a member of this company', 'MEMBER_EXISTS');
+    }
+
+    // Create membership for existing user
+    const membership = await prisma.companyMember.create({
+      data: {
+        userId: user.id,
+        companyId,
+        role: input.role,
+        status: MemberStatus.ACTIVE,
+      },
+    });
+
+    await createAuditLog({
+      userId: actorUserId,
+      companyId,
+      action: 'MEMBER_ASSIGNED_TO_COMPANY',
+      entity: 'CompanyMember',
+      entityId: membership.id,
+      metadata: { userId: user.id, role: input.role },
+    });
+
+    return membership;
+  }
+
+  // Create new user and membership
+  const result = await prisma.$transaction(async (tx) => {
+    const newUser = await tx.user.create({
+      data: {
+        name: input.name,
+        email,
+        phone: input.phone || null,
+        passwordHash: input.passwordHash,
+        systemRole: SystemRole.COMPANY,
+        status: UserStatus.ACTIVE,
+      },
+    });
+
+    const membership = await tx.companyMember.create({
+      data: {
+        userId: newUser.id,
+        companyId,
+        role: input.role,
+        status: MemberStatus.ACTIVE,
+      },
+    });
+
+    return { newUser, membership };
+  });
+
+  await createAuditLog({
+    userId: actorUserId,
+    companyId,
+    action: 'MEMBER_CREATED',
+    entity: 'CompanyMember',
+    entityId: result.membership.id,
+    metadata: { userId: result.newUser.id, role: input.role },
+  });
+
+  return result.membership;
 }

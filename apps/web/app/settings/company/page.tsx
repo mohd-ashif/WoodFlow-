@@ -11,11 +11,21 @@ import { Sidebar } from '../../../components/layout/Sidebar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
+import { useAuth } from '../../../components/providers/AuthProvider';
+import { useRouter } from 'next/navigation';
 import { Building2, Save, Loader2 } from 'lucide-react';
 
 export default function CompanySettingsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user && user.activeMembership?.role !== 'OWNER') {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['myCompany'],

@@ -154,6 +154,14 @@ export async function approveAccessRequest(
       if (!company) {
         throw new NotFoundError('Company not found');
       }
+
+      // Check user limit for existing company (limit = 5)
+      const activeMembersCount = await tx.companyMember.count({
+        where: { companyId, status: MemberStatus.ACTIVE },
+      });
+      if (activeMembersCount >= 5) {
+        throw new BadRequestError('This company has reached its maximum user limit of 5 users', 'USER_LIMIT_REACHED');
+      }
     }
 
     // Create membership

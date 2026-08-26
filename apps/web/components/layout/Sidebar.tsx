@@ -147,35 +147,37 @@ export function Sidebar() {
               </nav>
             </div>
 
-            <div>
-              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Company
-              </h2>
-              <nav className="space-y-1">
-                {[
-                  { name: 'Users', href: '/settings/users', icon: Users },
-                  { name: 'Settings', href: '/settings/company', icon: Settings },
-                ].map((item) => {
-                  const isActive = pathname === item.href;
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={clsx(
-                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
+            {user.activeMembership?.role === 'OWNER' && (
+              <div>
+                <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Company
+                </h2>
+                <nav className="space-y-1">
+                  {[
+                    { name: 'Users', href: '/settings/users', icon: Users },
+                    { name: 'Settings', href: '/settings/company', icon: Settings },
+                  ].map((item) => {
+                    const isActive = pathname === item.href;
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={clsx(
+                          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                            : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            )}
           </>
         )}
       </div>
