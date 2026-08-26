@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SystemRole {
+  PLATFORM_ADMIN
+  COMPANY
+}
+
+enum CompanyRole {
+  OWNER
+  MEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  phone        String?
+  systemRole   SystemRole  @default(COMPANY)
+  status       UserStatus  @default(ACTIVE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  lastLoginAt  DateTime?
+
+  memberships      CompanyMember[]
+  accessRequests   AccessRequest[] @relation("UserAccessRequests")
+  reviewedRequests AccessRequest[] @relation("AdminReviewedRequests")
+  auditLogs        AuditLog[]
+
+  @@map("users")
+}
+
+model Company {
+  id         String        @id @default(cuid())
+  name       String
+  slug       String        @unique
+  logo       String?
+  email      String?
+  phone      String?
+  address    String?
+  city       String?
+  state      String?
+  country    String?
+  postalCode String?
+  gstNumber  String?
+  status     CompanyStatus @default(ACTIVE)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  members   CompanyMember[]
+  auditLogs AuditLog[]
+
+  @@map("companies")
+}
+
+model CompanyMember {
+  id        String       @id @default(cuid())
+  userId    String
+  companyId String
+  role      CompanyRole  @default(MEMBER)
+  status    MemberStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@index([userId])
+  @@index([companyId])
+  @@map("company_members")
+}
+
+model AccessRequest {
+  id                   String              @id @default(cuid())
+  userId               String
+  requestedCompanyName String
+  message              String?
+  status               AccessRequestStatus @default(PENDING)
+  reviewedBy           String?
+  reviewedAt           DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  user     User  @relation("UserAccessRequests", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("AdminReviewedRequests", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
+  @@map("access_requests")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  companyId String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+/node_modules
+**/node_modules
+
+# Next.js Build files
+.next/
+out/
+
+# TypeScript/Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environmental variables
+.env
+.env*.local
+*.env
+
+# Operating system files
+.DS_Store
+Thumbs.db
+*.stackdump
+
+# Package Manager lock logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Turborepo caching
+.turbo/
