@@ -176,51 +176,55 @@ export default function AdminCompaniesPage() {
                   ) : (
                     companies.map((c: CompanySummary) => (
                       <TableRow key={c.id}>
-                        <TableCell className="font-medium text-foreground flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-primary" />
-                          {c.name}
+                        <TableCell className="font-medium text-foreground whitespace-nowrap">
+                          <span className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-primary" />
+                            {c.name}
+                          </span>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{c.slug}</TableCell>
-                        <TableCell>{c.email || '-'}</TableCell>
-                        <TableCell>{c.phone || '-'}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{c.slug}</TableCell>
+                        <TableCell className="whitespace-nowrap">{c.email || '-'}</TableCell>
+                        <TableCell className="whitespace-nowrap">{c.phone || '-'}</TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {c.status === 'ACTIVE' && <Badge variant="success">ACTIVE</Badge>}
                           {c.status === 'SUSPENDED' && <Badge variant="danger">SUSPENDED</Badge>}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                           {new Date(c.createdAt).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Link href={`/admin/companies/${c.id}`}>
-                            <Button variant="outline" size="sm" className="gap-1 text-xs">
-                              <Eye className="h-3.5 w-3.5" /> View
-                            </Button>
-                          </Link>
-                          {c.status === 'ACTIVE' ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedCompany(c);
-                                setIsSuspendOpen(true);
-                              }}
-                              className="text-rose-400 border-rose-500/30 hover:bg-rose-500/10 gap-1 text-xs"
-                            >
-                              <Power className="h-3.5 w-3.5" /> Suspend
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedCompany(c);
-                                setIsActivateOpen(true);
-                              }}
-                              className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1 text-xs"
-                            >
-                              <CheckCircle className="h-3.5 w-3.5" /> Activate
-                            </Button>
-                          )}
+                        <TableCell className="text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link href={`/admin/companies/${c.id}`}>
+                              <Button variant="outline" size="sm" className="gap-1 text-xs">
+                                <Eye className="h-3.5 w-3.5" /> View
+                              </Button>
+                            </Link>
+                            {c.status === 'ACTIVE' ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedCompany(c);
+                                  setIsSuspendOpen(true);
+                                }}
+                                className="text-rose-400 border-rose-500/30 hover:bg-rose-500/10 gap-1 text-xs"
+                              >
+                                <Power className="h-3.5 w-3.5" /> Suspend
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedCompany(c);
+                                  setIsActivateOpen(true);
+                                }}
+                                className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 gap-1 text-xs"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5" /> Activate
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))

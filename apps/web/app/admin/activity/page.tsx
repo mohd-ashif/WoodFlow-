@@ -133,11 +133,13 @@ export default function AdminActivityPage() {
                     ) : (
                       logs.map((l: AuditLogItem) => (
                         <TableRow key={l.id}>
-                          <TableCell className="text-xs text-muted-foreground flex items-center gap-1.5 py-4">
-                            <Clock className="h-3.5 w-3.5 text-muted-foreground/60" />
-                            {new Date(l.createdAt).toLocaleString()}
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap py-4">
+                            <span className="flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5 text-muted-foreground/60" />
+                              {new Date(l.createdAt).toLocaleString()}
+                            </span>
                           </TableCell>
-                          <TableCell className="font-semibold text-sm">
+                          <TableCell className="font-semibold text-sm whitespace-nowrap">
                             {l.user ? (
                               <Link href={`/admin/users/${l.user.id}`} className="hover:underline text-primary">
                                 {l.user.name}
@@ -146,18 +148,18 @@ export default function AdminActivityPage() {
                               <span className="text-muted-foreground">System</span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             <Badge variant="info" className="font-mono text-[10px]">
                               {l.action}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-xs font-medium">
+                          <TableCell className="text-xs font-medium whitespace-nowrap">
                             <span className="flex items-center gap-1">
                               <FileText className="h-3.5 w-3.5 text-muted-foreground/75" />
                               {l.entity} ({l.entityId || '-'})
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             {l.company ? (
                               <Link href={`/admin/companies/${l.company.id}`} className="font-medium text-sky-400 hover:underline text-xs flex items-center gap-1">
                                 <Building2 className="h-3.5 w-3.5" />

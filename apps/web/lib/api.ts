@@ -39,5 +39,13 @@ export async function fetchApi<T>(
     );
   }
 
+  if (data.pagination !== undefined) {
+    return {
+      success: data.success,
+      data: data.data,
+      pagination: data.pagination,
+    } as unknown as T;
+  }
+
   return data.data as T;
 }

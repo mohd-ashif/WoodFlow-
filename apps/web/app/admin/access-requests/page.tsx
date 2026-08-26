@@ -214,13 +214,13 @@ export default function AdminAccessRequestsPage() {
                   ) : (
                     requests.map((r: AccessRequestSummary) => (
                       <TableRow key={r.id}>
-                        <TableCell className="font-medium text-foreground">{r.user?.name || '-'}</TableCell>
-                        <TableCell className="text-muted-foreground">{r.user?.email || '-'}</TableCell>
-                        <TableCell className="font-semibold text-primary">{r.requestedCompanyName}</TableCell>
+                        <TableCell className="font-medium text-foreground whitespace-nowrap">{r.user?.name || '-'}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{r.user?.email || '-'}</TableCell>
+                        <TableCell className="font-semibold text-primary whitespace-nowrap">{r.requestedCompanyName}</TableCell>
                         <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
                           {r.message || '-'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {r.status === 'PENDING' && (
                             <Badge variant="warning" className="gap-1">
                               <Clock className="h-3 w-3" /> PENDING
@@ -242,12 +242,12 @@ export default function AdminAccessRequestsPage() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                           {new Date(r.createdAt).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
+                        <TableCell className="text-right whitespace-nowrap">
                           {r.status === 'PENDING' && (
-                            <>
+                            <div className="flex items-center justify-end gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -264,7 +264,7 @@ export default function AdminAccessRequestsPage() {
                               >
                                 <XCircle className="h-3.5 w-3.5" /> Reject
                               </Button>
-                            </>
+                            </div>
                           )}
                         </TableCell>
                       </TableRow>

@@ -118,7 +118,7 @@ export default function AdminUsersPage() {
                       
                       return (
                         <TableRow key={u.id}>
-                          <TableCell className="font-medium text-foreground">
+                          <TableCell className="font-medium text-foreground whitespace-nowrap">
                             <span className="flex items-center gap-2">
                               <User className="h-4 w-4 text-primary" />
                               {u.name}
@@ -129,13 +129,13 @@ export default function AdminUsersPage() {
                               )}
                             </span>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="text-muted-foreground whitespace-nowrap">
                             <span className="flex items-center gap-1.5">
                               <Mail className="h-3.5 w-3.5 text-muted-foreground/75" />
                               {u.email}
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             {activeMembership ? (
                               <span className="flex items-center gap-1.5 text-sm text-foreground font-medium">
                                 <Building2 className="h-3.5 w-3.5 text-sky-400" />
@@ -148,15 +148,15 @@ export default function AdminUsersPage() {
                               <span className="text-xs text-muted-foreground italic">No company workspace</span>
                             )}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             {u.status === 'ACTIVE' && <Badge variant="success">ACTIVE</Badge>}
                             {u.status === 'INACTIVE' && <Badge variant="info">INACTIVE</Badge>}
                             {u.status === 'SUSPENDED' && <Badge variant="danger">SUSPENDED</Badge>}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                             {new Date(u.createdAt).toLocaleDateString()}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right whitespace-nowrap">
                             <Link href={`/admin/users/${u.id}`}>
                               <Button variant="outline" size="sm" className="gap-1 text-xs">
                                 <Eye className="h-3.5 w-3.5" /> View Profile
