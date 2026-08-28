@@ -83,6 +83,7 @@ model User {
   customerNotes    CustomerNote[]
   supplierNotes    SupplierNote[]
   crmActivities    CRMActivity[]
+  salesCreated     Sale[]          @relation("SaleCreatedBy")
 
   @@map("users")
 }
@@ -120,6 +121,8 @@ model Company {
   supplierNotes     SupplierNote[]
   crmActivities     CRMActivity[]
   tags              Tag[]
+  sales             Sale[]
+  invoices          Invoice[]
 
   @@map("companies")
 }
@@ -205,6 +208,7 @@ model Product {
   unit      Unit            @relation(fields: [unitId], references: [id], onDelete: Restrict)
   inventory Inventory?
   movements StockMovement[]
+  saleItems SaleItem[]
 
   @@unique([companyId, sku])
   @@index([companyId])
@@ -363,6 +367,8 @@ model Customer {
   addresses CustomerAddress[]
   notesList CustomerNote[]
   tags      CustomerTag[]
+  sales     Sale[]
+  invoices  Invoice[]
 
   @@unique([companyId, customerCode])
   @@index([companyId])
@@ -553,5 +559,117 @@ model SupplierTag {
   @@id([supplierId, tagId])
   @@index([tagId])
   @@map("supplier_tags")
+}
+
+// PHASE 4 — SALES & INVOICING ENUMS & MODELS
+enum SaleStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+  RETURNED
+  PARTIALLY_RETURNED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
+model Sale {
+  id             String        @id @default(cuid())
+  companyId      String
+  saleNumber     String
+  customerId     String?
+  status         SaleStatus    @default(DRAFT)
+  subtotal       Float
+  discountAmount Float         @default(0)
+  taxAmount      Float         @default(0)
+  totalAmount    Float
+  paidAmount     Float         @default(0)
+  dueAmount      Float
+  paymentStatus  PaymentStatus @default(UNPAID)
+  notes          String?
+  billingAddress String?
+  saleDate       DateTime      @default(now())
+  createdBy      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer  Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  creator   User?      @relation("SaleCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  items     SaleItem[]
+  invoices  Invoice[]
+
+  @@unique([companyId, saleNumber])
+  @@index([companyId])
+  @@index([companyId, customerId])
+  @@index([companyId, saleDate])
+  @@index([companyId, status])
+  @@index([companyId, paymentStatus])
+  @@map("sales")
+}
+
+model SaleItem {
+  id                  String   @id @default(cuid())
+  companyId           String
+  saleId              String
+  productId           String?
+  productNameSnapshot String
+  skuSnapshot         String
+  quantity            Float
+  unitPrice           Float
+  discountAmount      Float    @default(0)
+  taxRate             Float    @default(0)
+  taxAmount           Float    @default(0)
+  totalAmount         Float
+  createdAt           DateTime @default(now())
+
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+model Invoice {
+  id                     String        @id @default(cuid())
+  companyId              String
+  saleId                 String
+  invoiceNumber          String
+  invoiceDate            DateTime      @default(now())
+  customerId             String?
+  customerNameSnapshot   String
+  customerPhoneSnapshot  String?
+  customerEmailSnapshot  String?
+  billingAddress         String?
+  subtotal               Float
+  discountAmount         Float         @default(0)
+  taxAmount              Float         @default(0)
+  totalAmount            Float
+  status                 InvoiceStatus @default(ISSUED)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sale     Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, invoiceNumber])
+  @@index([companyId])
+  @@index([companyId, saleId])
+  @@index([companyId, customerId])
+  @@index([companyId, invoiceDate])
+  @@index([companyId, status])
+  @@map("invoices")
 }
 

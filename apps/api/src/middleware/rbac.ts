@@ -64,6 +64,10 @@ export function hasPermission(
       'crm.dashboard.view',
       'crm.activity.view',
       'crm.activity.create',
+      'sales.view',
+      'sales.create',
+      'sales.cancel',
+      'invoices.view',
     ];
     return managerPermissions.includes(permission);
   }
@@ -78,6 +82,9 @@ export function hasPermission(
       'crm.dashboard.view',
       'crm.activity.view',
       'crm.activity.create',
+      'sales.view',
+      'sales.create',
+      'invoices.view',
     ];
     return staffPermissions.includes(permission);
   }

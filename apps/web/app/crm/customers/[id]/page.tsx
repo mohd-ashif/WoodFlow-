@@ -6,6 +6,7 @@ import { Sidebar } from '../../../../components/layout/Sidebar';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { crmService } from '../../../../services/crmService';
+import { salesService } from '../../../../services/salesService';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
@@ -27,6 +28,7 @@ import {
   Tag as TagIcon,
   AlertTriangle,
   Calendar,
+  Building2,
 } from 'lucide-react';
 
 export default function CustomerDetailsPage() {
@@ -35,7 +37,7 @@ export default function CustomerDetailsPage() {
   const queryClient = useQueryClient();
   const customerId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<'info' | 'addresses' | 'notes' | 'timeline'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'addresses' | 'notes' | 'sales' | 'timeline'>('info');
   const [noteContent, setNoteContent] = useState('');
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
@@ -62,8 +64,15 @@ export default function CustomerDetailsPage() {
     enabled: Boolean(customerId && customerId !== 'undefined'),
   });
 
+  const { data: salesData } = useQuery({
+    queryKey: ['customer-sales', customerId],
+    queryFn: () => salesService.getSales({ customerId }),
+    enabled: Boolean(customerId && customerId !== 'undefined'),
+  });
+
   const customer = (customerData as any)?.data || customerData;
   const activities = (activitiesData as any)?.data || (activitiesData as any)?.items || (Array.isArray(activitiesData) ? activitiesData : []);
+  const customerSales = (salesData as any)?.data || (Array.isArray(salesData) ? salesData : []);
 
   const noteMutation = useMutation({
     mutationFn: (content: string) => crmService.addCustomerNote(customerId, content),
@@ -263,6 +272,7 @@ export default function CustomerDetailsPage() {
               { id: 'info', label: 'Contact Details', icon: Users },
               { id: 'addresses', label: `Addresses (${customer.addresses?.length || 0})`, icon: MapPin },
               { id: 'notes', label: `Notes (${customer.notesList?.length || 0})`, icon: FileText },
+              { id: 'sales', label: 'Sales History', icon: Building2 },
               { id: 'timeline', label: 'Activity Timeline', icon: Clock },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -543,6 +553,50 @@ export default function CustomerDetailsPage() {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Tab: Sales History */}
+          {activeTab === 'sales' && (
+            <Card className="border-border/80 p-6">
+              <CardHeader className="pb-4 pt-0 px-0">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-primary" /> Sales Orders History ({customerSales.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0 pt-0">
+                {customerSales.length > 0 ? (
+                  <div className="divide-y divide-border/40 border border-border/60 rounded-lg overflow-hidden text-xs">
+                    {customerSales.map((sale: any) => (
+                      <div key={sale.id} className="p-3.5 flex items-center justify-between hover:bg-secondary/20 transition-colors">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Link href={`/sales/${sale.id}`} className="font-mono font-semibold text-primary hover:underline">
+                              {sale.saleNumber}
+                            </Link>
+                            <Badge variant={sale.status === 'CONFIRMED' ? 'default' : sale.status === 'CANCELLED' ? 'destructive' : 'secondary'} className="text-[10px]">
+                              {sale.status}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {new Date(sale.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-mono font-bold text-foreground text-sm">
+                            ₹{sale.totalAmount.toLocaleString('en-IN')}
+                          </span>
+                          <Link href={`/sales/${sale.id}`}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs">View Order</Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-6 text-center">No sales recorded for this customer yet.</p>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           {/* Tab 4: Activity Timeline */}

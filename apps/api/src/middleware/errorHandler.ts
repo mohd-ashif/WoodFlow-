@@ -29,6 +29,15 @@ export function errorHandler(
     });
   }
 
+  // Handle Prisma / Neon PostgreSQL connection resets gracefully
+  if (err.message && (err.message.includes('10054') || err.message.includes('ConnectionReset') || err.message.includes('Connection closed'))) {
+    return res.status(503).json({
+      success: false,
+      message: 'Database connection was temporarily reset. Please try your request again.',
+      code: 'DATABASE_CONNECTION_RESET',
+    });
+  }
+
   // Hide internal details in production/general errors
   return res.status(500).json({
     success: false,
