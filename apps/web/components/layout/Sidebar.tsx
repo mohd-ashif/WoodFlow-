@@ -165,16 +165,52 @@ export function Sidebar() {
             </div>
 
             <div>
+              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                CRM & Contacts
+              </h2>
+              <nav className="space-y-1">
+                {[
+                  { name: 'Overview', href: '/crm', icon: LayoutDashboard, exact: true },
+                  { name: 'Customers', href: '/crm/customers', icon: UserCheck, exact: false },
+                  { name: 'Suppliers', href: '/crm/suppliers', icon: Building2, exact: false },
+                  { name: 'Activities', href: '/crm/activities', icon: Clock, exact: false },
+                  { name: 'Tags', href: '/crm/tags', aliasHref: '/crm/settings/tags', icon: Settings, exact: false },
+                ].map((item) => {
+                  let isActive = false;
+                  if (item.exact) {
+                    isActive = pathname === item.href || pathname === `${item.href}/dashboard`;
+                  } else {
+                    isActive = pathname === item.href || pathname.startsWith(`${item.href}/`) || (item.aliasHref ? pathname === item.aliasHref || pathname.startsWith(`${item.aliasHref}/`) : false);
+                  }
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div>
               <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between">
-                <span>Business Modules</span>
+                <span>Future Modules</span>
                 <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">Soon</span>
               </h2>
               <nav className="space-y-1 opacity-60 pointer-events-none">
                 {[
                   { name: 'Sales', icon: ShoppingCart },
                   { name: 'Purchases', icon: ShoppingBag },
-                  { name: 'Customers', icon: UserCheck },
-                  { name: 'Suppliers', icon: Building2 },
                   { name: 'Workers', icon: Hammer },
                 ].map((item) => {
                   const Icon = item.icon;
@@ -190,6 +226,7 @@ export function Sidebar() {
                 })}
               </nav>
             </div>
+
 
             {user.activeMembership?.role === 'OWNER' && (
               <div>

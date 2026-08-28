@@ -1,4 +1,4 @@
-import { fetchApi } from '../lib/api';
+import { fetchApi, ApiError } from '../lib/api';
 import {
   ProductSummary,
   CategorySummary,
@@ -155,5 +155,35 @@ export const inventoryService = {
     });
     const queryString = params.toString() ? `?${params.toString()}` : '';
     return fetchApi<StockMovementSummary[]>(`/inventory/movements${queryString}`);
+  },
+
+  /**
+   * Securely upload an image to the backend.
+   * The backend proxies to Cloudinary — no secrets reach the browser.
+   * Returns { url, publicId }
+   */
+  async uploadImage(file: File): Promise<{ url: string; publicId: string | null }> {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      // Do NOT set Content-Type — browser sets it with correct boundary for multipart
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new ApiError(
+        data.message || 'Image upload failed. Please try again.',
+        response.status,
+        data.code
+      );
+    }
+
+    return data.data as { url: string; publicId: string | null };
   },
 };

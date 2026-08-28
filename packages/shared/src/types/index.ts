@@ -164,3 +164,161 @@ export interface InventoryDashboardStats {
   estimatedInventoryValue: number;
 }
 
+export type CustomerStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+export type SupplierStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+export type CustomerAddressType = 'HOME' | 'OFFICE' | 'DELIVERY' | 'OTHER';
+export type SupplierAddressType = 'OFFICE' | 'WAREHOUSE' | 'BILLING' | 'OTHER';
+export type CRMEntityType = 'CUSTOMER' | 'SUPPLIER';
+export type CRMActivityType = 'NOTE' | 'CALL' | 'EMAIL' | 'FOLLOW_UP' | 'STATUS_CHANGE' | 'CREATED' | 'UPDATED' | 'ARCHIVED' | 'RESTORED';
+export type TagType = 'CUSTOMER' | 'SUPPLIER';
+
+export interface TagSummary {
+  id: string;
+  companyId: string;
+  name: string;
+  type: TagType;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerAddressSummary {
+  id: string;
+  customerId: string;
+  companyId: string;
+  type: CustomerAddressType;
+  name?: string | null;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerNoteSummary {
+  id: string;
+  companyId: string;
+  customerId: string;
+  content: string;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creator?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface CustomerSummary {
+  id: string;
+  companyId: string;
+  customerCode: string;
+  name: string;
+  phone: string;
+  alternatePhone?: string | null;
+  email?: string | null;
+  dateOfBirth?: string | null;
+  gstNumber?: string | null;
+  taxId?: string | null;
+  notes?: string | null;
+  status: CustomerStatus;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  totalOrdersDisplay?: string;
+  outstandingBalanceDisplay?: string;
+  creator?: {
+    id: string;
+    name: string;
+  } | null;
+  addresses?: CustomerAddressSummary[];
+  notesList?: CustomerNoteSummary[];
+  tags?: TagSummary[];
+}
+
+export interface SupplierAddressSummary {
+  id: string;
+  supplierId: string;
+  companyId: string;
+  type: SupplierAddressType;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupplierNoteSummary {
+  id: string;
+  companyId: string;
+  supplierId: string;
+  content: string;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creator?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface SupplierSummary {
+  id: string;
+  companyId: string;
+  supplierCode: string;
+  name: string;
+  phone: string;
+  alternatePhone?: string | null;
+  email?: string | null;
+  gstNumber?: string | null;
+  taxId?: string | null;
+  notes?: string | null;
+  status: SupplierStatus;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  totalPurchasesDisplay?: string;
+  outstandingBalanceDisplay?: string;
+  creator?: {
+    id: string;
+    name: string;
+  } | null;
+  addresses?: SupplierAddressSummary[];
+  notesList?: SupplierNoteSummary[];
+  tags?: TagSummary[];
+}
+
+export interface CRMActivitySummary {
+  id: string;
+  companyId: string;
+  entityType: CRMEntityType;
+  entityId: string;
+  activityType: CRMActivityType;
+  title: string;
+  description?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  creator?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface CRMDashboardStats {
+  totalCustomers: number;
+  activeCustomers: number;
+  totalSuppliers: number;
+  activeSuppliers: number;
+  newCustomersThisMonth: number;
+  newSuppliersThisMonth: number;
+}
+
+

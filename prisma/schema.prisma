@@ -78,6 +78,11 @@ model User {
   reviewedRequests AccessRequest[] @relation("AdminReviewedRequests")
   auditLogs        AuditLog[]
   stockMovements   StockMovement[]
+  customersCreated Customer[]      @relation("CustomerCreatedBy")
+  suppliersCreated Supplier[]      @relation("SupplierCreatedBy")
+  customerNotes    CustomerNote[]
+  supplierNotes    SupplierNote[]
+  crmActivities    CRMActivity[]
 
   @@map("users")
 }
@@ -100,13 +105,21 @@ model Company {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  members        CompanyMember[]
-  auditLogs      AuditLog[]
-  categories     Category[]
-  units          Unit[]
-  products       Product[]
-  inventories    Inventory[]
-  stockMovements StockMovement[]
+  members           CompanyMember[]
+  auditLogs         AuditLog[]
+  categories        Category[]
+  units             Unit[]
+  products          Product[]
+  inventories       Inventory[]
+  stockMovements    StockMovement[]
+  customers         Customer[]
+  customerAddresses CustomerAddress[]
+  customerNotes     CustomerNote[]
+  suppliers         Supplier[]
+  supplierAddresses SupplierAddress[]
+  supplierNotes     SupplierNote[]
+  crmActivities     CRMActivity[]
+  tags              Tag[]
 
   @@map("companies")
 }
@@ -278,3 +291,267 @@ model StockMovement {
   @@index([companyId, movementType])
   @@map("stock_movements")
 }
+
+// CRM ENUMS & MODELS
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CustomerAddressType {
+  HOME
+  OFFICE
+  DELIVERY
+  OTHER
+}
+
+enum SupplierAddressType {
+  OFFICE
+  WAREHOUSE
+  BILLING
+  OTHER
+}
+
+enum CRMEntityType {
+  CUSTOMER
+  SUPPLIER
+}
+
+enum CRMActivityType {
+  NOTE
+  CALL
+  EMAIL
+  FOLLOW_UP
+  STATUS_CHANGE
+  CREATED
+  UPDATED
+  ARCHIVED
+  RESTORED
+}
+
+enum TagType {
+  CUSTOMER
+  SUPPLIER
+}
+
+model Customer {
+  id             String         @id @default(cuid())
+  companyId      String
+  customerCode   String
+  name           String
+  phone          String
+  alternatePhone String?
+  email          String?
+  dateOfBirth    DateTime?
+  gstNumber      String?
+  taxId          String?
+  notes          String?
+  status         CustomerStatus @default(ACTIVE)
+  createdBy      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  company   Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator   User?             @relation("CustomerCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  addresses CustomerAddress[]
+  notesList CustomerNote[]
+  tags      CustomerTag[]
+
+  @@unique([companyId, customerCode])
+  @@index([companyId])
+  @@index([companyId, name])
+  @@index([companyId, phone])
+  @@index([companyId, email])
+  @@index([companyId, customerCode])
+  @@index([companyId, status])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id           String              @id @default(cuid())
+  customerId   String
+  companyId    String
+  type         CustomerAddressType @default(HOME)
+  name         String?
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  country      String              @default("India")
+  isDefault    Boolean             @default(false)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([companyId, customerId])
+  @@map("customer_addresses")
+}
+
+model CustomerNote {
+  id         String   @id @default(cuid())
+  companyId  String
+  customerId String
+  content    String
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  creator  User?    @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([customerId])
+  @@map("customer_notes")
+}
+
+model Supplier {
+  id             String         @id @default(cuid())
+  companyId      String
+  supplierCode   String
+  name           String
+  phone          String
+  alternatePhone String?
+  email          String?
+  gstNumber      String?
+  taxId          String?
+  notes          String?
+  status         SupplierStatus @default(ACTIVE)
+  createdBy      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  company   Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator   User?             @relation("SupplierCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  addresses SupplierAddress[]
+  notesList SupplierNote[]
+  tags      SupplierTag[]
+
+  @@unique([companyId, supplierCode])
+  @@index([companyId])
+  @@index([companyId, name])
+  @@index([companyId, phone])
+  @@index([companyId, email])
+  @@index([companyId, supplierCode])
+  @@index([companyId, status])
+  @@map("suppliers")
+}
+
+model SupplierAddress {
+  id           String              @id @default(cuid())
+  supplierId   String
+  companyId    String
+  type         SupplierAddressType @default(OFFICE)
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  country      String              @default("India")
+  isDefault    Boolean             @default(false)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([supplierId])
+  @@index([companyId, supplierId])
+  @@map("supplier_addresses")
+}
+
+model SupplierNote {
+  id         String   @id @default(cuid())
+  companyId  String
+  supplierId String
+  content    String
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  creator  User?    @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([supplierId])
+  @@map("supplier_notes")
+}
+
+model CRMActivity {
+  id           String          @id @default(cuid())
+  companyId    String
+  entityType   CRMEntityType
+  entityId     String
+  activityType CRMActivityType
+  title        String
+  description  String?
+  createdBy    String?
+  createdAt    DateTime        @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  creator User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([companyId, entityType, entityId])
+  @@index([companyId, createdAt])
+  @@map("crm_activities")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  type      TagType
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customers CustomerTag[]
+  suppliers SupplierTag[]
+
+  @@unique([companyId, name, type])
+  @@index([companyId])
+  @@map("tags")
+}
+
+model CustomerTag {
+  customerId String
+  tagId      String
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, tagId])
+  @@index([tagId])
+  @@map("customer_tags")
+}
+
+model SupplierTag {
+  supplierId String
+  tagId      String
+  createdAt  DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([supplierId, tagId])
+  @@index([tagId])
+  @@map("supplier_tags")
+}
+

@@ -4,17 +4,21 @@ import { clsx } from 'clsx';
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children?: React.ReactNode;
   className?: string;
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
+  variant?: 'default' | 'secondary' | 'outline' | 'success' | 'warning' | 'danger' | 'destructive' | 'info';
 }
 
 export function Badge({ children, variant = 'default', className, ...props }: BadgeProps) {
   const variantStyles = {
-    default: 'bg-secondary text-secondary-foreground border-border',
+    default: 'bg-primary/10 text-primary border-primary/20',
+    secondary: 'bg-secondary text-secondary-foreground border-border',
+    outline: 'border-border bg-transparent text-foreground',
     success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
     danger: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    destructive: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
     info: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
   };
+
 
   return (
     <span

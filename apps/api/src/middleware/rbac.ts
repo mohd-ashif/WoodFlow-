@@ -38,3 +38,75 @@ export function requireRoles(allowedRoles: CompanyRole[]) {
     next();
   };
 }
+
+export function hasPermission(
+  role: CompanyRole | null | undefined,
+  permission: string,
+  isPlatformAdmin = false
+): boolean {
+  if (isPlatformAdmin) return true;
+  if (!role) return false;
+
+  if (role === 'OWNER') return true;
+
+  if ((role as string) === 'MANAGER') {
+    const managerPermissions = [
+      'customers.view',
+      'customers.create',
+      'customers.update',
+      'customers.archive',
+      'customers.export',
+      'suppliers.view',
+      'suppliers.create',
+      'suppliers.update',
+      'suppliers.archive',
+      'suppliers.export',
+      'crm.dashboard.view',
+      'crm.activity.view',
+      'crm.activity.create',
+    ];
+    return managerPermissions.includes(permission);
+  }
+
+  if (role === 'MEMBER') {
+    // Represents STAFF
+    const staffPermissions = [
+      'customers.view',
+      'customers.create',
+      'customers.update',
+      'suppliers.view',
+      'crm.dashboard.view',
+      'crm.activity.view',
+      'crm.activity.create',
+    ];
+    return staffPermissions.includes(permission);
+  }
+
+  return false;
+}
+
+export function requirePermission(permission: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new UnauthorizedError());
+    }
+
+    const isAllowed = hasPermission(
+      req.tenantRole,
+      permission,
+      req.user.isPlatformAdmin
+    );
+
+    if (!isAllowed) {
+      return next(
+        new ForbiddenError(
+          `Permission denied: '${permission}' required`,
+          'INSUFFICIENT_PERMISSIONS'
+        )
+      );
+    }
+
+    next();
+  };
+}
+

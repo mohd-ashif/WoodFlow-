@@ -7,6 +7,10 @@ import productRoutes from '../modules/product/product.routes.js';
 import categoryRoutes from '../modules/category/category.routes.js';
 import unitRoutes from '../modules/unit/unit.routes.js';
 import inventoryRoutes from '../modules/inventory/inventory.routes.js';
+import uploadRoutes from '../modules/upload/upload.routes.js';
+import customerRoutes from '../modules/customers/customer.routes.js';
+import supplierRoutes from '../modules/suppliers/supplier.routes.js';
+import crmRoutes from '../modules/crm/crm.routes.js';
 
 const router = Router();
 
@@ -18,6 +22,11 @@ router.use('/products', productRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/units', unitRoutes);
 router.use('/inventory', inventoryRoutes);
+router.use('/upload', uploadRoutes);
+router.use('/customers', customerRoutes);
+router.use('/suppliers', supplierRoutes);
+router.use('/crm', crmRoutes);
 
 export default router;
+
 

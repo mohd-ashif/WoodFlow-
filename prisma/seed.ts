@@ -111,7 +111,82 @@ async function main() {
     console.log('✅ Pending Access Request created for:', pendingUser.email);
   }
 
-  // 6. Create initial Audit Log
+  // 6. Create CRM Tags
+  const vipTag = await (prisma as any).tag.upsert({
+    where: { companyId_name_type: { companyId: royalCompany.id, name: 'VIP', type: 'CUSTOMER' } },
+    update: {},
+    create: { companyId: royalCompany.id, name: 'VIP', type: 'CUSTOMER' },
+  });
+
+  const woodTag = await (prisma as any).tag.upsert({
+    where: { companyId_name_type: { companyId: royalCompany.id, name: 'Wood Supplier', type: 'SUPPLIER' } },
+    update: {},
+    create: { companyId: royalCompany.id, name: 'Wood Supplier', type: 'SUPPLIER' },
+  });
+
+  // 7. Seed Sample Customers
+  const customer1 = await (prisma as any).customer.upsert({
+    where: { companyId_customerCode: { companyId: royalCompany.id, customerCode: 'CUS-000001' } },
+    update: {},
+    create: {
+      companyId: royalCompany.id,
+      customerCode: 'CUS-000001',
+      name: 'Muhammed Ashif',
+      phone: '9876543210',
+      email: 'ashif@example.com',
+      gstNumber: '27ABCDE1234F1Z5',
+      notes: 'Requested delivery after 5 PM.',
+      createdBy: ownerUser.id,
+      addresses: {
+        create: {
+          companyId: royalCompany.id,
+          type: 'HOME',
+          addressLine1: '123 Palm Avenue',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          postalCode: '400001',
+          country: 'India',
+          isDefault: true,
+        },
+      },
+      tags: {
+        create: { tagId: vipTag.id },
+      },
+    },
+  });
+
+  // 8. Seed Sample Suppliers
+  await (prisma as any).supplier.upsert({
+    where: { companyId_supplierCode: { companyId: royalCompany.id, supplierCode: 'SUP-000001' } },
+    update: {},
+    create: {
+      companyId: royalCompany.id,
+      supplierCode: 'SUP-000001',
+      name: 'Timber Wood Corp',
+      phone: '9123456789',
+      email: 'sales@timberwood.com',
+      gstNumber: '27XYZAB9876C1Z3',
+      notes: 'Supplier requested payment within 30 days.',
+      createdBy: ownerUser.id,
+      addresses: {
+        create: {
+          companyId: royalCompany.id,
+          type: 'WAREHOUSE',
+          addressLine1: '45 Timber Industrial Estate',
+          city: 'Pune',
+          state: 'Maharashtra',
+          postalCode: '411001',
+          country: 'India',
+          isDefault: true,
+        },
+      },
+      tags: {
+        create: { tagId: woodTag.id },
+      },
+    },
+  });
+
+  // 9. Create initial Audit Log
   await prisma.auditLog.create({
     data: {
       userId: adminUser.id,
@@ -119,7 +194,7 @@ async function main() {
       action: 'SYSTEM_SEED',
       entity: 'System',
       entityId: 'seed',
-      metadata: { note: 'Initial seed completed successfully' },
+      metadata: { note: 'Initial seed completed successfully with CRM data' },
       ipAddress: '127.0.0.1',
       userAgent: 'Prisma Seed Script',
     },
@@ -127,6 +202,7 @@ async function main() {
 
   console.log('🚀 Seeding finished successfully!');
 }
+
 
 main()
   .catch((e) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Navbar } from '../../../components/layout/Navbar';
 import { Sidebar } from '../../../components/layout/Sidebar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,13 +8,48 @@ import { inventoryService } from '../../../services/inventoryService';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Dialog } from '../../../components/ui/Dialog';
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
+import { Tooltip } from '../../../components/ui/Tooltip';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../components/ui/Table';
 import { Badge } from '../../../components/ui/Badge';
-import { Search, Plus, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Edit, Eye, ShieldAlert, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import {
+  Search, Plus, Filter, ArrowUpDown, ChevronLeft, ChevronRight,
+  Eye, Edit2, ShieldAlert, ShieldCheck, SlidersHorizontal,
+  Package, PackageSearch,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { stockAdjustmentSchema } from '@furniture-os/shared';
+import toast from '@/components/ui/Toast';
+
+// ─── Skeleton Row ──────────────────────────────────────────────────────────────
+function ProductSkeletonRow() {
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-md bg-muted/50 animate-pulse flex-shrink-0" />
+          <div className="h-4 w-36 rounded bg-muted/50 animate-pulse" />
+        </div>
+      </TableCell>
+      <TableCell><div className="h-4 w-24 rounded bg-muted/50 animate-pulse" /></TableCell>
+      <TableCell><div className="h-4 w-20 rounded bg-muted/50 animate-pulse" /></TableCell>
+      <TableCell><div className="h-4 w-20 rounded bg-muted/50 animate-pulse" /></TableCell>
+      <TableCell className="text-right"><div className="h-4 w-16 rounded bg-muted/50 animate-pulse ml-auto" /></TableCell>
+      <TableCell className="text-right"><div className="h-4 w-20 rounded bg-muted/50 animate-pulse ml-auto" /></TableCell>
+      <TableCell><div className="h-5 w-20 rounded-full bg-muted/50 animate-pulse" /></TableCell>
+      <TableCell>
+        <div className="flex items-center justify-end gap-2">
+          <div className="h-8 w-8 rounded-md bg-muted/50 animate-pulse" />
+          <div className="h-8 w-8 rounded-md bg-muted/50 animate-pulse" />
+          <div className="h-8 w-20 rounded-md bg-muted/50 animate-pulse" />
+          <div className="h-8 w-8 rounded-md bg-muted/50 animate-pulse" />
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export default function ProductsListPage() {
   const queryClient = useQueryClient();
@@ -27,23 +62,28 @@ export default function ProductsListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
 
-  // Quick Adjustment Dialog State
+  // Quick Adjust Dialog
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
   const [adjustProduct, setAdjustProduct] = useState<any>(null);
-  const [adjustSuccessMsg, setAdjustSuccessMsg] = useState('');
-  const [adjustErrorMsg, setAdjustErrorMsg] = useState('');
 
-  // Debouncing search
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1); // Reset page on search
+  // Toggle Active Confirm
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<any>(null);
+
+  // Debounce search
+  const searchTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearch(val);
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(val);
+      setPage(1);
     }, 400);
-    return () => clearTimeout(handler);
-  }, [search]);
+  }, []);
 
   // Query Products
-  const { data: prodData, isLoading, refetch } = useQuery({
+  const { data: prodData, isLoading } = useQuery({
     queryKey: ['products', debouncedSearch, filterType, categoryId, sortBy, sortOrder, page, limit],
     queryFn: () =>
       inventoryService.getProducts({
@@ -56,7 +96,6 @@ export default function ProductsListPage() {
         limit,
       }),
   });
-
   const products = (prodData as any)?.data || [];
   const pagination = (prodData as any)?.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 };
 
@@ -64,24 +103,35 @@ export default function ProductsListPage() {
   const { data: catData } = useQuery({
     queryKey: ['categories-active-filter'],
     queryFn: () => inventoryService.getCategories({ isActive: true }),
+    staleTime: 5 * 60 * 1000, // Cache for 5 min — category list rarely changes
   });
   const categories = catData?.categories || [];
 
-  // Deactivate Mutation
+  // ─── Mutations ────────────────────────────────────────────────────────────
   const deactivateMutation = useMutation({
     mutationFn: (id: string) => inventoryService.deactivateProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+      setConfirmOpen(false);
+      setConfirmTarget(null);
+      toast.success('Product deactivated successfully');
+    },
+    onError: (err: any) => {
+      setConfirmOpen(false);
+      toast.error(err.message || 'Failed to deactivate product.');
     },
   });
 
-  // Activate Mutation
   const activateMutation = useMutation({
     mutationFn: (id: string) => inventoryService.activateProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+      toast.success('Product reactivated successfully');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to reactivate product.');
     },
   });
 
@@ -102,162 +152,172 @@ export default function ProductsListPage() {
     },
   });
 
-  // Adjust Mutation
   const adjustMutation = useMutation({
     mutationFn: (payload: any) => inventoryService.adjustStock(payload),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
-      setAdjustSuccessMsg(`Stock updated successfully. New quantity: ${(res.updatedInventory as any).currentQuantity}`);
-      setTimeout(() => {
-        setIsAdjustOpen(false);
-        setAdjustSuccessMsg('');
-        reset();
-      }, 2000);
+      setIsAdjustOpen(false);
+      reset();
+      toast.success(
+        `Stock updated. New quantity: ${(res.updatedInventory as any).currentQuantity}`
+      );
     },
     onError: (err: any) => {
-      setAdjustErrorMsg(err.message || 'Unable to update stock. Please try again.');
+      toast.error(err.message || 'Unable to update stock. Please try again.');
     },
   });
 
-  const handleOpenAdjust = (product: any) => {
-    setAdjustProduct(product);
-    setAdjustErrorMsg('');
-    setAdjustSuccessMsg('');
-    reset({
-      productId: product.id,
-      type: 'IN',
-      quantity: 1,
-      reason: 'Physical stock correction',
-      notes: '',
-    });
-    setIsAdjustOpen(true);
-  };
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+  const handleOpenAdjust = useCallback(
+    (product: any) => {
+      setAdjustProduct(product);
+      reset({
+        productId: product.id,
+        type: 'IN',
+        quantity: 1,
+        reason: 'Physical stock correction',
+        notes: '',
+      });
+      setIsAdjustOpen(true);
+    },
+    [reset]
+  );
 
-  const onAdjustSubmit = (formData: any) => {
-    setAdjustErrorMsg('');
-    setAdjustSuccessMsg('');
-    adjustMutation.mutate(formData);
-  };
+  const handleCloseAdjust = useCallback(() => {
+    if (adjustMutation.isPending) return;
+    setIsAdjustOpen(false);
+    setAdjustProduct(null);
+    reset();
+  }, [adjustMutation.isPending, reset]);
 
-  const handleToggleActive = (product: any) => {
-    if (product.isActive) {
-      if (confirm(`Are you sure you want to deactivate product "${product.name}"?`)) {
-        deactivateMutation.mutate(product.id);
-      }
-    } else {
+  const onAdjustSubmit = useCallback(
+    (formData: any) => {
+      adjustMutation.mutate(formData);
+    },
+    [adjustMutation]
+  );
+
+  const handleDeactivateClick = useCallback((product: any) => {
+    setConfirmTarget(product);
+    setConfirmOpen(true);
+  }, []);
+
+  const handleConfirmDeactivate = useCallback(() => {
+    if (confirmTarget) deactivateMutation.mutate(confirmTarget.id);
+  }, [confirmTarget, deactivateMutation]);
+
+  const handleReactivate = useCallback(
+    (product: any) => {
       activateMutation.mutate(product.id);
-    }
-  };
+    },
+    [activateMutation]
+  );
 
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-    }
-    setPage(1);
-  };
+  const handleSort = useCallback(
+    (field: string) => {
+      setSortBy((prev) => {
+        if (prev === field) setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+        else setSortOrder('asc');
+        return field;
+      });
+      setPage(1);
+    },
+    []
+  );
 
-  const getStockStatusBadge = (product: any) => {
-    if (!product.isActive) {
-      return <Badge variant="danger">Inactive</Badge>;
-    }
-    if (product.currentStock <= 0) {
-      return <Badge variant="danger">Out of Stock</Badge>;
-    }
-    if (product.currentStock <= product.minimumStock) {
-      return <Badge variant="warning">Low Stock</Badge>;
-    }
+  const getStockStatusBadge = useCallback((product: any) => {
+    if (!product.isActive) return <Badge variant="danger">Inactive</Badge>;
+    if (product.currentStock <= 0) return <Badge variant="danger">Out of Stock</Badge>;
+    if (product.currentStock <= product.minimumStock) return <Badge variant="warning">Low Stock</Badge>;
     return <Badge variant="success">In Stock</Badge>;
-  };
+  }, []);
+
+  const FILTER_TABS = [
+    { label: 'All', val: 'ALL' },
+    { label: 'Furniture', val: 'FINISHED_PRODUCT' },
+    { label: 'Raw Materials', val: 'RAW_MATERIAL' },
+    { label: 'Low Stock', val: 'LOW_STOCK' },
+    { label: 'Out of Stock', val: 'OUT_OF_STOCK' },
+    { label: 'Inactive', val: 'INACTIVE' },
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <div className="flex flex-1">
         <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <main className="flex-1 p-6 lg:p-8 space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Products Database</h1>
-              <p className="text-sm text-muted-foreground">View and manage cataloged furniture items and raw materials.</p>
+              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                Products Database
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                View and manage cataloged furniture items and raw materials.
+              </p>
             </div>
             <Link href="/inventory/products/new">
-              <Button className="gap-2 bg-primary">
-                <Plus className="h-4 w-4" /> Add Product
+              <Button className="gap-2 self-start sm:self-auto">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add Product
               </Button>
             </Link>
           </div>
 
-          {/* Search, Filters, and Options panel */}
+          {/* Search & Filters */}
           <div className="bg-card/40 border border-border p-4 rounded-xl space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Search */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
                 <Input
-                  placeholder="Search by name, SKU..."
+                  placeholder="Search by name, SKU…"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={handleSearchChange}
                   className="pl-9 bg-background/50 border-border/80"
+                  aria-label="Search products"
                 />
               </div>
-
-              {/* Category Filter */}
               <select
                 value={categoryId}
-                onChange={(e) => {
-                  setCategoryId(e.target.value);
-                  setPage(1);
-                }}
-                className="h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/80"
+                onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}
+                className="h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Filter by category"
               >
                 <option value="">All Categories</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
+                {categories.map((cat: any) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
-
-              {/* Page size limit */}
               <select
                 value={limit}
-                onChange={(e) => {
-                  setLimit(parseInt(e.target.value));
-                  setPage(1);
-                }}
-                className="h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/80"
+                onChange={(e) => { setLimit(parseInt(e.target.value)); setPage(1); }}
+                className="h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Items per page"
               >
-                <option value={20}>20 products / page</option>
-                <option value={50}>50 products / page</option>
-                <option value={100}>100 products / page</option>
+                <option value={20}>20 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
               </select>
             </div>
 
-            {/* Filter tags buttons */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50 text-xs">
-              <span className="text-muted-foreground font-medium mr-2">Quick Filters:</span>
-              {[
-                { label: 'All', val: 'ALL' },
-                { label: 'Finished Furniture', val: 'FINISHED_PRODUCT' },
-                { label: 'Raw Materials', val: 'RAW_MATERIAL' },
-                { label: 'Low Stock', val: 'LOW_STOCK' },
-                { label: 'Out of Stock', val: 'OUT_OF_STOCK' },
-                { label: 'Inactive Catalog', val: 'INACTIVE' },
-              ].map((t) => (
+            {/* Filter pills */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+              <span className="text-xs text-muted-foreground font-medium mr-1 flex items-center gap-1">
+                <Filter className="h-3 w-3" aria-hidden="true" />
+                Filter:
+              </span>
+              {FILTER_TABS.map((t) => (
                 <button
                   key={t.val}
-                  onClick={() => {
-                    setFilterType(t.val);
-                    setPage(1);
-                  }}
-                  className={`px-3 py-1 rounded-full border transition-colors ${
+                  onClick={() => { setFilterType(t.val); setPage(1); }}
+                  className={`px-3 py-1 rounded-full text-xs border transition-colors ${
                     filterType === t.val
                       ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                       : 'bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground hover:bg-secondary'
                   }`}
+                  aria-pressed={filterType === t.val}
                 >
                   {t.label}
                 </button>
@@ -265,23 +325,47 @@ export default function ProductsListPage() {
             </div>
           </div>
 
-          {/* Table display */}
+          {/* Table */}
           {isLoading ? (
-            <div className="space-y-4 animate-pulse">
-              <div className="h-10 bg-card rounded-lg" />
-              <div className="h-20 bg-card rounded-lg" />
-              <div className="h-20 bg-card rounded-lg" />
+            <div className="rounded-xl border border-border bg-card/30 overflow-hidden shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead>Product</TableHead>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Stock Qty</TableHead>
+                    <TableHead className="text-right">Selling Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 8 }).map((_, i) => <ProductSkeletonRow key={i} />)}
+                </TableBody>
+              </Table>
             </div>
           ) : products.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/85 p-16 text-center">
-              <Plus className="mx-auto h-12 w-12 text-muted-foreground/60" />
-              <h3 className="mt-4 text-sm font-semibold text-foreground">No products found</h3>
-              <p className="mt-1 text-xs text-muted-foreground">Adjust filters or search parameters, or create a new cataloged SKU.</p>
-              <Link href="/inventory/products/new">
-                <Button className="mt-4 bg-primary text-xs" size="sm">
-                  + Add Product
-                </Button>
-              </Link>
+            // Empty State
+            <div className="rounded-2xl border border-dashed border-border/60 bg-card/20 p-16 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/60">
+                <PackageSearch className="h-8 w-8 text-muted-foreground/70" aria-hidden="true" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">No products found</h3>
+              <p className="mt-1.5 text-sm text-muted-foreground max-w-xs mx-auto">
+                {debouncedSearch || filterType !== 'ALL' || categoryId
+                  ? 'No products match your current filters. Try adjusting your search or filters.'
+                  : 'Start building your product catalog by adding your first product.'}
+              </p>
+              {!debouncedSearch && filterType === 'ALL' && !categoryId && (
+                <Link href="/inventory/products/new">
+                  <Button className="mt-6 gap-2">
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Add First Product
+                  </Button>
+                </Link>
+              )}
             </div>
           ) : (
             <>
@@ -289,26 +373,38 @@ export default function ProductsListPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30">
-                      <TableHead className="cursor-pointer hover:bg-muted/40" onClick={() => handleSort('name')}>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/40 transition-colors select-none"
+                        onClick={() => handleSort('name')}
+                      >
                         <span className="flex items-center gap-1.5">
-                          Product <ArrowUpDown className="h-3 w-3" />
+                          Product <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                         </span>
                       </TableHead>
-                      <TableHead className="cursor-pointer hover:bg-muted/40" onClick={() => handleSort('sku')}>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/40 transition-colors select-none"
+                        onClick={() => handleSort('sku')}
+                      >
                         <span className="flex items-center gap-1.5">
-                          SKU <ArrowUpDown className="h-3 w-3" />
+                          SKU <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                         </span>
                       </TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Category</TableHead>
-                      <TableHead className="cursor-pointer hover:bg-muted/40 text-right" onClick={() => handleSort('currentStock')}>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/40 transition-colors select-none text-right"
+                        onClick={() => handleSort('currentStock')}
+                      >
                         <span className="flex items-center justify-end gap-1.5">
-                          Stock Quantity <ArrowUpDown className="h-3 w-3" />
+                          Stock Qty <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                         </span>
                       </TableHead>
-                      <TableHead className="cursor-pointer hover:bg-muted/40 text-right" onClick={() => handleSort('sellingPrice')}>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/40 transition-colors select-none text-right"
+                        onClick={() => handleSort('sellingPrice')}
+                      >
                         <span className="flex items-center justify-end gap-1.5">
-                          Selling Price <ArrowUpDown className="h-3 w-3" />
+                          Price <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                         </span>
                       </TableHead>
                       <TableHead>Status</TableHead>
@@ -317,53 +413,120 @@ export default function ProductsListPage() {
                   </TableHeader>
                   <TableBody>
                     {products.map((product: any) => (
-                      <TableRow key={product.id} className="hover:bg-muted/20">
+                      <TableRow key={product.id} className="hover:bg-muted/20 transition-colors group">
+                        {/* Product Name + Image thumbnail */}
                         <TableCell>
-                          <div className="font-semibold text-foreground">{product.name}</div>
+                          <div className="flex items-center gap-3">
+                            {product.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={product.imageUrl}
+                                alt=""
+                                aria-hidden="true"
+                                className="h-9 w-9 rounded-md object-cover border border-border/40 flex-shrink-0 bg-muted/30"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="h-9 w-9 rounded-md bg-secondary/60 border border-border/30 flex items-center justify-center flex-shrink-0">
+                                <Package className="h-4 w-4 text-muted-foreground/50" aria-hidden="true" />
+                              </div>
+                            )}
+                            <span className="font-semibold text-foreground leading-tight">
+                              {product.name}
+                            </span>
+                          </div>
                         </TableCell>
-                        <TableCell className="font-mono text-xs uppercase tracking-tight">{product.sku}</TableCell>
+                        <TableCell>
+                          <code className="font-mono text-xs bg-secondary/60 px-2 py-0.5 rounded border border-border/40 text-muted-foreground uppercase">
+                            {product.sku}
+                          </code>
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {product.productType === 'FINISHED_PRODUCT' ? 'Finished Furniture' : 'Raw Material'}
+                          {product.productType === 'FINISHED_PRODUCT' ? 'Finished' : 'Raw Material'}
                         </TableCell>
                         <TableCell className="text-sm">{product.category?.name || 'N/A'}</TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {product.currentStock} <span className="text-xs font-normal text-muted-foreground">{product.unit?.shortCode}</span>
+                        <TableCell className="text-right font-semibold tabular-nums">
+                          {product.currentStock}{' '}
+                          <span className="text-xs font-normal text-muted-foreground">{product.unit?.shortCode}</span>
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm">
+                        <TableCell className="text-right font-mono text-sm tabular-nums">
                           ₹{product.sellingPrice.toLocaleString('en-IN')}
                         </TableCell>
                         <TableCell>{getStockStatusBadge(product)}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Link href={`/inventory/products/${product.id}`}>
-                              <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-border/80 hover:bg-secondary" title="View details">
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
-                            </Link>
-                            <Link href={`/inventory/products/${product.id}/edit`}>
-                              <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-border/80 hover:bg-secondary" title="Edit details">
-                                <Edit className="h-3.5 w-3.5" />
-                              </Button>
-                            </Link>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* View */}
+                            <Tooltip content="View details">
+                              <Link href={`/inventory/products/${product.id}`}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`View ${product.name}`}
+                                  className="hover:bg-primary/20 hover:text-primary transition-colors"
+                                >
+                                  <Eye className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
+
+                            {/* Edit */}
+                            <Tooltip content="Edit product">
+                              <Link href={`/inventory/products/${product.id}/edit`}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Edit ${product.name}`}
+                                  className="hover:bg-primary/20 hover:text-primary transition-colors"
+                                >
+                                  <Edit2 className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
+
+                            {/* Adjust Stock */}
                             {product.isActive && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenAdjust(product)}
-                                className="h-8 px-2 text-xs border-border/80 hover:bg-primary/10 hover:text-primary"
-                              >
-                                Adjust Stock
-                              </Button>
+                              <Tooltip content="Adjust stock">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenAdjust(product)}
+                                  aria-label={`Adjust stock for ${product.name}`}
+                                  className="h-8 px-2.5 text-xs hover:bg-primary/20 hover:text-primary transition-colors"
+                                >
+                                  <SlidersHorizontal className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                                  Adjust
+                                </Button>
+                              </Tooltip>
                             )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleToggleActive(product)}
-                              className={`h-8 w-8 p-0 border-border/80 text-red-500 hover:bg-red-500/10`}
-                              title={product.isActive ? 'Deactivate Product' : 'Reactivate Product'}
-                            >
-                              <ShieldAlert className="h-3.5 w-3.5" />
-                            </Button>
+
+                            {/* Deactivate / Reactivate */}
+                            {product.isActive ? (
+                              <Tooltip content="Deactivate product">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeactivateClick(product)}
+                                  aria-label={`Deactivate ${product.name}`}
+                                  className="text-destructive hover:bg-destructive/15 transition-colors"
+                                  isLoading={deactivateMutation.isPending && confirmTarget?.id === product.id}
+                                >
+                                  <ShieldAlert className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip content="Reactivate product">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleReactivate(product)}
+                                  aria-label={`Reactivate ${product.name}`}
+                                  className="text-emerald-500 hover:bg-emerald-500/15 transition-colors"
+                                  isLoading={activateMutation.isPending}
+                                >
+                                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </Tooltip>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -374,16 +537,25 @@ export default function ProductsListPage() {
 
               {/* Pagination */}
               {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center justify-between pt-2">
                   <span className="text-xs text-muted-foreground">
-                    Showing {(page - 1) * limit + 1} - {Math.min(page * limit, pagination.total)} of {pagination.total} products
+                    Showing {(page - 1) * limit + 1}–{Math.min(page * limit, pagination.total)} of{' '}
+                    {pagination.total} products
                   </span>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page === 1} className="border-border/80">
-                      <ChevronLeft className="h-4 w-4" /> Previous
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                      disabled={page === 1}
+                      className="border-border/80"
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                      Previous
                     </Button>
-                    <span className="text-xs font-semibold">
-                      Page {page} of {pagination.totalPages}
+                    <span className="text-xs font-semibold tabular-nums">
+                      {page} / {pagination.totalPages}
                     </span>
                     <Button
                       variant="outline"
@@ -391,8 +563,9 @@ export default function ProductsListPage() {
                       onClick={() => setPage((p) => Math.min(p + 1, pagination.totalPages))}
                       disabled={page === pagination.totalPages}
                       className="border-border/80"
+                      aria-label="Next page"
                     >
-                      Next <ChevronRight className="h-4 w-4" />
+                      Next <ChevronRight className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
@@ -400,101 +573,128 @@ export default function ProductsListPage() {
             </>
           )}
 
-          {/* Quick Adjustment dialog modal */}
+          {/* ─── Quick Stock Adjustment Dialog ─────────────────────────────────── */}
           <Dialog
             isOpen={isAdjustOpen}
-            onClose={() => setIsAdjustOpen(false)}
+            onClose={handleCloseAdjust}
+            loading={adjustMutation.isPending}
             title={`Adjust Stock — ${adjustProduct?.name}`}
             description="Perform a manual addition or subtraction of items in storage."
           >
-            {adjustSuccessMsg ? (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
-                <p className="text-sm text-emerald-500 font-semibold">{adjustSuccessMsg}</p>
+            <form onSubmit={handleSubmit(onAdjustSubmit)} className="space-y-4" noValidate>
+              {/* Product info panel */}
+              <div className="rounded-xl bg-secondary/30 p-3 text-xs border border-border/40 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">SKU</span>
+                  <code className="font-mono text-foreground font-semibold">{adjustProduct?.sku}</code>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current Stock</span>
+                  <span className="font-semibold text-foreground">
+                    {adjustProduct?.currentStock} {adjustProduct?.unit?.shortCode}
+                  </span>
+                </div>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit(onAdjustSubmit)} className="space-y-4">
-                {adjustErrorMsg && (
-                  <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-xs text-red-500 font-medium">
-                    {adjustErrorMsg}
-                  </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="adj-type" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Operation
+                </label>
+                <select
+                  id="adj-type"
+                  {...register('type')}
+                  className="w-full h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="IN">Add Stock (+)</option>
+                  <option value="OUT">Remove Stock (−)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="adj-qty" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Quantity
+                </label>
+                <Input
+                  id="adj-qty"
+                  type="number"
+                  step="any"
+                  {...register('quantity', { valueAsNumber: true })}
+                  placeholder="e.g. 5"
+                  className="bg-background border-border/80"
+                />
+                {errors.quantity && (
+                  <p role="alert" className="text-xs text-destructive">{errors.quantity.message}</p>
                 )}
+              </div>
 
-                <div className="rounded-xl bg-secondary/30 p-3 text-xs border border-border/40">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-muted-foreground">SKU:</span>
-                    <span className="font-mono text-foreground font-semibold">{adjustProduct?.sku}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Current Quantity in Warehouse:</span>
-                    <span className="font-semibold text-foreground">
-                      {adjustProduct?.currentStock} {adjustProduct?.unit?.shortCode}
-                    </span>
-                  </div>
-                </div>
+              <div className="space-y-1.5">
+                <label htmlFor="adj-reason" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Reason
+                </label>
+                <select
+                  id="adj-reason"
+                  {...register('reason')}
+                  className="w-full h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="Physical stock correction">Physical stock correction</option>
+                  <option value="Initial Opening Stock">Initial Opening Stock</option>
+                  <option value="Damage">Damage</option>
+                  <option value="Lost">Lost</option>
+                  <option value="Initial Import">Initial Import</option>
+                </select>
+                {errors.reason && (
+                  <p role="alert" className="text-xs text-destructive">{errors.reason.message}</p>
+                )}
+              </div>
 
-                {/* Adjustment Mode */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Operation Mode</label>
-                  <select
-                    {...register('type')}
-                    className="w-full h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/80"
-                  >
-                    <option value="IN">Add Stock (+)</option>
-                    <option value="OUT">Remove Stock (-)</option>
-                  </select>
-                </div>
+              <div className="space-y-1.5">
+                <label htmlFor="adj-notes" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Notes <span className="text-muted-foreground/60 normal-case font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  id="adj-notes"
+                  {...register('notes')}
+                  placeholder="e.g. Items found in storage room C"
+                  rows={2}
+                  className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 text-foreground placeholder-muted-foreground/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                />
+              </div>
 
-                {/* Quantity */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quantity</label>
-                  <Input
-                    type="number"
-                    step="any"
-                    {...register('quantity', { valueAsNumber: true })}
-                    placeholder="e.g. 5"
-                    className="bg-background border-border/80"
-                  />
-                  {errors.quantity && <p className="text-xs text-red-500 mt-1">{errors.quantity.message}</p>}
-                </div>
-
-                {/* Reason */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Adjustment Reason</label>
-                  <select
-                    {...register('reason')}
-                    className="w-full h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/80"
-                  >
-                    <option value="Physical stock correction">Physical stock correction</option>
-                    <option value="Initial Opening Stock">Initial Opening Stock</option>
-                    <option value="Damage">Damage</option>
-                    <option value="Lost">Lost</option>
-                    <option value="Initial Import">Initial Import</option>
-                  </select>
-                  {errors.reason && <p className="text-xs text-red-500 mt-1">{errors.reason.message}</p>}
-                </div>
-
-                {/* Notes */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes (Optional)</label>
-                  <textarea
-                    {...register('notes')}
-                    placeholder="e.g. Items found in storage room C"
-                    rows={2}
-                    className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/80"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setIsAdjustOpen(false)} className="border-border/85">
-                    Cancel
-                  </Button>
-                  <Button type="submit" size="sm" className="bg-primary text-primary-foreground" disabled={adjustMutation.isPending}>
-                    {adjustMutation.isPending ? 'Processing...' : 'Save adjustment'}
-                  </Button>
-                </div>
-              </form>
-            )}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCloseAdjust}
+                  disabled={adjustMutation.isPending}
+                  className="border-border/85"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={adjustMutation.isPending}
+                  isLoading={adjustMutation.isPending}
+                  className="min-w-[120px]"
+                >
+                  {adjustMutation.isPending ? 'Processing…' : 'Save Adjustment'}
+                </Button>
+              </div>
+            </form>
           </Dialog>
+
+          {/* Deactivate Confirm */}
+          <ConfirmDialog
+            isOpen={confirmOpen}
+            onClose={() => { setConfirmOpen(false); setConfirmTarget(null); }}
+            onConfirm={handleConfirmDeactivate}
+            title="Deactivate Product?"
+            description={`"${confirmTarget?.name}" will be hidden from active inventory. Stock data and history will be preserved.`}
+            confirmLabel="Deactivate"
+            confirmingLabel="Deactivating…"
+            isLoading={deactivateMutation.isPending}
+          />
         </main>
       </div>
     </div>

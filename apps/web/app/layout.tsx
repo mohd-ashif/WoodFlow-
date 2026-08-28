@@ -2,6 +2,7 @@ import './globals.css';
 import React from 'react';
 import QueryProvider from '../components/providers/QueryProvider';
 import { AuthProvider } from '../components/providers/AuthProvider';
+import { ToastProvider } from '../components/ui/Toast';
 
 export const metadata = {
   title: 'FurnitureOS - Multi-Tenant Furniture Management SaaS',
@@ -13,7 +14,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="dark">
       <body className="bg-background text-foreground min-h-screen font-sans antialiased">
         <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {/* ToastProvider wraps the entire app and renders the toast viewport */}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>
