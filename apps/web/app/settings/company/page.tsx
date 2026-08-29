@@ -6,8 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { updateCompanySchema, UpdateCompanyInput } from '@furniture-os/shared';
 import { companyService } from '../../../services/companyService';
-import { Navbar } from '../../../components/layout/Navbar';
-import { Sidebar } from '../../../components/layout/Sidebar';
+import { AppShell } from '../../../components/layout/AppShell';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
@@ -69,11 +68,8 @@ export default function CompanySettingsPage() {
   const company = data?.company;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-6 max-w-4xl">
+    <AppShell>
+      <div className="max-w-4xl space-y-6">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Company Settings</h2>
             <p className="text-sm text-muted-foreground">Manage your furniture business profile and billing details.</p>
@@ -135,8 +131,7 @@ export default function CompanySettingsPage() {
               </CardContent>
             </Card>
           )}
-        </main>
       </div>
-    </div>
+    </AppShell>
   );
 }

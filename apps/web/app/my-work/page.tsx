@@ -3,8 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { workOrderService } from '../../services/workOrderService';
-import { Navbar } from '../../components/layout/Navbar';
-import { Sidebar } from '../../components/layout/Sidebar';
+import { AppShell } from '../../components/layout/AppShell';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -22,11 +21,8 @@ export default function MyWorkDashboardPage() {
     : (woData as any)?.workOrders || [];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-8 space-y-6 max-w-4xl mx-auto">
+    <AppShell>
+      <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">My Work Today</h2>
             <p className="text-sm text-muted-foreground">
@@ -106,8 +102,7 @@ export default function MyWorkDashboardPage() {
               ))}
             </div>
           )}
-        </main>
       </div>
-    </div>
+    </AppShell>
   );
 }

@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Navbar } from '../../components/layout/Navbar';
-import { Sidebar } from '../../components/layout/Sidebar';
+import { AppShell } from '../../components/layout/AppShell';
 import { useAuth } from '../../components/providers/AuthProvider';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -31,12 +30,8 @@ export default function TenantDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-8">
-          {/* Welcome Banner */}
+    <AppShell>
+      {/* Welcome Banner */}
           <div className="rounded-2xl border border-border/80 bg-gradient-to-r from-primary/10 via-secondary/40 to-background p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
@@ -101,8 +96,6 @@ export default function TenantDashboardPage() {
               })}
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+    </AppShell>
   );
 }

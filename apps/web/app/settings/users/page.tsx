@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companyService } from '../../../services/companyService';
-import { Navbar } from '../../../components/layout/Navbar';
-import { Sidebar } from '../../../components/layout/Sidebar';
+import { AppShell } from '../../../components/layout/AppShell';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
@@ -95,11 +94,8 @@ export default function CompanyUsersPage() {
   const roleOptions: CompanyRole[] = ['OWNER', 'MEMBER'];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
+    <AppShell>
+      <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-foreground">User Management</h2>
@@ -222,7 +218,6 @@ export default function CompanyUsersPage() {
               </TableBody>
             </Table>
           )}
-        </main>
       </div>
 
       <Dialog
@@ -311,6 +306,6 @@ export default function CompanyUsersPage() {
           </div>
         </form>
       </Dialog>
-    </div>
+    </AppShell>
   );
 }

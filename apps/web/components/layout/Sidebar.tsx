@@ -22,15 +22,15 @@ import {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  if (!user) return null;
+  if (!user && !isLoading) return null;
 
-  const isPlatformAdmin = user.isPlatformAdmin;
+  const isPlatformAdmin = user ? Boolean(user.isPlatformAdmin) : false;
 
   return (
-    <aside className="w-64 border-r border-border bg-card/40 flex flex-col justify-between p-4 min-h-[calc(100vh-4rem)]">
-      <div className="space-y-6">
+    <aside className="w-64 shrink-0 h-full border-r border-border bg-card/40 flex flex-col justify-between overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-6">
         {isPlatformAdmin ? (
           <>
             <div>
@@ -295,7 +295,7 @@ export function Sidebar() {
             </div>
 
 
-            {user.activeMembership?.role === 'OWNER' && (
+            {(user ? user.activeMembership?.role === 'OWNER' : false) && (
               <div>
                 <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Company
@@ -330,14 +330,16 @@ export function Sidebar() {
         )}
       </div>
 
-      <div className="rounded-xl border border-border/60 bg-secondary/20 p-3 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground flex items-center gap-1.5">
-          <HelpCircle className="h-3.5 w-3.5 text-primary" />
-          FurnitureOS v1.5
-        </p>
-        <p className="mt-1 text-[11px] text-muted-foreground/80">
-          Admin & Client Access Management
-        </p>
+      <div className="p-4 shrink-0 border-t border-border/40">
+        <div className="rounded-xl border border-border/60 bg-secondary/20 p-3 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground flex items-center gap-1.5">
+            <HelpCircle className="h-3.5 w-3.5 text-primary" />
+            FurnitureOS v1.5
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground/80">
+            Admin & Client Access Management
+          </p>
+        </div>
       </div>
     </aside>
   );

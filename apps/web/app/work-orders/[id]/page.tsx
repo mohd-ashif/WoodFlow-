@@ -5,8 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workOrderService } from '../../../services/workOrderService';
 import { workerService } from '../../../services/workerService';
 import { inventoryService } from '../../../services/inventoryService';
-import { Navbar } from '../../../components/layout/Navbar';
-import { Sidebar } from '../../../components/layout/Sidebar';
+import { AppShell } from '../../../components/layout/AppShell';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
@@ -139,38 +138,27 @@ export default function WorkOrderDetailPage({ params }: { params: { id: string }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-8 flex items-center justify-center text-muted-foreground gap-2">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span>Loading Work Order Details...</span>
-          </main>
+      <AppShell>
+        <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span>Loading Work Order Details...</span>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!wo) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-8 text-center text-muted-foreground">Work Order not found.</main>
-        </div>
-      </div>
+      <AppShell>
+        <div className="py-24 text-center text-muted-foreground">Work Order not found.</div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
-          <div className="flex items-center gap-4">
+    <AppShell>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
             <Link href="/work-orders">
               <Button variant="outline" size="sm" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
@@ -518,8 +506,7 @@ export default function WorkOrderDetailPage({ params }: { params: { id: string }
               </Card>
             </div>
           </div>
-        </main>
       </div>
-    </div>
+    </AppShell>
   );
 }

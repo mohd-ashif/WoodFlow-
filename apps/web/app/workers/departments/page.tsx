@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workerService } from '../../../services/workerService';
-import { Navbar } from '../../../components/layout/Navbar';
-import { Sidebar } from '../../../components/layout/Sidebar';
+import { AppShell } from '../../../components/layout/AppShell';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
@@ -46,11 +45,8 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
+    <AppShell>
+      <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Link href="/workers">
               <Button variant="outline" size="sm" className="gap-2">
@@ -160,8 +156,7 @@ export default function DepartmentsPage() {
               </TableBody>
             </Table>
           </Card>
-        </main>
       </div>
-    </div>
+    </AppShell>
   );
 }

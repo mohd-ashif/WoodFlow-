@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { workOrderService } from '../../services/workOrderService';
-import { Navbar } from '../../components/layout/Navbar';
-import { Sidebar } from '../../components/layout/Sidebar';
+import { AppShell } from '../../components/layout/AppShell';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -37,12 +36,8 @@ export default function WorkOrdersListPage() {
   const pagination = (woData as any)?.pagination;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+    <AppShell>
+      <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-foreground">Work Orders Directory</h2>
               <p className="text-sm text-muted-foreground">
@@ -137,7 +132,7 @@ export default function WorkOrdersListPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  workOrders.map((wo) => (
+                  workOrders.map((wo: any) => (
                     <TableRow key={wo.id}>
                       <TableCell>
                         <div className="space-y-0.5">
@@ -148,7 +143,7 @@ export default function WorkOrdersListPage() {
                             </Badge>
                           </div>
                           <p className="text-[11px] text-muted-foreground truncate max-w-xs">
-                            {wo.items?.map((i) => i.productNameSnapshot || i.customProductName).join(', ')}
+                            {wo.items?.map((i: any) => i.productNameSnapshot || i.customProductName).join(', ')}
                           </p>
                         </div>
                       </TableCell>
@@ -225,8 +220,6 @@ export default function WorkOrdersListPage() {
               </TableBody>
             </Table>
           </Card>
-        </main>
-      </div>
-    </div>
+    </AppShell>
   );
 }

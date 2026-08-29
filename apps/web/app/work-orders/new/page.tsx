@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation';
 import { workOrderService } from '../../../services/workOrderService';
 import { crmService } from '../../../services/crmService';
 import { inventoryService } from '../../../services/inventoryService';
-import { Navbar } from '../../../components/layout/Navbar';
-import { Sidebar } from '../../../components/layout/Sidebar';
+import { AppShell } from '../../../components/layout/AppShell';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -106,11 +105,8 @@ export default function CreateWorkOrderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-6 max-w-4xl">
+    <AppShell>
+      <div className="max-w-4xl space-y-6">
           <div className="flex items-center gap-4">
             <Link href="/work-orders">
               <Button variant="outline" size="sm" className="gap-2">
@@ -307,8 +303,7 @@ export default function CreateWorkOrderPage() {
               </Button>
             </div>
           </form>
-        </main>
       </div>
-    </div>
+    </AppShell>
   );
 }

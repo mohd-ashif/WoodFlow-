@@ -24,10 +24,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUser = async () => {
     try {
-      const timer = setTimeout(() => setIsLoading(false), 2000);
       const data = await authService.me();
-      clearTimeout(timer);
       setUser(data.user);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cached_user', JSON.stringify(data.user));
+      }
       
       // Redirect if company is suspended
       if (data.user && !data.user.isPlatformAdmin && data.user.activeMembership?.company?.status === 'SUSPENDED') {
@@ -37,18 +38,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {
       setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('cached_user');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('cached_user');
+        if (cached) {
+          setUser(JSON.parse(cached));
+        }
+      } catch {}
+    }
     fetchUser();
   }, []);
 
   const login = async (data: Parameters<typeof authService.login>[0]) => {
     const res = await authService.login(data);
     setUser(res.user);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cached_user', JSON.stringify(res.user));
+    }
     
     // Redirect logic according to Requirement Section 16 & company suspension status
     if (res.user.isPlatformAdmin) {
@@ -67,12 +82,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (data: Parameters<typeof authService.register>[0]) => {
     const res = await authService.register(data);
     setUser(res.user);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cached_user', JSON.stringify(res.user));
+    }
     router.push('/access-request');
   };
 
   const logout = async () => {
     await authService.logout();
     setUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('cached_user');
+    }
     router.push('/login');
   };
 

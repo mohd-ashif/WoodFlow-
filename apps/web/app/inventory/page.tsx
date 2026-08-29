@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Navbar } from '../../components/layout/Navbar';
-import { Sidebar } from '../../components/layout/Sidebar';
+import { AppShell } from '../../components/layout/AppShell';
 import { useQuery } from '@tanstack/react-query';
 import { inventoryService } from '../../services/inventoryService';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
@@ -34,11 +33,8 @@ export default function InventoryDashboardPage() {
   }).format(stats?.estimatedInventoryValue || 0);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-8">
+    <AppShell>
+      <div className="space-y-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">Inventory Overview</h1>
@@ -198,8 +194,7 @@ export default function InventoryDashboardPage() {
               ) : null}
             </>
           )}
-        </main>
       </div>
-    </div>
+    </AppShell>
   );
 }
