@@ -321,4 +321,161 @@ export interface CRMDashboardStats {
   newSuppliersThisMonth: number;
 }
 
+export type WorkerStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED';
+export type EmploymentType = 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'DAILY_WAGE';
+export type DepartmentStatus = 'ACTIVE' | 'INACTIVE';
+export type WorkOrderSourceType = 'SALES_ORDER' | 'MANUAL' | 'INTERNAL';
+export type WorkOrderPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+export type WorkOrderStatus = 'DRAFT' | 'PLANNED' | 'IN_PROGRESS' | 'ON_HOLD' | 'QUALITY_CHECK' | 'COMPLETED' | 'CANCELLED';
+export type TaskStage = 'MATERIAL_PREPARATION' | 'CUTTING' | 'CARPENTRY' | 'ASSEMBLY' | 'SANDING' | 'PAINTING' | 'POLISHING' | 'UPHOLSTERY' | 'QUALITY_CHECK' | 'PACKAGING' | 'OTHER';
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED';
+export type MaterialStatus = 'PLANNED' | 'PARTIALLY_ISSUED' | 'ISSUED' | 'RETURNED';
+export type QualityStatus = 'PENDING' | 'PASSED' | 'FAILED';
+export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'HALF_DAY' | 'LEAVE';
+
+export interface DepartmentSummary {
+  id: string;
+  companyId: string;
+  name: string;
+  description?: string | null;
+  status: DepartmentStatus;
+  createdAt: string;
+  _count?: {
+    workers: number;
+  };
+}
+
+export interface WorkerSummary {
+  id: string;
+  companyId: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  departmentId?: string | null;
+  department?: DepartmentSummary | null;
+  employmentType: EmploymentType;
+  joiningDate?: string | null;
+  dailyWage?: number | null;
+  monthlySalary?: number | null;
+  status: WorkerStatus;
+  notes?: string | null;
+  createdAt: string;
+  skills?: { id: string; skillName: string }[];
+}
+
+export interface WorkOrderItemSummary {
+  id: string;
+  workOrderId: string;
+  productId?: string | null;
+  productNameSnapshot: string;
+  customProductName?: string | null;
+  dimensions?: string | null;
+  specifications?: string | null;
+  quantity: number;
+  completedQuantity: number;
+  estimatedUnitCost: number;
+  actualUnitCost: number;
+  notes?: string | null;
+}
+
+export interface ProductionTaskAssignmentSummary {
+  id: string;
+  productionTaskId: string;
+  workerId: string;
+  assignedAt: string;
+  assignedBy?: string | null;
+  status: string;
+  worker?: WorkerSummary;
+}
+
+export interface ProductionTaskSummary {
+  id: string;
+  companyId: string;
+  workOrderId: string;
+  title: string;
+  description?: string | null;
+  stage: TaskStage;
+  status: TaskStatus;
+  priority: WorkOrderPriority;
+  estimatedHours?: number | null;
+  actualHours?: number | null;
+  startTime?: string | null;
+  completedTime?: string | null;
+  assignments?: ProductionTaskAssignmentSummary[];
+}
+
+export interface WorkOrderMaterialSummary {
+  id: string;
+  companyId: string;
+  workOrderId: string;
+  productId: string;
+  plannedQuantity: number;
+  issuedQuantity: number;
+  consumedQuantity: number;
+  returnedQuantity: number;
+  unitCost: number;
+  status: MaterialStatus;
+  product?: {
+    id: string;
+    name: string;
+    sku: string;
+    currentStock: number;
+  };
+}
+
+export interface QualityCheckSummary {
+  id: string;
+  companyId: string;
+  workOrderId: string;
+  status: QualityStatus;
+  checkedBy?: string | null;
+  checkedAt?: string | null;
+  notes?: string | null;
+  issuesFound?: string | null;
+}
+
+export interface WorkOrderSummary {
+  id: string;
+  companyId: string;
+  workOrderNumber: string;
+  sourceType: WorkOrderSourceType;
+  sourceId?: string | null;
+  customerId?: string | null;
+  customer?: {
+    id: string;
+    name: string;
+    customerCode: string;
+    phone: string;
+  } | null;
+  title: string;
+  description?: string | null;
+  priority: WorkOrderPriority;
+  status: WorkOrderStatus;
+  startDate?: string | null;
+  dueDate?: string | null;
+  completedDate?: string | null;
+  estimatedCost: number;
+  actualCost: number;
+  progressPercentage?: number;
+  items?: WorkOrderItemSummary[];
+  tasks?: ProductionTaskSummary[];
+  materials?: WorkOrderMaterialSummary[];
+  qualityChecks?: QualityCheckSummary[];
+  createdAt: string;
+}
+
+export interface ProductionDashboardStats {
+  totalWorkOrders: number;
+  draftWorkOrders: number;
+  plannedWorkOrders: number;
+  inProgressWorkOrders: number;
+  qualityCheckWorkOrders: number;
+  completedWorkOrders: number;
+  overdueWorkOrders: number;
+  activeWorkersToday: number;
+}
+
 

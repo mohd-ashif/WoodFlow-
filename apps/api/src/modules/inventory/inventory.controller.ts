@@ -121,3 +121,18 @@ export async function adjustStock(req: Request, res: Response, next: NextFunctio
     next(error);
   }
 }
+
+export async function reconcileInventory(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const report = await service.reconcileInventory(companyId);
+
+    res.status(200).json({
+      success: true,
+      data: report,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+

@@ -294,3 +294,90 @@ export async function adjustStock(companyId: string, input: StockAdjustmentInput
 
   return result;
 }
+
+export async function reconcileInventory(companyId: string) {
+  const products = await prisma.product.findMany({
+    where: { companyId, isActive: true },
+    include: {
+      inventory: true,
+      category: { select: { name: true } },
+      unit: { select: { name: true, shortCode: true } },
+    },
+    orderBy: { name: 'asc' },
+  });
+
+  const movements = await prisma.stockMovement.findMany({
+    where: { companyId },
+    select: {
+      productId: true,
+      movementType: true,
+      quantity: true,
+    },
+  });
+
+  // Group movements by productId
+  const movementsByProduct: Record<string, typeof movements> = {};
+  movements.forEach((m) => {
+    if (!movementsByProduct[m.productId]) {
+      movementsByProduct[m.productId] = [];
+    }
+    movementsByProduct[m.productId].push(m);
+  });
+
+  const results = products.map((product: any) => {
+    const productMovements = movementsByProduct[product.id] || [];
+    let calculatedStock = 0;
+
+    productMovements.forEach((m) => {
+      const type = String(m.movementType);
+      if (
+        type === 'OPENING_STOCK' ||
+        type === 'PURCHASE' ||
+        type === 'SALE_RETURN' ||
+        type === 'STOCK_ADJUSTMENT_IN' ||
+        type === 'PRODUCTION_OUTPUT' ||
+        type === 'PRODUCTION_RETURN'
+      ) {
+        calculatedStock += m.quantity;
+      } else if (
+        type === 'SALE' ||
+        type === 'PURCHASE_RETURN' ||
+        type === 'STOCK_ADJUSTMENT_OUT' ||
+        type === 'PRODUCTION_ISSUE'
+      ) {
+        calculatedStock -= m.quantity;
+      }
+    });
+
+    const storedStock = product.currentStock;
+    const isMatch = Math.abs(storedStock - calculatedStock) < 0.0001;
+
+    return {
+      productId: product.id,
+      name: product.name,
+      sku: product.sku,
+      category: product.category?.name || 'Uncategorized',
+      unit: product.unit?.shortCode || 'pcs',
+      storedStock,
+      calculatedStock,
+      status: isMatch ? 'MATCH' : 'MISMATCH',
+      discrepancy: storedStock - calculatedStock,
+      totalMovementsCount: productMovements.length,
+    };
+  });
+
+  const totalProductsCount = results.length;
+  const matchCount = results.filter((r) => r.status === 'MATCH').length;
+  const mismatchCount = results.filter((r) => r.status === 'MISMATCH').length;
+
+  return {
+    summary: {
+      totalProductsCount,
+      matchCount,
+      mismatchCount,
+      isHealthy: mismatchCount === 0,
+    },
+    details: results,
+  };
+}
+

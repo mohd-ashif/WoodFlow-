@@ -62,6 +62,9 @@ enum StockMovementType {
   PURCHASE_RETURN
   PRODUCTION_IN
   MATERIAL_CONSUMPTION
+  PRODUCTION_ISSUE
+  PRODUCTION_RETURN
+  PRODUCTION_OUTPUT
 }
 
 model User {
@@ -88,6 +91,7 @@ model User {
   crmActivities    CRMActivity[]
   salesCreated     Sale[]          @relation("SaleCreatedBy")
   purchasesCreated Purchase[]      @relation("PurchaseCreatedBy")
+  workOrdersCreated WorkOrder[]    @relation("WorkOrderCreatedBy")
 
   @@map("users")
 }
@@ -128,6 +132,12 @@ model Company {
   sales             Sale[]
   invoices          Invoice[]
   purchases         Purchase[]
+  departments       Department[]
+  workers           Worker[]
+  workOrders        WorkOrder[]
+  workOrderMaterials WorkOrderMaterial[]
+  qualityChecks     QualityCheck[]
+  workerAttendances WorkerAttendance[]
 
   @@map("companies")
 }
@@ -215,6 +225,8 @@ model Product {
   movements StockMovement[]
   saleItems SaleItem[]
   purchaseItems PurchaseItem[]
+  workOrderItems WorkOrderItem[]
+  workOrderMaterials WorkOrderMaterial[]
 
   @@unique([companyId, sku])
   @@index([companyId])
@@ -375,6 +387,7 @@ model Customer {
   tags      CustomerTag[]
   sales     Sale[]
   invoices  Invoice[]
+  workOrders WorkOrder[]
 
   @@unique([companyId, customerCode])
   @@index([companyId])
@@ -745,6 +758,322 @@ model PurchaseItem {
   @@index([purchaseId])
   @@index([productId])
   @@map("purchase_items")
+}
+
+// PHASE 6 — WORKERS, WORK ORDERS & FURNITURE PRODUCTION ENUMS & MODELS
+
+enum WorkerStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  DAILY_WAGE
+}
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum WorkOrderSourceType {
+  SALES_ORDER
+  MANUAL
+  INTERNAL
+}
+
+enum WorkOrderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum WorkOrderStatus {
+  DRAFT
+  PLANNED
+  IN_PROGRESS
+  ON_HOLD
+  QUALITY_CHECK
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStage {
+  MATERIAL_PREPARATION
+  CUTTING
+  CARPENTRY
+  ASSEMBLY
+  SANDING
+  PAINTING
+  POLISHING
+  UPHOLSTERY
+  QUALITY_CHECK
+  PACKAGING
+  OTHER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+}
+
+enum MaterialStatus {
+  PLANNED
+  PARTIALLY_ISSUED
+  ISSUED
+  RETURNED
+}
+
+enum QualityStatus {
+  PENDING
+  PASSED
+  FAILED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  LEAVE
+}
+
+model Department {
+  id          String           @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  status      DepartmentStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workers Worker[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("departments")
+}
+
+model Worker {
+  id             String         @id @default(cuid())
+  companyId      String
+  employeeCode   String
+  firstName      String
+  lastName       String
+  phone          String?
+  email          String?
+  address        String?
+  departmentId   String?
+  employmentType EmploymentType @default(FULL_TIME)
+  joiningDate    DateTime?
+  dailyWage      Float?
+  monthlySalary  Float?
+  status         WorkerStatus   @default(ACTIVE)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  company     Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department  Department?                @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  skills      WorkerSkill[]
+  assignments ProductionTaskAssignment[]
+  attendance  WorkerAttendance[]
+
+  @@unique([companyId, employeeCode])
+  @@index([companyId])
+  @@index([companyId, status])
+  @@index([companyId, departmentId])
+  @@map("workers")
+}
+
+model WorkerSkill {
+  id        String   @id @default(cuid())
+  workerId  String
+  skillName String
+  createdAt DateTime @default(now())
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, skillName])
+  @@index([workerId])
+  @@map("worker_skills")
+}
+
+model WorkOrder {
+  id              String              @id @default(cuid())
+  companyId       String
+  workOrderNumber String
+  sourceType      WorkOrderSourceType @default(MANUAL)
+  sourceId        String?
+  customerId      String?
+  title           String
+  description     String?
+  priority        WorkOrderPriority   @default(MEDIUM)
+  status          WorkOrderStatus     @default(DRAFT)
+  startDate       DateTime?
+  dueDate         DateTime?
+  completedDate   DateTime?
+  estimatedCost   Float               @default(0)
+  actualCost      Float               @default(0)
+  createdBy       String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  company       Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  creator       User?               @relation("WorkOrderCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  items         WorkOrderItem[]
+  tasks         ProductionTask[]
+  materials     WorkOrderMaterial[]
+  qualityChecks QualityCheck[]
+
+  @@unique([companyId, workOrderNumber])
+  @@index([companyId])
+  @@index([companyId, status])
+  @@index([companyId, priority])
+  @@index([companyId, customerId])
+  @@map("work_orders")
+}
+
+model WorkOrderItem {
+  id                  String   @id @default(cuid())
+  workOrderId         String
+  productId           String?
+  productNameSnapshot String
+  customProductName   String?
+  dimensions          String?
+  specifications      String?
+  quantity            Float    @default(1)
+  completedQuantity   Float    @default(0)
+  estimatedUnitCost   Float    @default(0)
+  actualUnitCost      Float    @default(0)
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([workOrderId])
+  @@index([productId])
+  @@map("work_order_items")
+}
+
+model ProductionTask {
+  id             String            @id @default(cuid())
+  companyId      String
+  workOrderId    String
+  title          String
+  description    String?
+  stage          TaskStage         @default(CARPENTRY)
+  status         TaskStatus        @default(TODO)
+  priority       WorkOrderPriority @default(MEDIUM)
+  estimatedHours Float?
+  actualHours    Float?
+  startTime      DateTime?
+  completedTime  DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  workOrder   WorkOrder                  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  assignments ProductionTaskAssignment[]
+
+  @@index([companyId])
+  @@index([workOrderId])
+  @@index([companyId, status])
+  @@map("production_tasks")
+}
+
+model ProductionTaskAssignment {
+  id               String   @id @default(cuid())
+  productionTaskId String
+  workerId         String
+  assignedAt       DateTime @default(now())
+  assignedBy       String?
+  status           String   @default("ASSIGNED")
+  notes            String?
+
+  task   ProductionTask @relation(fields: [productionTaskId], references: [id], onDelete: Cascade)
+  worker Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([productionTaskId, workerId])
+  @@index([productionTaskId])
+  @@index([workerId])
+  @@map("production_task_assignments")
+}
+
+model WorkOrderMaterial {
+  id               String         @id @default(cuid())
+  companyId        String
+  workOrderId      String
+  productId        String
+  plannedQuantity  Float          @default(0)
+  issuedQuantity   Float          @default(0)
+  consumedQuantity Float          @default(0)
+  returnedQuantity Float          @default(0)
+  unitCost         Float          @default(0)
+  status           MaterialStatus @default(PLANNED)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([workOrderId])
+  @@index([productId])
+  @@map("work_order_materials")
+}
+
+model QualityCheck {
+  id          String        @id @default(cuid())
+  companyId   String
+  workOrderId String
+  status      QualityStatus @default(PENDING)
+  checkedBy   String?
+  checkedAt   DateTime?
+  notes       String?
+  issuesFound String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([workOrderId])
+  @@map("quality_checks")
+}
+
+model WorkerAttendance {
+  id        String           @id @default(cuid())
+  companyId String
+  workerId  String
+  date      DateTime
+  status    AttendanceStatus @default(PRESENT)
+  checkIn   DateTime?
+  checkOut  DateTime?
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  worker  Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, date])
+  @@index([companyId])
+  @@index([workerId])
+  @@index([companyId, date])
+  @@map("worker_attendance")
 }
 
 

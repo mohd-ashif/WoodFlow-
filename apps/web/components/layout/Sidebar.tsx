@@ -263,23 +263,32 @@ export function Sidebar() {
             </div>
 
             <div>
-              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between">
-                <span>Future Modules</span>
-                <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">Soon</span>
+              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Production & Workers
               </h2>
-              <nav className="space-y-1 opacity-60 pointer-events-none">
+              <nav className="space-y-1">
                 {[
-                  { name: 'Workers', icon: Hammer },
+                  { name: 'Overview', href: '/production', icon: LayoutDashboard, exact: true },
+                  { name: 'Work Orders', href: '/work-orders', icon: Hammer, exact: false },
+                  { name: 'Workers', href: '/workers', icon: Users, exact: false },
+                  { name: 'My Work', href: '/my-work', icon: Clock, exact: false },
                 ].map((item) => {
+                  const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(`${item.href}/`));
                   const Icon = item.icon;
                   return (
-                    <div
+                    <Link
                       key={item.name}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground"
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      )}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span>{item.name}</span>
-                    </div>
+                    </Link>
                   );
                 })}
               </nav>

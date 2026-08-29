@@ -14,6 +14,8 @@ import crmRoutes from '../modules/crm/crm.routes.js';
 import saleRoutes from '../modules/sales/sale.routes.js';
 import invoiceRoutes from '../modules/invoices/invoice.routes.js';
 import purchaseRoutes from '../modules/purchases/purchase.routes.js';
+import workerRoutes from '../modules/workers/worker.routes.js';
+import workOrderRoutes from '../modules/workOrders/workOrder.routes.js';
 
 const router = Router();
 
@@ -32,6 +34,8 @@ router.use('/crm', crmRoutes);
 router.use('/sales', saleRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/purchases', purchaseRoutes);
+router.use('/workers', workerRoutes);
+router.use('/work-orders', workOrderRoutes);
 
 export default router;
 
