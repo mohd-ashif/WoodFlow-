@@ -19,7 +19,7 @@ export default function AdminDashboardPage() {
   const statCards = [
     { title: 'Total Companies', value: stats?.totalCompanies ?? 0, icon: Building2, color: 'text-sky-400', bg: 'bg-sky-500/10' },
     { title: 'Active Companies', value: stats?.activeCompanies ?? 0, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { title: 'Pending Companies', value: stats?.pendingCompanies ?? 0, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { title: 'Unassigned Users', value: stats?.usersWithoutCompany ?? 0, icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
     { title: 'Suspended Companies', value: stats?.suspendedCompanies ?? 0, icon: AlertTriangle, color: 'text-rose-400', bg: 'bg-rose-500/10' },
     { title: 'Total Users', value: stats?.totalUsers ?? 0, icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
     { title: 'Pending Requests', value: stats?.pendingAccessRequests ?? 0, icon: FileCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },

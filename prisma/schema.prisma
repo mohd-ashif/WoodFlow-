@@ -14,6 +14,9 @@ enum SystemRole {
 
 enum CompanyRole {
   OWNER
+  MANAGER
+  STAFF
+  WORKER
   MEMBER
 }
 
@@ -84,6 +87,7 @@ model User {
   supplierNotes    SupplierNote[]
   crmActivities    CRMActivity[]
   salesCreated     Sale[]          @relation("SaleCreatedBy")
+  purchasesCreated Purchase[]      @relation("PurchaseCreatedBy")
 
   @@map("users")
 }
@@ -123,6 +127,7 @@ model Company {
   tags              Tag[]
   sales             Sale[]
   invoices          Invoice[]
+  purchases         Purchase[]
 
   @@map("companies")
 }
@@ -209,6 +214,7 @@ model Product {
   inventory Inventory?
   movements StockMovement[]
   saleItems SaleItem[]
+  purchaseItems PurchaseItem[]
 
   @@unique([companyId, sku])
   @@index([companyId])
@@ -444,6 +450,7 @@ model Supplier {
   addresses SupplierAddress[]
   notesList SupplierNote[]
   tags      SupplierTag[]
+  purchases Purchase[]
 
   @@unique([companyId, supplierCode])
   @@index([companyId])
@@ -672,4 +679,72 @@ model Invoice {
   @@index([companyId, status])
   @@map("invoices")
 }
+
+// PHASE 5 — PURCHASE MANAGEMENT ENUMS & MODELS
+enum PurchaseStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+  PARTIALLY_RECEIVED
+  RECEIVED
+}
+
+model Purchase {
+  id              String         @id @default(cuid())
+  companyId       String
+  purchaseNumber  String
+  supplierId      String?
+  status          PurchaseStatus @default(DRAFT)
+  subtotal        Float
+  discountAmount  Float          @default(0)
+  taxAmount       Float          @default(0)
+  totalAmount     Float
+  paidAmount      Float          @default(0)
+  dueAmount       Float
+  paymentStatus   PaymentStatus  @default(UNPAID)
+  notes           String?
+  referenceNumber String?
+  purchaseDate    DateTime       @default(now())
+  createdBy       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  company  Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier Supplier?      @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  creator  User?          @relation("PurchaseCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  items    PurchaseItem[]
+
+  @@unique([companyId, purchaseNumber])
+  @@index([companyId])
+  @@index([companyId, supplierId])
+  @@index([companyId, purchaseDate])
+  @@index([companyId, status])
+  @@index([companyId, paymentStatus])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id                  String   @id @default(cuid())
+  companyId           String
+  purchaseId          String
+  productId           String?
+  productNameSnapshot String
+  skuSnapshot         String
+  quantity            Float
+  unitCost            Float
+  discountAmount      Float    @default(0)
+  taxRate             Float    @default(0)
+  taxAmount           Float    @default(0)
+  totalAmount         Float
+  createdAt           DateTime @default(now())
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([purchaseId])
+  @@index([productId])
+  @@map("purchase_items")
+}
+
 

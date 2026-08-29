@@ -233,13 +233,42 @@ export function Sidebar() {
             </div>
 
             <div>
+              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Purchases & Suppliers
+              </h2>
+              <nav className="space-y-1">
+                {[
+                  { name: 'Purchases Overview', href: '/purchases/overview', icon: LayoutDashboard, exact: true },
+                  { name: 'Purchase Orders', href: '/purchases', icon: ShoppingBag, exact: false },
+                ].map((item) => {
+                  const isActive = item.exact ? pathname === item.href : (pathname === item.href || (pathname.startsWith(`${item.href}/`) && !pathname.startsWith('/purchases/overview')));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div>
               <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center justify-between">
                 <span>Future Modules</span>
                 <span className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">Soon</span>
               </h2>
               <nav className="space-y-1 opacity-60 pointer-events-none">
                 {[
-                  { name: 'Purchases', icon: ShoppingBag },
                   { name: 'Workers', icon: Hammer },
                 ].map((item) => {
                   const Icon = item.icon;

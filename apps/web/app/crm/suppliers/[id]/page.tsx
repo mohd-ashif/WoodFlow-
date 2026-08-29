@@ -6,6 +6,7 @@ import { Sidebar } from '../../../../components/layout/Sidebar';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { crmService } from '../../../../services/crmService';
+import { purchasesService } from '../../../../services/purchasesService';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Badge } from '../../../../components/ui/Badge';
@@ -25,6 +26,7 @@ import {
   ArrowLeft,
   Trash2,
   AlertTriangle,
+  ShoppingBag,
 } from 'lucide-react';
 
 export default function SupplierDetailsPage() {
@@ -32,7 +34,7 @@ export default function SupplierDetailsPage() {
   const queryClient = useQueryClient();
   const supplierId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<'info' | 'addresses' | 'notes' | 'timeline'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'addresses' | 'notes' | 'purchases' | 'timeline'>('info');
   const [noteContent, setNoteContent] = useState('');
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
@@ -58,8 +60,15 @@ export default function SupplierDetailsPage() {
     enabled: Boolean(supplierId && supplierId !== 'undefined'),
   });
 
+  const { data: purchasesData } = useQuery({
+    queryKey: ['supplier-purchases', supplierId],
+    queryFn: () => purchasesService.getPurchases({ supplierId }),
+    enabled: Boolean(supplierId && supplierId !== 'undefined'),
+  });
+
   const supplier = (supplierData as any)?.data || supplierData;
   const activities = (activitiesData as any)?.data || (activitiesData as any)?.items || (Array.isArray(activitiesData) ? activitiesData : []);
+  const supplierPurchases = (purchasesData as any)?.data || (Array.isArray(purchasesData) ? purchasesData : []);
 
   const noteMutation = useMutation({
     mutationFn: (content: string) => crmService.addSupplierNote(supplierId, content),
@@ -257,6 +266,7 @@ export default function SupplierDetailsPage() {
               { id: 'info', label: 'Supplier Info', icon: Building2 },
               { id: 'addresses', label: `Addresses (${supplier.addresses?.length || 0})`, icon: MapPin },
               { id: 'notes', label: `Notes (${supplier.notesList?.length || 0})`, icon: FileText },
+              { id: 'purchases', label: 'Purchase History', icon: ShoppingBag },
               { id: 'timeline', label: 'Activity Timeline', icon: Clock },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -521,6 +531,50 @@ export default function SupplierDetailsPage() {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Tab: Purchase History */}
+          {activeTab === 'purchases' && (
+            <Card className="border-border/80 p-6">
+              <CardHeader className="pb-4 pt-0 px-0">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4 text-amber-500" /> Purchase Orders History ({supplierPurchases.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0 pt-0">
+                {supplierPurchases.length > 0 ? (
+                  <div className="divide-y divide-border/40 border border-border/60 rounded-lg overflow-hidden text-xs">
+                    {supplierPurchases.map((purchase: any) => (
+                      <div key={purchase.id} className="p-3.5 flex items-center justify-between hover:bg-secondary/20 transition-colors">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Link href={`/purchases/${purchase.id}`} className="font-mono font-semibold text-primary hover:underline">
+                              {purchase.purchaseNumber}
+                            </Link>
+                            <Badge variant={purchase.status === 'CONFIRMED' || purchase.status === 'RECEIVED' ? 'default' : purchase.status === 'CANCELLED' ? 'destructive' : 'secondary'} className="text-[10px]">
+                              {purchase.status}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {new Date(purchase.purchaseDate || purchase.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-mono font-bold text-foreground text-sm">
+                            ₹{purchase.totalAmount.toLocaleString('en-IN')}
+                          </span>
+                          <Link href={`/purchases/${purchase.id}`}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs">View Purchase</Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-6 text-center">No purchases recorded from this supplier yet.</p>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           {/* Tab 4: Activity Timeline */}

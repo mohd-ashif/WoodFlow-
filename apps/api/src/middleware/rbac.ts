@@ -40,16 +40,18 @@ export function requireRoles(allowedRoles: CompanyRole[]) {
 }
 
 export function hasPermission(
-  role: CompanyRole | null | undefined,
+  role: CompanyRole | string | null | undefined,
   permission: string,
   isPlatformAdmin = false
 ): boolean {
   if (isPlatformAdmin) return true;
   if (!role) return false;
 
-  if (role === 'OWNER') return true;
+  const userRole = String(role);
 
-  if ((role as string) === 'MANAGER') {
+  if (userRole === 'OWNER') return true;
+
+  if (userRole === 'MANAGER') {
     const managerPermissions = [
       'customers.view',
       'customers.create',
@@ -68,12 +70,14 @@ export function hasPermission(
       'sales.create',
       'sales.cancel',
       'invoices.view',
+      'purchases.view',
+      'purchases.create',
+      'purchases.cancel',
     ];
     return managerPermissions.includes(permission);
   }
 
-  if (role === 'MEMBER') {
-    // Represents STAFF
+  if (userRole === 'STAFF' || userRole === 'MEMBER') {
     const staffPermissions = [
       'customers.view',
       'customers.create',
@@ -85,8 +89,21 @@ export function hasPermission(
       'sales.view',
       'sales.create',
       'invoices.view',
+      'purchases.view',
+      'purchases.create',
+      'products.view',
+      'inventory.view',
     ];
     return staffPermissions.includes(permission);
+  }
+
+  if (userRole === 'WORKER') {
+    const workerPermissions = [
+      'products.view',
+      'inventory.view',
+      'crm.activity.view',
+    ];
+    return workerPermissions.includes(permission);
   }
 
   return false;

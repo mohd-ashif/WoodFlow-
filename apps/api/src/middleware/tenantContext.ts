@@ -8,7 +8,7 @@ export function tenantContext(req: Request, res: Response, next: NextFunction) {
   }
 
   // Platform Admins can bypass tenant requirement if accessing admin routes
-  if (req.user.isPlatformAdmin && req.path.startsWith('/admin')) {
+  if (req.user.isPlatformAdmin && (req.path.startsWith('/admin') || req.originalUrl.includes('/api/v1/admin'))) {
     return next();
   }
 

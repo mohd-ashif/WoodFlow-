@@ -1,5 +1,5 @@
 export type SystemRole = 'PLATFORM_ADMIN' | 'COMPANY';
-export type CompanyRole = 'OWNER' | 'MEMBER';
+export type CompanyRole = 'OWNER' | 'MANAGER' | 'STAFF' | 'WORKER' | 'MEMBER';
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type CompanyStatus = 'ACTIVE' | 'SUSPENDED';

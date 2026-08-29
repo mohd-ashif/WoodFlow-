@@ -13,6 +13,7 @@ import supplierRoutes from '../modules/suppliers/supplier.routes.js';
 import crmRoutes from '../modules/crm/crm.routes.js';
 import saleRoutes from '../modules/sales/sale.routes.js';
 import invoiceRoutes from '../modules/invoices/invoice.routes.js';
+import purchaseRoutes from '../modules/purchases/purchase.routes.js';
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.use('/suppliers', supplierRoutes);
 router.use('/crm', crmRoutes);
 router.use('/sales', saleRoutes);
 router.use('/invoices', invoiceRoutes);
+router.use('/purchases', purchaseRoutes);
 
 export default router;
 
