@@ -4,7 +4,7 @@ import React from 'react';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, title }: { children: React.ReactNode; title?: string }) {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
       <Navbar />

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../providers/AuthProvider';
@@ -24,17 +24,44 @@ import {
   ArrowUpRight,
   Receipt,
   Landmark,
+  BarChart3,
 } from 'lucide-react';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const isPlatformAdmin = user ? Boolean(user.isPlatformAdmin) : false;
 
+  // Smoothly auto-scroll active item into view on route change without affecting window scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const timer = setTimeout(() => {
+      const activeEl = container.querySelector('.sidebar-active-item') as HTMLElement;
+      if (activeEl) {
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+
+        // Only scroll container if active element is outside visible container viewport
+        if (activeRect.top < containerRect.top || activeRect.bottom > containerRect.bottom) {
+          const targetScrollTop = activeEl.offsetTop - container.offsetTop - (container.clientHeight / 2) + (activeEl.clientHeight / 2);
+          container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
+        }
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
   return (
-    <aside className="w-64 shrink-0 h-full border-r border-border bg-card/40 flex flex-col justify-between overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-6">
+    <aside className="w-64 shrink-0 h-full flex flex-col min-h-0 border-r border-border bg-card/40 overflow-hidden">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-scroll overscroll-contain custom-scrollbar p-4 space-y-6"
+      >
         {isPlatformAdmin ? (
           <>
             <div>
@@ -44,7 +71,7 @@ export function Sidebar() {
                   className={clsx(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     pathname === '/admin/dashboard'
-                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                       : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                   )}
                 >
@@ -73,7 +100,7 @@ export function Sidebar() {
                       className={clsx(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                           : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                       )}
                     >
@@ -95,7 +122,7 @@ export function Sidebar() {
                   className={clsx(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     pathname === '/admin/activity'
-                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                       : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                   )}
                 >
@@ -114,7 +141,7 @@ export function Sidebar() {
                   className={clsx(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     pathname === '/dashboard'
-                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                       : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                   )}
                 >
@@ -147,7 +174,7 @@ export function Sidebar() {
                       className={clsx(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                           : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                       )}
                     >
@@ -194,7 +221,7 @@ export function Sidebar() {
                       className={clsx(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                           : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                       )}
                     >
@@ -224,7 +251,7 @@ export function Sidebar() {
                       className={clsx(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                           : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                       )}
                     >
@@ -254,7 +281,7 @@ export function Sidebar() {
                       className={clsx(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                           : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                       )}
                     >
@@ -286,7 +313,7 @@ export function Sidebar() {
                       className={clsx(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                           : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                       )}
                     >
@@ -320,7 +347,7 @@ export function Sidebar() {
                       className={clsx(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                           : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                       )}
                     >
@@ -332,6 +359,42 @@ export function Sidebar() {
               </nav>
             </div>
 
+            <div>
+              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Reports & Analytics
+              </h2>
+              <nav className="space-y-1">
+                {[
+                  { name: 'Business Overview', href: '/reports', icon: BarChart3, exact: true },
+                  { name: 'Sales Reports', href: '/reports/sales', icon: ShoppingCart, exact: false },
+                  { name: 'Inventory Reports', href: '/reports/inventory', icon: Package, exact: false },
+                  { name: 'Purchase Reports', href: '/reports/purchases', icon: ShoppingBag, exact: false },
+                  { name: 'Customer Analytics', href: '/reports/customers', icon: Users, exact: false },
+                  { name: 'Supplier Analytics', href: '/reports/suppliers', icon: Building2, exact: false },
+                  { name: 'Cash Flow Reports', href: '/reports/finance', icon: DollarSign, exact: false },
+                  { name: 'Expense Reports', href: '/reports/expenses', icon: Receipt, exact: false },
+                  { name: 'Production Reports', href: '/reports/production', icon: Hammer, exact: false },
+                ].map((item) => {
+                  const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(`${item.href}/`));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
 
             {(user ? user.activeMembership?.role === 'OWNER' : true) && (
               <div>
@@ -352,7 +415,7 @@ export function Sidebar() {
                         className={clsx(
                           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                           isActive
-                            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                            ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
                             : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
                         )}
                       >
