@@ -7,6 +7,7 @@ export * from './schemas/sales.js';
 export * from './schemas/purchase.js';
 export * from './schemas/worker.js';
 export * from './schemas/workOrder.js';
+export * from './schemas/finance.js';
 export * from './types/index.js';
 
 

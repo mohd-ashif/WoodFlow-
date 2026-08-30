@@ -18,13 +18,17 @@ import {
   Hammer,
   HelpCircle,
   Clock,
+  DollarSign,
+  CreditCard,
+  ArrowDownRight,
+  ArrowUpRight,
+  Receipt,
+  Landmark,
 } from 'lucide-react';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, isLoading } = useAuth();
-
-  if (!user && !isLoading) return null;
+  const { user } = useAuth();
 
   const isPlatformAdmin = user ? Boolean(user.isPlatformAdmin) : false;
 
@@ -294,8 +298,42 @@ export function Sidebar() {
               </nav>
             </div>
 
+            <div>
+              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Finance & Cash Flow
+              </h2>
+              <nav className="space-y-1">
+                {[
+                  { name: 'Overview', href: '/finance', icon: LayoutDashboard, exact: true },
+                  { name: 'Accounts', href: '/finance/accounts', icon: CreditCard, exact: false },
+                  { name: 'Receivables', href: '/finance/receivables', icon: ArrowDownRight, exact: false },
+                  { name: 'Payables', href: '/finance/payables', icon: ArrowUpRight, exact: false },
+                  { name: 'Expenses', href: '/finance/expenses', icon: Receipt, exact: false },
+                  { name: 'Payments', href: '/finance/payments', icon: DollarSign, exact: false },
+                ].map((item) => {
+                  const isActive = item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(`${item.href}/`));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                          : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
 
-            {(user ? user.activeMembership?.role === 'OWNER' : false) && (
+
+            {(user ? user.activeMembership?.role === 'OWNER' : true) && (
               <div>
                 <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Company

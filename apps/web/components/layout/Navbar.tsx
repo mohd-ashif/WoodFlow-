@@ -7,31 +7,7 @@ import { Button } from '../ui/Button';
 import { LogOut, User, Building2, ShieldAlert } from 'lucide-react';
 
 export function Navbar() {
-  const { user, logout, isLoading } = useAuth();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <header className="h-16 shrink-0 z-40 flex w-full items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
-              FurnitureOS
-            </h1>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
-  if (!user && !isLoading) return null;
+  const { user, logout } = useAuth();
 
   const isPlatformAdmin = user?.isPlatformAdmin;
   const activeCompany = user?.activeMembership?.company;
