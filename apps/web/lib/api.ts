@@ -47,5 +47,30 @@ export async function fetchApi<T>(
     } as unknown as T;
   }
 
-  return data.data as T;
+  return data.data !== undefined ? data.data : data;
 }
+
+export const api = {
+  get: async (endpoint: string) => {
+    const data = await fetchApi<any>(endpoint, { method: 'GET' });
+    return { data: { success: true, data } };
+  },
+  post: async (endpoint: string, body?: any) => {
+    const data = await fetchApi<any>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(body || {}),
+    });
+    return { data: { success: true, data } };
+  },
+  patch: async (endpoint: string, body?: any) => {
+    const data = await fetchApi<any>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(body || {}),
+    });
+    return { data: { success: true, data } };
+  },
+  delete: async (endpoint: string) => {
+    const data = await fetchApi<any>(endpoint, { method: 'DELETE' });
+    return { data: { success: true, data } };
+  },
+};

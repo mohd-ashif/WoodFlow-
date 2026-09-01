@@ -22,6 +22,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { stockAdjustmentSchema } from '@furniture-os/shared';
 import toast from '@/components/ui/Toast';
+import { ImportButton } from '../../../components/import/ImportButton';
+
 
 // ─── Skeleton Row ──────────────────────────────────────────────────────────────
 function ProductSkeletonRow() {
@@ -258,12 +260,19 @@ export default function ProductsListPage() {
                 View and manage cataloged furniture items and raw materials.
               </p>
             </div>
-            <Link href="/inventory/products/new">
-              <Button className="gap-2 self-start sm:self-auto">
-                <Plus className="h-4 w-4" aria-hidden="true" />
-                Add Product
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              <ImportButton
+                module="PRODUCTS"
+                moduleTitle="Products"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
+              />
+              <Link href="/inventory/products/new">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Add Product
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Search & Filters */}

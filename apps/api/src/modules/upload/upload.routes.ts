@@ -1,11 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate } from '../../middleware/auth.js';
 import { tenantContext } from '../../middleware/tenantContext.js';
-import { uploadImage } from './upload.controller.js';
+import * as controller from './upload.controller.js';
 import { BadRequestError } from '../../utils/errors.js';
 import { createRequire } from 'module';
 
-// busboy is a CJS-only package without type declarations — import via createRequire
 const require = createRequire(import.meta.url);
 const Busboy = require('busboy');
 
@@ -13,9 +12,7 @@ const router = Router();
 router.use(authenticate, tenantContext);
 
 /**
- * Multipart parser middleware.
- * Parses the "image" field from multipart/form-data and attaches it to req.uploadedFile.
- * Max 5MB enforced at the transport layer.
+ * Multipart parser middleware handling single or multiple fields
  */
 function parseMultipart(req: Request, _res: Response, next: NextFunction) {
   const contentType = req.headers['content-type'] || '';
@@ -28,10 +25,15 @@ function parseMultipart(req: Request, _res: Response, next: NextFunction) {
   let sizeLimitExceeded = false;
 
   try {
-    const bb = Busboy({ headers: req.headers, limits: { fileSize: MAX_SIZE, files: 1 } });
+    const bb = Busboy({ headers: req.headers, limits: { fileSize: MAX_SIZE } });
+    req.body = {};
+
+    bb.on('field', (fieldname: string, val: string) => {
+      req.body[fieldname] = val;
+    });
 
     bb.on('file', (fieldname: string, stream: any, info: any) => {
-      if (fieldname !== 'image') {
+      if (fieldname !== 'image' && fieldname !== 'file' && fieldname !== 'fileBuffer') {
         stream.resume();
         return;
       }
@@ -62,7 +64,7 @@ function parseMultipart(req: Request, _res: Response, next: NextFunction) {
     bb.on('finish', () => {
       if (sizeLimitExceeded) return;
       if (!fileReceived) {
-        return next(new BadRequestError('No image file provided. Include a file field named "image".'));
+        return next(new BadRequestError('No image file provided. Include a file field named "image" or "file".'));
       }
       next();
     });
@@ -77,11 +79,10 @@ function parseMultipart(req: Request, _res: Response, next: NextFunction) {
   }
 }
 
-/**
- * POST /api/v1/upload
- * Secure image upload route — processes file server-side before sending to Cloudinary.
- * No cloud secrets are ever exposed to the browser.
- */
-router.post('/', parseMultipart, uploadImage);
+router.post('/', parseMultipart, controller.uploadSingleImage);
+router.post('/image', parseMultipart, controller.uploadSingleImage);
+router.delete('/image/:imageId', controller.deleteImage);
+router.patch('/image/:imageId/primary', controller.setPrimaryImage);
+router.get('/entity/:entityType/:entityId', controller.getEntityImages);
 
 export default router;

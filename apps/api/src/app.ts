@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -9,6 +10,9 @@ import routes from './routes/index.js';
 import { prisma } from './config/prisma.js';
 
 export const app = express();
+
+// Serve static uploaded files in development
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
 // Security Headers (Helmet)
 app.use(

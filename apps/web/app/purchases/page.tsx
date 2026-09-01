@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import Link from 'next/link';
+import { ImportButton } from '../../components/import/ImportButton';
 import {
   ShoppingBag,
   Plus,
@@ -93,6 +94,11 @@ export default function PurchasesListPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <ImportButton
+                module="PURCHASES"
+                moduleTitle="Purchases"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['purchases'] })}
+              />
               <Link href="/purchases/overview">
                 <Button size="sm" variant="outline" className="gap-1.5">
                   <LayoutDashboard className="h-4 w-4" /> Overview

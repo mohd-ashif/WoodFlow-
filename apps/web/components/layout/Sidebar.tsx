@@ -25,6 +25,8 @@ import {
   Receipt,
   Landmark,
   BarChart3,
+  Upload,
+  ShieldCheck,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -57,10 +59,10 @@ export function Sidebar() {
   }, [pathname]);
 
   return (
-    <aside className="w-64 shrink-0 h-full flex flex-col min-h-0 border-r border-border bg-card/40 overflow-hidden">
+    <aside className="w-64 shrink-0 h-[calc(100vh-4rem)] sticky top-16 flex flex-col min-h-0 border-r border-border bg-card/40 overflow-hidden">
       <div
         ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-scroll overscroll-contain custom-scrollbar p-4 space-y-6"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-4 space-y-6"
       >
         {isPlatformAdmin ? (
           <>
@@ -404,6 +406,8 @@ export function Sidebar() {
                 <nav className="space-y-1">
                   {[
                     { name: 'Users', href: '/settings/users', icon: Users },
+                    { name: 'Import History', href: '/imports/history', icon: Upload },
+                    { name: 'System Health', href: '/settings/system-health', icon: ShieldCheck },
                     { name: 'Settings', href: '/settings/company', icon: Settings },
                   ].map((item) => {
                     const isActive = pathname === item.href;

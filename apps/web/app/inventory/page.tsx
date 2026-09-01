@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import Link from 'next/link';
+import { ImportButton } from '../../components/import/ImportButton';
 import {
   Package,
   Layers,
@@ -42,15 +43,22 @@ export default function InventoryDashboardPage() {
                 Track your active products, stock statuses, and valuation estimates.
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              className="gap-2 border-border/80"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Sync Data
-            </Button>
+            <div className="flex items-center gap-3">
+              <ImportButton
+                module="INVENTORY"
+                moduleTitle="Opening Stock Inventory"
+                onImportSuccess={() => refetch()}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                className="gap-2 border-border/80"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Sync Data
+              </Button>
+            </div>
           </div>
 
           {isLoading ? (

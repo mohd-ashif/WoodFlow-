@@ -97,6 +97,8 @@ model User {
   supplierPaymentsCreated SupplierPayment[]      @relation("SupplierPaymentCreatedBy")
   expensesCreated         Expense[]              @relation("ExpenseCreatedBy")
   transfersCreated        AccountTransfer[]      @relation("AccountTransferCreatedBy")
+  importJobs              ImportJob[]
+  notifications           Notification[]
 
   @@map("users")
 }
@@ -150,6 +152,9 @@ model Company {
   expenseCategories    ExpenseCategory[]
   expenses             Expense[]
   accountTransfers     AccountTransfer[]
+  importJobs           ImportJob[]
+  mediaAssets          MediaAsset[]
+  notifications        Notification[]
 
   @@map("companies")
 }
@@ -1303,5 +1308,126 @@ model AccountTransfer {
   @@index([companyId, transferDate])
   @@map("account_transfers")
 }
+
+// PHASE 8.7 — UNIVERSAL DATA IMPORT & MEDIA ASSETS ENUMS & MODELS
+
+enum ImportStatus {
+  UPLOADED
+  VALIDATING
+  READY
+  IMPORTING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum ImportModule {
+  PRODUCTS
+  CATEGORIES
+  UNITS
+  CUSTOMERS
+  SUPPLIERS
+  WORKERS
+  INVENTORY
+  PURCHASES
+  SALES
+}
+
+enum MediaEntityType {
+  PRODUCT
+  COMPANY_LOGO
+  WORKER
+  CUSTOMER
+  SUPPLIER
+}
+
+model ImportJob {
+  id              String       @id @default(cuid())
+  companyId       String
+  userId          String
+  module          ImportModule
+  fileName        String
+  fileType        String
+  totalRows       Int          @default(0)
+  successfulRows  Int          @default(0)
+  failedRows      Int          @default(0)
+  duplicateRows   Int          @default(0)
+  status          ImportStatus @default(UPLOADED)
+  errors          Json?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([companyId, status])
+  @@index([companyId, module])
+  @@index([createdAt])
+  @@map("import_jobs")
+}
+
+model MediaAsset {
+  id           String          @id @default(cuid())
+  companyId    String
+  entityType   MediaEntityType
+  entityId     String?
+  publicId     String
+  secureUrl    String
+  fileName     String?
+  mimeType     String?
+  fileSize     Int?
+  width        Int?
+  height       Int?
+  isPrimary    Boolean         @default(false)
+  displayOrder Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([companyId, entityType, entityId])
+  @@index([publicId])
+  @@map("media_assets")
+}
+
+// PHASE 9 — NOTIFICATION CENTER & SYSTEM ALERTS ENUM & MODEL
+
+enum NotificationType {
+  LOW_STOCK
+  OUT_OF_STOCK
+  PAYMENT_DUE
+  PURCHASE_DUE
+  IMPORT_COMPLETED
+  INVOICE_CREATED
+  STOCK_ADJUSTMENT
+  SYSTEM
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  companyId String
+  userId    String?
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([companyId, userId])
+  @@index([companyId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
 
 

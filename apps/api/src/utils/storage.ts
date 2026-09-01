@@ -151,7 +151,12 @@ export class CloudinaryStorageService implements IStorageService {
           try {
             const result = JSON.parse(data);
             if (result.error) {
-              reject(new BadRequestError(result.error.message || 'Cloudinary upload failed'));
+              const errMsg = result.error.message || 'Cloudinary upload failed';
+              if (errMsg.toLowerCase().includes('invalid signature')) {
+                reject(new BadRequestError('Invalid Cloudinary API Secret. Please update CLOUDINARY_API_SECRET in your .env file with your Cloudinary API Secret.'));
+              } else {
+                reject(new BadRequestError(errMsg));
+              }
             } else {
               resolve({
                 url: result.secure_url,
@@ -211,24 +216,46 @@ export class CloudinaryStorageService implements IStorageService {
   }
 }
 
-// ─── Singleton Export — auto-selects based on env vars ────────────────────────
-function createStorageService(): IStorageService {
-  const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+// ─── Dynamic Storage Proxy — auto-selects based on current process.env ────────────────────────
+export class DynamicStorageService implements IStorageService {
+  private localService = new LocalStorageService();
 
-  if (
-    CLOUDINARY_CLOUD_NAME &&
-    CLOUDINARY_CLOUD_NAME !== 'your_cloud_name' &&
-    CLOUDINARY_API_KEY &&
-    CLOUDINARY_API_SECRET
-  ) {
-    return new CloudinaryStorageService(
-      CLOUDINARY_CLOUD_NAME,
-      CLOUDINARY_API_KEY,
-      CLOUDINARY_API_SECRET
-    );
+  private getActiveService(): IStorageService {
+    const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+
+    if (
+      CLOUDINARY_CLOUD_NAME &&
+      CLOUDINARY_CLOUD_NAME.trim() !== '' &&
+      CLOUDINARY_CLOUD_NAME !== 'your_cloud_name' &&
+      CLOUDINARY_API_KEY &&
+      CLOUDINARY_API_KEY.trim() !== '' &&
+      CLOUDINARY_API_KEY !== 'your_api_key' &&
+      CLOUDINARY_API_SECRET &&
+      CLOUDINARY_API_SECRET.trim() !== '' &&
+      CLOUDINARY_API_SECRET !== 'your_api_secret'
+    ) {
+      return new CloudinaryStorageService(
+        CLOUDINARY_CLOUD_NAME.trim(),
+        CLOUDINARY_API_KEY.trim(),
+        CLOUDINARY_API_SECRET.trim()
+      );
+    }
+
+    return this.localService;
   }
 
-  return new LocalStorageService();
+  async uploadFile(file: UploadedFile, folder: string): Promise<{ url: string; publicId?: string }> {
+    return this.getActiveService().uploadFile(file, folder);
+  }
+
+  async deleteFile(publicIdOrUrl: string): Promise<void> {
+    return this.getActiveService().deleteFile(publicIdOrUrl);
+  }
+
+  validateImage(file: UploadedFile): void {
+    return this.getActiveService().validateImage(file);
+  }
 }
 
-export const storageService = createStorageService();
+export const storageService = new DynamicStorageService();
+

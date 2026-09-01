@@ -18,6 +18,10 @@ import workerRoutes from '../modules/workers/worker.routes.js';
 import workOrderRoutes from '../modules/workOrders/workOrder.routes.js';
 import financeRoutes from '../modules/finance/finance.routes.js';
 import analyticsRoutes from '../modules/analytics/analytics.routes.js';
+import importRoutes from '../modules/imports/import.routes.js';
+import searchRoutes from '../modules/search/search.routes.js';
+import notificationRoutes from '../modules/notifications/notification.routes.js';
+import systemRoutes from '../modules/system/system.routes.js';
 
 const router = Router();
 
@@ -30,6 +34,7 @@ router.use('/categories', categoryRoutes);
 router.use('/units', unitRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/upload', uploadRoutes);
+router.use('/uploads', uploadRoutes);
 router.use('/customers', customerRoutes);
 router.use('/suppliers', supplierRoutes);
 router.use('/crm', crmRoutes);
@@ -41,6 +46,11 @@ router.use('/work-orders', workOrderRoutes);
 router.use('/finance', financeRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/reports', analyticsRoutes);
+router.use('/imports', importRoutes);
+router.use('/import', importRoutes);
+router.use('/search', searchRoutes);
+router.use('/notifications', notificationRoutes);
+router.use('/system', systemRoutes);
 
 export default router;
 

@@ -12,6 +12,7 @@ import { Card } from '../../components/ui/Card';
 import { useToast } from '../../components/ui/Toast';
 import { Users, Search, Plus, Loader2, Building2, Phone, Mail, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { ImportButton } from '../../components/import/ImportButton';
 
 export default function WorkersListPage() {
   const queryClient = useQueryClient();
@@ -95,6 +96,11 @@ export default function WorkersListPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <ImportButton
+                module="WORKERS"
+                moduleTitle="Workers"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['workers'] })}
+              />
               <Link href="/workers/departments">
                 <Button variant="outline" className="gap-2">
                   <Building2 className="h-4 w-4" />

@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import Link from 'next/link';
+import { ImportButton } from '../../components/import/ImportButton';
 import {
   ShoppingCart,
   Plus,
@@ -95,6 +96,11 @@ export default function SalesListPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <ImportButton
+                module="SALES"
+                moduleTitle="Sales"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['sales'] })}
+              />
               <Link href="/sales/new">
                 <Button size="sm" className="gap-2 font-semibold">
                   <Plus className="h-4 w-4" /> Create Sale

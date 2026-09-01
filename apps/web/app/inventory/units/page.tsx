@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createUnitSchema } from '@furniture-os/shared';
 import toast from '@/components/ui/Toast';
+import { ImportButton } from '../../../components/import/ImportButton';
 
 function UnitSkeletonRow() {
   return (
@@ -189,10 +190,17 @@ export default function UnitsPage() {
                 Manage stock counts, package formats, sheet layouts, and material dimensions.
               </p>
             </div>
-            <Button onClick={handleOpenCreate} className="gap-2 self-start sm:self-auto">
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Add Unit
-            </Button>
+            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              <ImportButton
+                module="UNITS"
+                moduleTitle="Units of Measurement"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['units'] })}
+              />
+              <Button onClick={handleOpenCreate} className="gap-2">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add Unit
+              </Button>
+            </div>
           </div>
 
           {/* Search */}

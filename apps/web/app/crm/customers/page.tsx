@@ -26,6 +26,7 @@ import {
   ChevronRight,
   AlertTriangle,
 } from 'lucide-react';
+import { ImportButton } from '../../../components/import/ImportButton';
 
 export default function CustomersListPage() {
   const queryClient = useQueryClient();
@@ -90,6 +91,11 @@ export default function CustomersListPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <ImportButton
+                module="CUSTOMERS"
+                moduleTitle="Customers"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['crm-customers'] })}
+              />
               <Button
                 variant="outline"
                 size="sm"

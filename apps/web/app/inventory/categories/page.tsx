@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createCategorySchema } from '@furniture-os/shared';
 import toast from '@/components/ui/Toast';
+import { ImportButton } from '../../../components/import/ImportButton';
 
 // ─── Skeleton Row ──────────────────────────────────────────────────────────────
 function CategorySkeletonRow() {
@@ -222,14 +223,21 @@ export default function CategoriesPage() {
                 Classify your items to organize catalogs and structure metrics.
               </p>
             </div>
-            <Button
-              onClick={handleOpenCreate}
-              className="gap-2 self-start sm:self-auto"
-              id="create-category-btn"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Add Category
-            </Button>
+            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              <ImportButton
+                module="CATEGORIES"
+                moduleTitle="Categories"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['categories'] })}
+              />
+              <Button
+                onClick={handleOpenCreate}
+                className="gap-2"
+                id="create-category-btn"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add Category
+              </Button>
+            </div>
           </div>
 
           {/* ─── Search Bar ──────────────────────────────────────────────────── */}
