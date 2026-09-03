@@ -1,8 +1,10 @@
 import rateLimit from 'express-rate-limit';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 requests per windowMs
+  max: isProd ? 20 : 10000, // Higher limit for dev/test suite execution
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -14,7 +16,7 @@ export const authRateLimiter = rateLimit({
 
 export const accessRequestRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // Limit each IP to 10 access requests per hour
+  max: isProd ? 10 : 5000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -26,7 +28,7 @@ export const accessRequestRateLimiter = rateLimit({
 
 export const importRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Limit file uploads / import jobs to 30 requests per 15 mins
+  max: isProd ? 30 : 5000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -38,7 +40,7 @@ export const importRateLimiter = rateLimit({
 
 export const apiRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 150, // Limit each IP to 150 requests per minute
+  max: isProd ? 150 : 50000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

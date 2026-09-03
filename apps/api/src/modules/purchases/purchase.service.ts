@@ -22,16 +22,16 @@ export async function createPurchaseDraft(companyId: string, input: CreatePurcha
   // Validate Products
   const productIds = input.items.map((i) => i.productId);
   const products = await db.product.findMany({
-    where: { id: { in: productIds }, companyId },
-    select: { id: true, name: true, sku: true, costPrice: true },
+    where: { id: { in: productIds }, companyId, isActive: true },
+    select: { id: true, name: true, sku: true, purchasePrice: true },
   });
 
   if (products.length !== productIds.length) {
-    throw new BadRequestError('One or more selected products are invalid');
+    throw new BadRequestError('One or more selected products are invalid or inactive');
   }
 
   const productMap = new Map<string, { id: string; name: string; sku: string; purchasePrice?: number }>(
-    products.map((p: any) => [p.id, { ...p, purchasePrice: Number(p.costPrice || 0) }])
+    products.map((p: any) => [p.id, p])
   );
 
   const rawItems = input.items.map((item) => ({
@@ -138,14 +138,10 @@ export async function confirmPurchase(companyId: string, purchaseId: string, use
       for (const item of purchase.items) {
         if (!item.productId) continue;
 
-        // Row-level lock for concurrency safety
-        const rawInventories: any[] = await tx.$queryRawUnsafe(
-          `SELECT * FROM "inventories" WHERE "productId" = $1 AND "companyId" = $2 FOR UPDATE`,
-          item.productId,
-          companyId
-        );
+        let inventory = await tx.inventory.findFirst({
+          where: { productId: item.productId, companyId },
+        });
 
-        let inventory = rawInventories[0];
         if (!inventory) {
           // Create inventory record if it doesn't exist yet
           inventory = await tx.inventory.create({
@@ -232,7 +228,7 @@ export async function confirmPurchase(companyId: string, purchaseId: string, use
         entity: 'Purchase',
         entityId: purchase.id,
         metadata: { purchaseNumber: purchase.purchaseNumber, totalAmount: purchase.totalAmount },
-      });
+      }, tx);
 
       return updatedPurchase;
     },

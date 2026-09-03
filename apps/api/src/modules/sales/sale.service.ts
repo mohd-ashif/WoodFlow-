@@ -22,12 +22,12 @@ export async function createSaleDraft(companyId: string, input: CreateSaleInput,
   // Validate Products
   const productIds = input.items.map((i) => i.productId);
   const products = await db.product.findMany({
-    where: { id: { in: productIds }, companyId },
+    where: { id: { in: productIds }, companyId, isActive: true },
     select: { id: true, name: true, sku: true, sellingPrice: true },
   });
 
   if (products.length !== productIds.length) {
-    throw new BadRequestError('One or more selected products are invalid');
+    throw new BadRequestError('One or more selected products are invalid or inactive');
   }
 
   const productMap = new Map<string, { id: string; name: string; sku: string; sellingPrice: number }>(
@@ -132,13 +132,9 @@ export async function confirmSale(companyId: string, saleId: string, userId: str
     for (const item of sale.items) {
       if (!item.productId) continue;
 
-      const rawInventories: any[] = await tx.$queryRawUnsafe(
-        `SELECT * FROM "inventories" WHERE "productId" = $1 AND "companyId" = $2 FOR UPDATE`,
-        item.productId,
-        companyId
-      );
-
-      const inventory = rawInventories[0];
+      const inventory = await tx.inventory.findFirst({
+        where: { productId: item.productId, companyId },
+      });
       if (!inventory) {
         throw new BadRequestError(`Inventory record not found for product ${item.productNameSnapshot}`);
       }
@@ -251,7 +247,7 @@ export async function confirmSale(companyId: string, saleId: string, userId: str
       entity: 'Sale',
       entityId: sale.id,
       metadata: { saleNumber: sale.saleNumber, invoiceNumber, totalAmount: sale.totalAmount },
-    });
+    }, tx);
 
     return updatedSale;
   }, { maxWait: 15000, timeout: 30000 });

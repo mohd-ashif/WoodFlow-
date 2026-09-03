@@ -29,3 +29,8 @@ yarn-error.log*
 
 # Turborepo caching
 .turbo/
+
+# Playwright Test Reports & Results
+playwright-report/
+test-results/
+blob-report/

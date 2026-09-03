@@ -12,9 +12,10 @@ export interface AuditParams {
   userAgent?: string;
 }
 
-export async function createAuditLog(params: AuditParams) {
+export async function createAuditLog(params: AuditParams, db?: any) {
   try {
-    const log = await prisma.auditLog.create({
+    const client = db && db.auditLog ? db : prisma;
+    const log = await client.auditLog.create({
       data: {
         userId: params.userId,
         companyId: params.companyId,
@@ -29,7 +30,7 @@ export async function createAuditLog(params: AuditParams) {
     return log;
   } catch (error) {
     logger.error({ error, params }, 'Failed to write Audit Log');
-    // Never let audit failure block application execution
+    // Never let audit log failure block execution
     return null;
   }
 }

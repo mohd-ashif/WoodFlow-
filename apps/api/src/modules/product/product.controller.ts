@@ -46,7 +46,7 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 
     const product = await service.createProduct(companyId, parsed.data, userId);
 
-    res.status(210).json({
+    res.status(201).json({
       success: true,
       data: { product },
     });
