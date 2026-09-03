@@ -2,25 +2,23 @@ import { Request, Response, NextFunction } from 'express';
 import { registerSchema, loginSchema } from '@furniture-os/shared';
 import * as authService from './auth.service.js';
 
+const isProd = process.env.NODE_ENV === 'production';
+
+const getCookieOptions = (maxAgeMs: number) => ({
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? ('none' as const) : ('lax' as const),
+  maxAge: maxAgeMs,
+});
+
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const input = registerSchema.parse(req.body);
     const result = await authService.registerUser(input, req.ip, req.get('user-agent'));
 
-    // Set HTTP-Only cookies
-    res.cookie('accessToken', result.tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
-    res.cookie('refreshToken', result.tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    // Set HTTP-Only cookies (SameSite=None required for cross-domain Vercel <-> Render)
+    res.cookie('accessToken', result.tokens.accessToken, getCookieOptions(24 * 60 * 60 * 1000));
+    res.cookie('refreshToken', result.tokens.refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
     return res.status(201).json({
       success: true,
@@ -40,19 +38,8 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     const input = loginSchema.parse(req.body);
     const result = await authService.loginUser(input, req.ip, req.get('user-agent'));
 
-    res.cookie('accessToken', result.tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
-    res.cookie('refreshToken', result.tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('accessToken', result.tokens.accessToken, getCookieOptions(24 * 60 * 60 * 1000));
+    res.cookie('refreshToken', result.tokens.refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
     return res.status(200).json({
       success: true,
@@ -68,8 +55,13 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function logout(req: Request, res: Response) {
-  res.clearCookie('accessToken');
-  res.clearCookie('refreshToken');
+  const options = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? ('none' as const) : ('lax' as const),
+  };
+  res.clearCookie('accessToken', options);
+  res.clearCookie('refreshToken', options);
   return res.status(200).json({
     success: true,
     message: 'Logged out successfully',
@@ -126,19 +118,8 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
 
     const tokens = await authService.refreshAccessToken(refreshToken);
 
-    res.cookie('accessToken', tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('accessToken', tokens.accessToken, getCookieOptions(24 * 60 * 60 * 1000));
+    res.cookie('refreshToken', tokens.refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
     return res.status(200).json({
       success: true,
