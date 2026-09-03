@@ -10,7 +10,24 @@ export function errorHandler(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ) {
-  logger.error({ err, path: req.path, method: req.method }, 'Request Error');
+  // Extract contextual debugging info without logging secrets
+  const companyId = req.headers['x-company-id'] || (req as unknown as { user?: { companyId?: string } }).user?.companyId;
+  const userId = (req as unknown as { user?: { id?: string } }).user?.id;
+  const ipAddress = req.ip || req.headers['x-forwarded-for'];
+  const userAgent = req.headers['user-agent'];
+
+  logger.error(
+    {
+      err,
+      path: req.path,
+      method: req.method,
+      companyId,
+      userId,
+      ipAddress,
+      userAgent,
+    },
+    'Request Processing Failure'
+  );
 
   if (err instanceof ApiError) {
     return res.status(err.statusCode).json({
@@ -41,7 +58,8 @@ export function errorHandler(
   // Hide internal details in production/general errors
   return res.status(500).json({
     success: false,
-    message: 'An unexpected internal server error occurred',
+    message: 'An unexpected internal server error occurred. Please contact system support if this issue persists.',
     code: 'INTERNAL_SERVER_ERROR',
   });
 }
+
