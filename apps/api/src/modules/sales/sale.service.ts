@@ -22,12 +22,12 @@ export async function createSaleDraft(companyId: string, input: CreateSaleInput,
   // Validate Products
   const productIds = input.items.map((i) => i.productId);
   const products = await db.product.findMany({
-    where: { id: { in: productIds }, companyId, isActive: true },
+    where: { id: { in: productIds }, companyId },
     select: { id: true, name: true, sku: true, sellingPrice: true },
   });
 
   if (products.length !== productIds.length) {
-    throw new BadRequestError('One or more selected products are invalid or inactive');
+    throw new BadRequestError('One or more selected products are invalid');
   }
 
   const productMap = new Map<string, { id: string; name: string; sku: string; sellingPrice: number }>(

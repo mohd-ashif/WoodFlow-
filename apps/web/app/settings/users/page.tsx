@@ -89,7 +89,7 @@ export default function CompanyUsersPage() {
     setFormError(null);
   };
 
-  const members = data?.members || [];
+  const members = (data as any)?.members || (Array.isArray(data) ? data : (data as any)?.data?.members || []);
 
   const roleOptions: CompanyRole[] = ['OWNER', 'MEMBER'];
 

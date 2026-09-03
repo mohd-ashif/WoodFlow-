@@ -22,16 +22,16 @@ export async function createPurchaseDraft(companyId: string, input: CreatePurcha
   // Validate Products
   const productIds = input.items.map((i) => i.productId);
   const products = await db.product.findMany({
-    where: { id: { in: productIds }, companyId, isActive: true },
-    select: { id: true, name: true, sku: true, purchasePrice: true },
+    where: { id: { in: productIds }, companyId },
+    select: { id: true, name: true, sku: true, costPrice: true },
   });
 
   if (products.length !== productIds.length) {
-    throw new BadRequestError('One or more selected products are invalid or inactive');
+    throw new BadRequestError('One or more selected products are invalid');
   }
 
   const productMap = new Map<string, { id: string; name: string; sku: string; purchasePrice?: number }>(
-    products.map((p: any) => [p.id, p])
+    products.map((p: any) => [p.id, { ...p, purchasePrice: Number(p.costPrice || 0) }])
   );
 
   const rawItems = input.items.map((item) => ({

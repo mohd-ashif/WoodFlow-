@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Sidebar } from '../../../../components/layout/Sidebar';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { crmService } from '../../../../services/crmService';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
@@ -14,6 +14,7 @@ import { Building2, ArrowLeft, AlertTriangle, MapPin, Tag as TagIcon, Check } fr
 
 export default function NewSupplierPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -49,8 +50,15 @@ export default function NewSupplierPage() {
   const createMutation = useMutation({
     mutationFn: (payload: any) => crmService.createSupplier(payload),
     onSuccess: (res: any) => {
-      const createdId = res.data?.id;
-      router.push(`/crm/suppliers/${createdId}`);
+      const createdId = res?.id || res?.data?.id;
+      queryClient.invalidateQueries({ queryKey: ['suppliers-list'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers-all'] });
+      queryClient.invalidateQueries({ queryKey: ['crm-suppliers'] });
+      if (createdId) {
+        router.push(`/crm/suppliers/${createdId}`);
+      } else {
+        router.push('/crm/suppliers');
+      }
     },
     onError: (err: any) => {
       setErrorMsg(err.message || 'Failed to create supplier');
