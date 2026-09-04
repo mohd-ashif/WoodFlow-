@@ -15,8 +15,8 @@ export interface ProductFilters {
 }
 
 export async function getProducts(companyId: string, filters: ProductFilters) {
-  const page = filters.page || 1;
-  const limit = filters.limit || 20;
+  const page = Math.max(1, filters.page || 1);
+  const limit = Math.min(100, Math.max(1, filters.limit || 20));
   const skip = (page - 1) * limit;
 
   const where: any = { companyId };
@@ -61,10 +61,30 @@ export async function getProducts(companyId: string, filters: ProductFilters) {
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: {
-        category: true,
-        unit: true,
-        inventory: true,
+      select: {
+        id: true,
+        companyId: true,
+        name: true,
+        sku: true,
+        description: true,
+        productType: true,
+        categoryId: true,
+        unitId: true,
+        purchasePrice: true,
+        sellingPrice: true,
+        minimumStock: true,
+        openingStock: true,
+        currentStock: true,
+        imageUrl: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        category: {
+          select: { id: true, name: true },
+        },
+        unit: {
+          select: { id: true, name: true, shortCode: true },
+        },
       },
       orderBy,
       skip,

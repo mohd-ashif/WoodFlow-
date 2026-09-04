@@ -62,6 +62,13 @@ export const api = {
     });
     return { data: { success: true, data } };
   },
+  put: async (endpoint: string, body?: any) => {
+    const data = await fetchApi<any>(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(body || {}),
+    });
+    return { data: { success: true, data } };
+  },
   patch: async (endpoint: string, body?: any) => {
     const data = await fetchApi<any>(endpoint, {
       method: 'PATCH',

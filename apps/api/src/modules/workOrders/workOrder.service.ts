@@ -135,19 +135,31 @@ export async function listWorkOrders(
   const [workOrders, total] = await Promise.all([
     db.workOrder.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        companyId: true,
+        workOrderNumber: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        sourceType: true,
+        sourceId: true,
+        customerId: true,
+        startDate: true,
+        dueDate: true,
+        completedAt: true,
+        estimatedCost: true,
+        actualCost: true,
+        notes: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
         customer: {
           select: { id: true, name: true, customerCode: true, phone: true },
         },
-        items: true,
         tasks: {
-          include: {
-            assignments: {
-              include: {
-                worker: true,
-              },
-            },
-          },
+          select: { id: true, status: true },
         },
       },
       orderBy: { createdAt: 'desc' },

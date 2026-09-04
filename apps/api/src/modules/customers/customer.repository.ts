@@ -123,18 +123,37 @@ export async function listCustomers(
   const [items, total] = await Promise.all([
     db.customer.findMany({
       where,
-      orderBy: { [sortField]: sortOrder },
-      skip,
-      take: limit,
-      include: {
+      select: {
+        id: true,
+        companyId: true,
+        customerCode: true,
+        name: true,
+        phone: true,
+        email: true,
+        gstNumber: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
         addresses: {
           where: { isDefault: true },
           take: 1,
+          select: {
+            id: true,
+            addressLine1: true,
+            city: true,
+            state: true,
+            postalCode: true,
+          },
         },
         tags: {
-          include: { tag: true },
+          select: {
+            tag: { select: { id: true, name: true } },
+          },
         },
       },
+      orderBy: { [sortField]: sortOrder },
+      skip,
+      take: limit,
     }),
     db.customer.count({ where }),
   ]);

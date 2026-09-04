@@ -30,10 +30,13 @@ import {
 
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 
+import { useDebounce } from '../../hooks/useDebounce';
+import { useSales } from '../../hooks/useSales';
+
 export default function SalesListPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [paymentFilter, setPaymentFilter] = useState<string>('');
   const [page, setPage] = useState(1);
@@ -42,24 +45,12 @@ export default function SalesListPage() {
   const [cancelModalSale, setCancelModalSale] = useState<any | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['sales', page, limit, debouncedSearch, statusFilter, paymentFilter],
-    queryFn: () =>
-      salesService.getSales({
-        page,
-        limit,
-        search: debouncedSearch,
-        status: statusFilter,
-        paymentStatus: paymentFilter,
-      }),
+  const { data: responseData, isLoading, error, refetch } = useSales({
+    page,
+    limit,
+    search: debouncedSearch,
+    status: statusFilter,
+    paymentStatus: paymentFilter,
   });
 
   const sales = (responseData as any)?.data || (Array.isArray(responseData) ? responseData : []);

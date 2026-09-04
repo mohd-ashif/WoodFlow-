@@ -128,16 +128,43 @@ export async function listWorkers(
     ];
   }
 
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  const safeSkip = (safePage - 1) * safeLimit;
+
   const [workers, total] = await Promise.all([
     db.worker.findMany({
       where,
-      include: {
-        department: true,
-        skills: true,
+      select: {
+        id: true,
+        companyId: true,
+        departmentId: true,
+        employeeCode: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        email: true,
+        employmentType: true,
+        dailyWageRate: true,
+        monthlySalary: true,
+        status: true,
+        joinedDate: true,
+        createdAt: true,
+        updatedAt: true,
+        department: {
+          select: { id: true, name: true },
+        },
+        skills: {
+          select: {
+            id: true,
+            skillName: true,
+            proficiencyLevel: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
+      skip: safeSkip,
+      take: safeLimit,
     }),
     db.worker.count({ where }),
   ]);
@@ -145,10 +172,10 @@ export async function listWorkers(
   return {
     workers,
     pagination: {
-      page,
-      limit,
+      page: safePage,
+      limit: safeLimit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 }

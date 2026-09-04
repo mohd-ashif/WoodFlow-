@@ -55,10 +55,13 @@ function ProductSkeletonRow() {
 
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 
+import { useDebounce } from '../../../hooks/useDebounce';
+import { useProducts, useCategories } from '../../../hooks/useProducts';
+
 export default function ProductsListPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [filterType, setFilterType] = useState<string>('ALL');
   const [categoryId, setCategoryId] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('createdAt');
@@ -74,41 +77,27 @@ export default function ProductsListPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<any>(null);
 
-  // Debounce search
-  const searchTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearch(val);
-    clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => {
-      setDebouncedSearch(val);
-      setPage(1);
-    }, 400);
-  }, []);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
 
-  // Query Products
-  const { data: prodData, isLoading } = useQuery({
-    queryKey: ['products', debouncedSearch, filterType, categoryId, sortBy, sortOrder, page, limit],
-    queryFn: () =>
-      inventoryService.getProducts({
-        search: debouncedSearch,
-        filterType,
-        categoryId,
-        sortBy,
-        sortOrder,
-        page,
-        limit,
-      }),
+  // Query Products via custom hook (uses placeholderData: keepPreviousData for smooth pagination)
+  const { data: prodData, isLoading } = useProducts({
+    search: debouncedSearch,
+    filterType: filterType as any,
+    categoryId,
+    sortBy: sortBy as any,
+    sortOrder,
+    page,
+    limit,
   });
+
   const products = (prodData as any)?.data || [];
   const pagination = (prodData as any)?.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 };
 
-  // Query Categories
-  const { data: catData } = useQuery({
-    queryKey: ['categories-active-filter'],
-    queryFn: () => inventoryService.getCategories({ isActive: true }),
-    staleTime: 5 * 60 * 1000, // Cache for 5 min — category list rarely changes
-  });
+  // Query Categories via custom hook
+  const { data: catData } = useCategories();
   const categories = catData?.categories || [];
 
   // ─── Mutations ────────────────────────────────────────────────────────────

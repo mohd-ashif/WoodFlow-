@@ -4,46 +4,26 @@ import { ConflictError, NotFoundError, BadRequestError } from '../../utils/error
 import { createAuditLog } from '../audit/audit.service.js';
 
 export async function getInventoryDashboard(companyId: string) {
-  // Fetch counts
-  const totalProducts = await prisma.product.count({
-    where: { companyId, isActive: true },
-  });
+  // Fetch counts in parallel and execute sum via database aggregate query
+  const [
+    [totalProducts, totalFinishedProducts, totalRawMaterials, lowStockProducts, outOfStockProducts],
+    valueResult,
+  ] = await Promise.all([
+    Promise.all([
+      prisma.product.count({ where: { companyId, isActive: true } }),
+      prisma.product.count({ where: { companyId, productType: 'FINISHED_PRODUCT', isActive: true } }),
+      prisma.product.count({ where: { companyId, productType: 'RAW_MATERIAL', isActive: true } }),
+      prisma.product.count({ where: { companyId, isActive: true, currentStock: { lte: prisma.product.fields.minimumStock } } }),
+      prisma.product.count({ where: { companyId, isActive: true, currentStock: { lte: 0 } } }),
+    ]),
+    prisma.$queryRaw<Array<{ total: number }>>`
+      SELECT COALESCE(SUM("currentStock" * "purchasePrice"), 0)::float as total
+      FROM products
+      WHERE "companyId" = ${companyId} AND "isActive" = true
+    `,
+  ]);
 
-  const totalFinishedProducts = await prisma.product.count({
-    where: { companyId, productType: 'FINISHED_PRODUCT', isActive: true },
-  });
-
-  const totalRawMaterials = await prisma.product.count({
-    where: { companyId, productType: 'RAW_MATERIAL', isActive: true },
-  });
-
-  // Low stock query (currentStock <= minimumStock)
-  const lowStockProducts = await prisma.product.count({
-    where: {
-      companyId,
-      isActive: true,
-      currentStock: { lte: prisma.product.fields.minimumStock },
-    },
-  });
-
-  // Out of stock query (currentStock <= 0)
-  const outOfStockProducts = await prisma.product.count({
-    where: {
-      companyId,
-      isActive: true,
-      currentStock: { lte: 0 },
-    },
-  });
-
-  // Estimated inventory value (sum of currentStock * purchasePrice)
-  const activeProducts = await prisma.product.findMany({
-    where: { companyId, isActive: true },
-    select: { currentStock: true, purchasePrice: true },
-  });
-
-  const estimatedInventoryValue = activeProducts.reduce((sum: number, p: any) => {
-    return sum + p.currentStock * p.purchasePrice;
-  }, 0);
+  const estimatedInventoryValue = Number(valueResult[0]?.total || 0);
 
   return {
     totalProducts,
@@ -56,7 +36,9 @@ export async function getInventoryDashboard(companyId: string) {
 }
 
 export async function getLowStock(companyId: string, page = 1, limit = 20) {
-  const skip = (page - 1) * limit;
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  const skip = (safePage - 1) * safeLimit;
 
   const where = {
     companyId,
@@ -67,10 +49,20 @@ export async function getLowStock(companyId: string, page = 1, limit = 20) {
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: true, unit: true },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        currentStock: true,
+        minimumStock: true,
+        purchasePrice: true,
+        sellingPrice: true,
+        category: { select: { id: true, name: true } },
+        unit: { select: { id: true, name: true, shortCode: true } },
+      },
       orderBy: { currentStock: 'asc' },
       skip,
-      take: limit,
+      take: safeLimit,
     }),
     prisma.product.count({ where }),
   ]);
@@ -79,15 +71,17 @@ export async function getLowStock(companyId: string, page = 1, limit = 20) {
     products,
     pagination: {
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 }
 
 export async function getOutOfStock(companyId: string, page = 1, limit = 20) {
-  const skip = (page - 1) * limit;
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  const skip = (safePage - 1) * safeLimit;
 
   const where = {
     companyId,
@@ -98,10 +92,20 @@ export async function getOutOfStock(companyId: string, page = 1, limit = 20) {
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: true, unit: true },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        currentStock: true,
+        minimumStock: true,
+        purchasePrice: true,
+        sellingPrice: true,
+        category: { select: { id: true, name: true } },
+        unit: { select: { id: true, name: true, shortCode: true } },
+      },
       orderBy: { name: 'asc' },
       skip,
-      take: limit,
+      take: safeLimit,
     }),
     prisma.product.count({ where }),
   ]);
@@ -110,9 +114,9 @@ export async function getOutOfStock(companyId: string, page = 1, limit = 20) {
     products,
     pagination: {
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 }
@@ -128,8 +132,8 @@ export interface MovementFilters {
 }
 
 export async function getStockMovements(companyId: string, filters: MovementFilters) {
-  const page = filters.page || 1;
-  const limit = filters.limit || 20;
+  const page = Math.max(1, filters.page || 1);
+  const limit = Math.min(100, Math.max(1, filters.limit || 20));
   const skip = (page - 1) * limit;
 
   const where: any = { companyId };
@@ -164,9 +168,22 @@ export async function getStockMovements(companyId: string, filters: MovementFilt
   const [movements, total] = await Promise.all([
     prisma.stockMovement.findMany({
       where,
-      include: {
-        product: { select: { name: true, sku: true } },
-        user: { select: { name: true } },
+      select: {
+        id: true,
+        companyId: true,
+        productId: true,
+        movementType: true,
+        quantity: true,
+        previousQuantity: true,
+        newQuantity: true,
+        referenceType: true,
+        referenceId: true,
+        reason: true,
+        notes: true,
+        createdBy: true,
+        createdAt: true,
+        product: { select: { id: true, name: true, sku: true } },
+        user: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip,

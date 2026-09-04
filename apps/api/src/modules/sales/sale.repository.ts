@@ -123,24 +123,55 @@ export async function listSales(
     ];
   }
 
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  const safeSkip = (safePage - 1) * safeLimit;
+
   const [items, total] = await Promise.all([
     db.sale.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-      include: {
+      select: {
+        id: true,
+        companyId: true,
+        saleNumber: true,
+        customerId: true,
+        status: true,
+        subtotal: true,
+        discountAmount: true,
+        taxAmount: true,
+        totalAmount: true,
+        paidAmount: true,
+        dueAmount: true,
+        paymentStatus: true,
+        notes: true,
+        saleDate: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
         customer: {
           select: { id: true, name: true, phone: true, email: true, customerCode: true },
         },
         creator: {
           select: { id: true, name: true },
         },
-        items: true,
+        items: {
+          select: {
+            id: true,
+            productId: true,
+            productNameSnapshot: true,
+            skuSnapshot: true,
+            quantity: true,
+            unitPrice: true,
+            totalAmount: true,
+          },
+        },
         invoices: {
           select: { id: true, invoiceNumber: true, status: true, totalAmount: true },
         },
       },
+      orderBy: { createdAt: 'desc' },
+      skip: safeSkip,
+      take: safeLimit,
     }),
     db.sale.count({ where }),
   ]);
@@ -148,10 +179,10 @@ export async function listSales(
   return {
     items,
     pagination: {
-      page,
-      limit,
+      page: safePage,
+      limit: safeLimit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 }

@@ -14,10 +14,14 @@ import { Users, Search, Plus, Loader2, Building2, Phone, Mail, Eye } from 'lucid
 import Link from 'next/link';
 import { ImportButton } from '../../components/import/ImportButton';
 
+import { useDebounce } from '../../hooks/useDebounce';
+import { useWorkers } from '../../hooks/useWorkers';
+
 export default function WorkersListPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [departmentId, setDepartmentId] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
@@ -32,16 +36,12 @@ export default function WorkersListPage() {
   const [employmentType, setEmploymentType] = useState('FULL_TIME');
   const [dailyWage, setDailyWage] = useState('');
 
-  const { data: workersData, isLoading } = useQuery({
-    queryKey: ['workersList', page, search, departmentId, status],
-    queryFn: () =>
-      workerService.listWorkers({
-        page,
-        limit: 20,
-        search: search || undefined,
-        departmentId: departmentId || undefined,
-        status: status || undefined,
-      }),
+  const { data: workersData, isLoading } = useWorkers({
+    page,
+    limit: 20,
+    search: debouncedSearch || undefined,
+    departmentId: departmentId || undefined,
+    status: status || undefined,
   });
 
   const { data: departmentsData } = useQuery({

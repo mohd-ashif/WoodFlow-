@@ -29,33 +29,24 @@ import { ImportButton } from '../../../components/import/ImportButton';
 
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 
+import { useDebounce } from '../../../hooks/useDebounce';
+import { useSuppliers } from '../../../hooks/useCRM';
+
 export default function SuppliersListPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'>('ALL');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
   const [archiveModalSupplier, setArchiveModalSupplier] = useState<any | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  const { data: responseData, isLoading, error, refetch } = useQuery({
-    queryKey: ['suppliers-list', page, limit, debouncedSearch, statusFilter],
-    queryFn: () =>
-      crmService.getSuppliers({
-        page,
-        limit,
-        search: debouncedSearch,
-        status: statusFilter,
-      }),
+  const { data: responseData, isLoading, error, refetch } = useSuppliers({
+    page,
+    limit,
+    search: debouncedSearch,
+    status: statusFilter,
   });
 
   const suppliers = (responseData as any)?.data || (Array.isArray(responseData) ? responseData : []);

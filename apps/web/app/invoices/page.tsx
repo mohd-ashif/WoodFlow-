@@ -20,28 +20,19 @@ import {
 } from 'lucide-react';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 
+import { useDebounce } from '../../hooks/useDebounce';
+import { useInvoices } from '../../hooks/useInvoices';
+
 export default function InvoicesListPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  const { data: responseData, isLoading, refetch } = useQuery({
-    queryKey: ['invoices-list', page, limit, debouncedSearch],
-    queryFn: () =>
-      salesService.getInvoices({
-        page,
-        limit,
-        search: debouncedSearch,
-      }),
+  const { data: responseData, isLoading, refetch } = useInvoices({
+    page,
+    limit,
+    search: debouncedSearch,
   });
 
   const rawInvoices = (responseData as any)?.data || (Array.isArray(responseData) ? responseData : []);

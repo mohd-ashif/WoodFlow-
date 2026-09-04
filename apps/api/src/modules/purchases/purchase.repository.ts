@@ -108,21 +108,53 @@ export async function listPurchases(
     return { items: [], pagination: { page, limit, total: 0, totalPages: 1 } };
   }
 
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  const safeSkip = (safePage - 1) * safeLimit;
+
   const [items, total] = await Promise.all([
     purchaseModel.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-      include: {
+      select: {
+        id: true,
+        companyId: true,
+        purchaseNumber: true,
+        supplierId: true,
+        status: true,
+        subtotal: true,
+        discountAmount: true,
+        taxAmount: true,
+        totalAmount: true,
+        paidAmount: true,
+        dueAmount: true,
+        paymentStatus: true,
+        notes: true,
+        referenceNumber: true,
+        purchaseDate: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
         supplier: {
           select: { id: true, name: true, phone: true, email: true, supplierCode: true },
         },
         creator: {
           select: { id: true, name: true },
         },
-        items: true,
+        items: {
+          select: {
+            id: true,
+            productId: true,
+            productNameSnapshot: true,
+            skuSnapshot: true,
+            quantity: true,
+            unitCost: true,
+            totalAmount: true,
+          },
+        },
       },
+      orderBy: { createdAt: 'desc' },
+      skip: safeSkip,
+      take: safeLimit,
     }),
     purchaseModel.count({ where }),
   ]);
@@ -130,10 +162,10 @@ export async function listPurchases(
   return {
     items,
     pagination: {
-      page,
-      limit,
+      page: safePage,
+      limit: safeLimit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 }

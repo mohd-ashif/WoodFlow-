@@ -250,6 +250,9 @@ model Product {
   @@index([companyId, name])
   @@index([companyId, categoryId])
   @@index([companyId, productType])
+  @@index([companyId, isActive, createdAt])
+  @@index([companyId, currentStock])
+  @@index([companyId, minimumStock])
   @@map("products")
 }
 
@@ -328,6 +331,7 @@ model StockMovement {
   @@index([companyId, productId])
   @@index([companyId, createdAt])
   @@index([companyId, movementType])
+  @@index([companyId, productId, createdAt])
   @@map("stock_movements")
 }
 
@@ -654,6 +658,8 @@ model Sale {
   @@index([companyId, saleDate])
   @@index([companyId, status])
   @@index([companyId, paymentStatus])
+  @@index([companyId, createdAt])
+  @@index([companyId, status, createdAt])
   @@map("sales")
 }
 
@@ -678,6 +684,7 @@ model SaleItem {
   @@index([companyId])
   @@index([saleId])
   @@index([productId])
+  @@index([companyId, saleId])
   @@map("sale_items")
 }
 
@@ -710,6 +717,8 @@ model Invoice {
   @@index([companyId, customerId])
   @@index([companyId, invoiceDate])
   @@index([companyId, status])
+  @@index([companyId, createdAt])
+  @@index([companyId, status, createdAt])
   @@map("invoices")
 }
 
@@ -754,6 +763,8 @@ model Purchase {
   @@index([companyId, purchaseDate])
   @@index([companyId, status])
   @@index([companyId, paymentStatus])
+  @@index([companyId, createdAt])
+  @@index([companyId, status, createdAt])
   @@map("purchases")
 }
 
@@ -778,6 +789,7 @@ model PurchaseItem {
   @@index([companyId])
   @@index([purchaseId])
   @@index([productId])
+  @@index([companyId, purchaseId])
   @@map("purchase_items")
 }
 
@@ -1182,6 +1194,8 @@ model FinancialTransaction {
   @@index([companyId, accountId])
   @@index([companyId, transactionDate])
   @@index([companyId, type])
+  @@index([companyId, accountId, transactionDate])
+  @@index([companyId, createdAt])
   @@map("financial_transactions")
 }
 

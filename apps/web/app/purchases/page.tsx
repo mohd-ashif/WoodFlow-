@@ -29,10 +29,13 @@ import {
 
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 
+import { useDebounce } from '../../hooks/useDebounce';
+import { usePurchases } from '../../hooks/usePurchases';
+
 export default function PurchasesListPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -40,23 +43,11 @@ export default function PurchasesListPage() {
   const [cancelModalPurchase, setCancelModalPurchase] = useState<any | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  const { data: responseData, isLoading } = useQuery({
-    queryKey: ['purchases-list', page, limit, debouncedSearch, statusFilter],
-    queryFn: () =>
-      purchasesService.getPurchases({
-        page,
-        limit,
-        search: debouncedSearch,
-        status: statusFilter || undefined,
-      }),
+  const { data: responseData, isLoading } = usePurchases({
+    page,
+    limit,
+    search: debouncedSearch,
+    status: statusFilter || undefined,
   });
 
   const rawPurchases = (responseData as any)?.data || (Array.isArray(responseData) ? responseData : []);

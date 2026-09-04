@@ -37,17 +37,35 @@ export async function getInvoicesList(
   const [items, total] = await Promise.all([
     db.invoice.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-      include: {
-        company: { select: { id: true, name: true, phone: true, email: true, gstNumber: true, address: true, city: true, state: true } },
+      select: {
+        id: true,
+        companyId: true,
+        saleId: true,
+        invoiceNumber: true,
+        invoiceDate: true,
+        customerId: true,
+        customerNameSnapshot: true,
+        customerPhoneSnapshot: true,
+        customerEmailSnapshot: true,
+        subtotal: true,
+        discountAmount: true,
+        taxAmount: true,
+        totalAmount: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
         sale: {
-          include: {
-            items: true,
+          select: {
+            id: true,
+            saleNumber: true,
+            status: true,
+            paymentStatus: true,
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
     }),
     db.invoice.count({ where }),
   ]);

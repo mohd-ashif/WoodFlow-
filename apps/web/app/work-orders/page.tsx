@@ -12,22 +12,22 @@ import { Card } from '../../components/ui/Card';
 import { Hammer, Search, Plus, Loader2, Eye, Calendar, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 
+import { useDebounce } from '../../hooks/useDebounce';
+import { useWorkOrders } from '../../hooks/useWorkOrders';
+
 export default function WorkOrdersListPage() {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
   const [page, setPage] = useState(1);
 
-  const { data: woData, isLoading } = useQuery({
-    queryKey: ['workOrdersList', page, search, status, priority],
-    queryFn: () =>
-      workOrderService.listWorkOrders({
-        page,
-        limit: 20,
-        search: search || undefined,
-        status: status || undefined,
-        priority: priority || undefined,
-      }),
+  const { data: woData, isLoading } = useWorkOrders({
+    page,
+    limit: 20,
+    search: debouncedSearch || undefined,
+    status: status || undefined,
+    priority: priority || undefined,
   });
 
   const workOrders = Array.isArray((woData as any)?.data)
