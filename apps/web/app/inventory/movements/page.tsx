@@ -68,17 +68,17 @@ export default function StockMovementsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
-          <div className="flex items-center justify-between">
+        <main className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <Clock className="h-8 w-8 text-primary" /> Stock Movements
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" /> Stock Movements
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Audit trail of all inventory changes, adjustments, and receipts.
               </p>
             </div>

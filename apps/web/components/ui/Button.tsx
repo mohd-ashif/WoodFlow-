@@ -38,12 +38,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizeStyles = {
-      sm: 'h-8 px-3 text-xs rounded-md',
-      md: 'h-10 px-4 text-sm rounded-lg',
-      lg: 'h-12 px-6 text-base rounded-xl',
-      icon: 'h-8 w-8 p-0 rounded-lg',
-      'icon-sm': 'h-7 w-7 p-0 rounded-md',
-      'icon-lg': 'h-9 w-9 p-0 rounded-lg',
+      sm: 'h-7 sm:h-8 px-2.5 sm:px-3 text-xs rounded-md',
+      md: 'h-8 sm:h-9 md:h-10 px-3 sm:px-4 text-xs sm:text-sm rounded-lg',
+      lg: 'h-9 sm:h-10 md:h-12 px-4 sm:px-6 text-xs sm:text-sm md:text-base rounded-xl',
+      icon: 'h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-lg',
+      'icon-sm': 'h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-md',
+      'icon-lg': 'h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-lg',
     };
 
     return (

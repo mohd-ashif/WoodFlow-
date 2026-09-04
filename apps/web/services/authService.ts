@@ -3,14 +3,14 @@ import { RegisterInput, LoginInput, AuthUserContext } from '@furniture-os/shared
 
 export const authService = {
   async register(data: RegisterInput) {
-    return fetchApi<{ user: AuthUserContext }>('/auth/register', {
+    return fetchApi<{ user: AuthUserContext; tokens?: { accessToken: string; refreshToken: string } }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   async login(data: LoginInput) {
-    return fetchApi<{ user: AuthUserContext }>('/auth/login', {
+    return fetchApi<{ user: AuthUserContext; tokens?: { accessToken: string; refreshToken: string } }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     });

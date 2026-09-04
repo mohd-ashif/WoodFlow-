@@ -73,21 +73,21 @@ export default function SalesListPage() {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-hidden">
         <Sidebar />
-        <main className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden min-w-0">
+        <main className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 overflow-hidden min-w-0">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-                <ShoppingCart className="h-6 w-6 text-primary" />
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
                 Sales & Orders
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Manage sales orders, issue invoices, and track revenue.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <ImportButton
                 module="SALES"
                 moduleTitle="Sales"
@@ -102,14 +102,14 @@ export default function SalesListPage() {
           </div>
 
           {/* Metrics Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 flex-shrink-0">
             <Card className="border-border/80 bg-card/60">
               <CardContent className="p-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Total Orders</p>
-                  <h3 className="text-xl font-bold mt-0.5 text-foreground">{totalCount}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-foreground">{totalCount}</h3>
                 </div>
-                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0">
                   <FileText className="h-4 w-4" />
                 </div>
               </CardContent>
@@ -119,11 +119,11 @@ export default function SalesListPage() {
               <CardContent className="p-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Total Revenue</p>
-                  <h3 className="text-xl font-bold mt-0.5 text-foreground font-mono">
+                  <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-foreground font-mono">
                     ₹{totalRevenue.toLocaleString('en-IN')}
                   </h3>
                 </div>
-                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg shrink-0">
                   <DollarSign className="h-4 w-4" />
                 </div>
               </CardContent>
@@ -133,11 +133,11 @@ export default function SalesListPage() {
               <CardContent className="p-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Today's Sales</p>
-                  <h3 className="text-xl font-bold mt-0.5 text-foreground font-mono">
+                  <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-foreground font-mono">
                     ₹{todayTotal.toLocaleString('en-IN')}
                   </h3>
                 </div>
-                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
+                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg shrink-0">
                   <Calendar className="h-4 w-4" />
                 </div>
               </CardContent>
@@ -145,19 +145,19 @@ export default function SalesListPage() {
           </div>
 
           {/* Search & Filter Bar */}
-          <Card className="border-border/80 p-3 flex-shrink-0">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <Card className="border-border/80 p-3 flex-shrink-0 min-w-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Search sale no., customer name, invoice..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 text-xs h-9"
                 />
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto">
+              <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 pb-1 sm:pb-0 scrollbar-none">
                 {[
                   { label: 'All Status', value: '' },
                   { label: 'Draft', value: 'DRAFT' },
@@ -172,7 +172,7 @@ export default function SalesListPage() {
                       setStatusFilter(st.value);
                       setPage(1);
                     }}
-                    className="h-8 text-xs"
+                    className="h-8 text-xs shrink-0 whitespace-nowrap"
                   >
                     {st.label}
                   </Button>

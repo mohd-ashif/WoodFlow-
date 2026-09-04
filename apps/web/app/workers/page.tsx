@@ -87,27 +87,27 @@ export default function WorkersListPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">Workers Directory</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Workers Directory</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Manage factory workers, skills, departments, wages, and active production status.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <ImportButton
                 module="WORKERS"
                 moduleTitle="Workers"
                 onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['workers'] })}
               />
               <Link href="/workers/departments">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2 text-xs">
                   <Building2 className="h-4 w-4" />
                   <span>Departments</span>
                 </Button>
               </Link>
-              <Button onClick={() => setIsAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
+              <Button size="sm" onClick={() => setIsAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20 text-xs">
                 <Plus className="h-4 w-4" />
                 <span>Add Worker</span>
               </Button>
@@ -116,11 +116,11 @@ export default function WorkersListPage() {
 
           {/* Add Worker Dialog Modal */}
           {isAddOpen && (
-            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg space-y-4 shadow-2xl">
-                <h3 className="text-lg font-bold text-foreground">Add New Worker</h3>
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+              <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-lg space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto my-auto">
+                <h3 className="text-base sm:text-lg font-bold text-foreground">Add New Worker</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground">First Name *</label>
                       <Input

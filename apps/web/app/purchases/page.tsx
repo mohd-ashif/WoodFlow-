@@ -73,21 +73,21 @@ export default function PurchasesListPage() {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-hidden">
         <Sidebar />
-        <main className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden min-w-0">
+        <main className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 overflow-hidden min-w-0">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-                <ShoppingBag className="h-6 w-6 text-primary" />
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
                 Purchase Orders
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Manage supplier purchases, track stock acquisitions, and record Stock IN movements.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <ImportButton
                 module="PURCHASES"
                 moduleTitle="Purchases"
@@ -107,14 +107,14 @@ export default function PurchasesListPage() {
           </div>
 
           {/* Metrics Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 flex-shrink-0">
             <Card className="border-border/80 bg-card/60">
               <CardContent className="p-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Total Orders</p>
-                  <h3 className="text-xl font-bold mt-0.5 text-foreground">{totalCount}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-foreground">{totalCount}</h3>
                 </div>
-                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0">
                   <FileText className="h-4 w-4" />
                 </div>
               </CardContent>
@@ -124,9 +124,9 @@ export default function PurchasesListPage() {
               <CardContent className="p-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Total Inflow Value</p>
-                  <h3 className="text-xl font-bold mt-0.5 text-foreground font-mono">₹{pageTotal.toLocaleString('en-IN')}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-foreground font-mono">₹{pageTotal.toLocaleString('en-IN')}</h3>
                 </div>
-                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg shrink-0">
                   <TrendingUp className="h-4 w-4" />
                 </div>
               </CardContent>
@@ -136,11 +136,11 @@ export default function PurchasesListPage() {
               <CardContent className="p-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">Active Supplier Count</p>
-                  <h3 className="text-xl font-bold mt-0.5 text-amber-500 font-mono">
+                  <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-amber-500 font-mono">
                     {Array.from(new Set(purchases.map((p: any) => p.supplierId).filter(Boolean))).length}
                   </h3>
                 </div>
-                <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
+                <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg shrink-0">
                   <ShoppingBag className="h-4 w-4" />
                 </div>
               </CardContent>
@@ -148,10 +148,10 @@ export default function PurchasesListPage() {
           </div>
 
           {/* Search & Filter Bar */}
-          <Card className="border-border/80 p-3 flex-shrink-0">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <Card className="border-border/80 p-3 flex-shrink-0 min-w-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Search purchase no., reference, supplier..."
                   value={searchTerm}
@@ -161,7 +161,7 @@ export default function PurchasesListPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                <span className="text-xs text-muted-foreground font-medium flex items-center gap-1 shrink-0">
                   <Filter className="h-3.5 w-3.5" /> Filter:
                 </span>
                 <select
@@ -170,7 +170,7 @@ export default function PurchasesListPage() {
                     setStatusFilter(e.target.value);
                     setPage(1);
                   }}
-                  className="bg-secondary/60 border border-border/80 rounded px-2.5 py-1 text-xs text-foreground focus:outline-none"
+                  className="bg-secondary/60 border border-border/80 rounded px-2.5 py-1 text-xs text-foreground focus:outline-none w-full md:w-auto"
                 >
                   <option value="">All Statuses</option>
                   <option value="DRAFT">Draft</option>

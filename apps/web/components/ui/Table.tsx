@@ -24,9 +24,9 @@ export function TableRow({ children, className, ...props }: React.HTMLAttributes
 }
 
 export function TableHead({ children, className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th className={clsx('h-11 px-4 text-left align-middle font-medium text-muted-foreground text-xs uppercase tracking-wider', className)} {...props}>{children}</th>;
+  return <th className={clsx('h-8 sm:h-9 md:h-11 px-2 sm:px-3 md:px-4 text-left align-middle font-medium text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wider', className)} {...props}>{children}</th>;
 }
 
 export function TableCell({ children, className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={clsx('p-4 align-middle text-sm text-foreground', className)} {...props}>{children}</td>;
+  return <td className={clsx('p-2 sm:p-3 md:p-4 align-middle text-xs sm:text-sm text-foreground', className)} {...props}>{children}</td>;
 }

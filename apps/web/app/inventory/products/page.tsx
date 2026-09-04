@@ -238,20 +238,20 @@ export default function ProductsListPage() {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-hidden">
         <Sidebar />
-        <main className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden min-w-0">
+        <main className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 overflow-hidden min-w-0">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                 Products Database
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 View and manage cataloged furniture items and raw materials.
               </p>
             </div>
-            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <ImportButton
                 module="PRODUCTS"
                 moduleTitle="Products"
@@ -267,8 +267,8 @@ export default function ProductsListPage() {
           </div>
 
           {/* Search & Filters */}
-          <div className="bg-card/40 border border-border p-3.5 rounded-xl space-y-3 flex-shrink-0">
-            <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="bg-card/40 border border-border p-3 sm:p-3.5 rounded-xl space-y-3 flex-shrink-0 min-w-0">
+            <div className="flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
                 <Input
@@ -282,7 +282,7 @@ export default function ProductsListPage() {
               <select
                 value={categoryId}
                 onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}
-                className="h-9 text-xs rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none"
+                className="h-9 text-xs rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none w-full md:w-auto"
                 aria-label="Filter by category"
               >
                 <option value="">All Categories</option>
@@ -293,8 +293,8 @@ export default function ProductsListPage() {
             </div>
 
             {/* Filter pills */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-              <span className="text-xs text-muted-foreground font-medium mr-1 flex items-center gap-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 pb-1 sm:pb-0 scrollbar-none pt-2 border-t border-border/50">
+              <span className="text-xs text-muted-foreground font-medium shrink-0 mr-1 flex items-center gap-1">
                 <Filter className="h-3 w-3" aria-hidden="true" />
                 Filter:
               </span>

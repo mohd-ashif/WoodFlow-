@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       if (typeof window !== 'undefined') {
         localStorage.removeItem('cached_user');
+        localStorage.removeItem('accessToken');
       }
     } finally {
       setIsLoading(false);
@@ -63,6 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
     if (typeof window !== 'undefined') {
       localStorage.setItem('cached_user', JSON.stringify(res.user));
+      if (res.tokens?.accessToken) {
+        localStorage.setItem('accessToken', res.tokens.accessToken);
+      }
     }
     
     // Redirect logic according to Requirement Section 16 & company suspension status
@@ -84,6 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
     if (typeof window !== 'undefined') {
       localStorage.setItem('cached_user', JSON.stringify(res.user));
+      if (res.tokens?.accessToken) {
+        localStorage.setItem('accessToken', res.tokens.accessToken);
+      }
     }
     router.push('/access-request');
   };
@@ -93,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('cached_user');
+      localStorage.removeItem('accessToken');
     }
     router.push('/login');
   };

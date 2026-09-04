@@ -170,21 +170,21 @@ export default function CreatePurchasePage() {
   const grandTotal = Math.max(0, taxableAmount + taxAmount);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-8 space-y-6 max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full overflow-y-auto custom-scrollbar min-w-0">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
               <Link href="/purchases">
-                <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+                <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground text-xs px-2">
                   <ArrowLeft className="h-4 w-4" /> Back to Purchases
                 </Button>
               </Link>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <ShoppingBag className="h-6 w-6 text-primary" />
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
                 New Purchase Order
               </h1>
             </div>

@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../providers/AuthProvider';
+import { useLayout } from './LayoutContext';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard,
@@ -27,11 +28,13 @@ import {
   BarChart3,
   Upload,
   ShieldCheck,
+  X,
 } from 'lucide-react';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { isMobileOpen, closeMobileMenu } = useLayout();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const isPlatformAdmin = user ? Boolean(user.isPlatformAdmin) : false;
@@ -58,8 +61,8 @@ export function Sidebar() {
     return () => clearTimeout(timer);
   }, [pathname]);
 
-  return (
-    <aside className="w-64 shrink-0 h-[calc(100vh-4rem)] sticky top-16 flex flex-col min-h-0 border-r border-border bg-card/40 overflow-hidden">
+  const navContent = (
+    <>
       <div
         ref={scrollContainerRef}
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-4 space-y-6"
@@ -446,6 +449,48 @@ export function Sidebar() {
           </p>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sticky Sidebar */}
+      <aside className="hidden md:flex w-64 shrink-0 h-[calc(100vh-4rem)] sticky top-16 flex-col min-h-0 border-r border-border bg-card/40 overflow-hidden">
+        {navContent}
+      </aside>
+
+      {/* Mobile Slide-Over Drawer Overlay */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={closeMobileMenu}
+            aria-hidden="true"
+          />
+
+          {/* Drawer Sheet */}
+          <aside className="relative w-72 max-w-[85vw] h-full flex flex-col bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-200 z-10">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <span className="font-bold text-sm text-foreground">Navigation Menu</span>
+              </div>
+              <button
+                onClick={closeMobileMenu}
+                aria-label="Close navigation menu"
+                className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {navContent}
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

@@ -68,24 +68,24 @@ export default function SuppliersListPage() {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-hidden">
         <Sidebar />
-        <main className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+        <main className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 overflow-hidden min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-                <Building2 className="h-6 w-6 text-amber-500" />
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500 shrink-0" />
                 Suppliers
               </h1>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Manage timber, fabric, hardware, and raw material suppliers.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <ImportButton
                 module="SUPPLIERS"
                 moduleTitle="Suppliers"
-                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['crm-suppliers'] })}
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['crm'] })}
               />
               <Button
                 variant="outline"
@@ -106,10 +106,10 @@ export default function SuppliersListPage() {
           </div>
 
           {/* Search and Filters Bar */}
-          <Card className="border-border/80 p-3.5 flex-shrink-0">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <Card className="border-border/80 p-3 sm:p-3.5 flex-shrink-0 min-w-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Search name, phone, email, code or GST..."
                   value={searchTerm}
@@ -117,8 +117,8 @@ export default function SuppliersListPage() {
                   className="pl-9 bg-background text-xs h-9"
                 />
               </div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-                <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <div className="flex items-center gap-1.5 overflow-x-auto min-w-0 pb-1 md:pb-0 scrollbar-none">
+                <span className="text-xs text-muted-foreground font-medium flex items-center gap-1 shrink-0">
                   <Filter className="h-3.5 w-3.5" /> Filter:
                 </span>
                 {(['ALL', 'ACTIVE', 'INACTIVE', 'ARCHIVED'] as const).map((st) => (
@@ -130,7 +130,7 @@ export default function SuppliersListPage() {
                       setStatusFilter(st);
                       setPage(1);
                     }}
-                    className="h-8 text-xs capitalize"
+                    className="h-8 text-xs capitalize shrink-0"
                   >
                     {st.toLowerCase()}
                   </Button>

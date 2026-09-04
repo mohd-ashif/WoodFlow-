@@ -18,8 +18,14 @@ export async function fetchApi<T>(
 ): Promise<T> {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
 
+  let token: string | null = null;
+  if (typeof window !== 'undefined') {
+    token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string>),
   };
 

@@ -3,6 +3,7 @@ import React from 'react';
 import QueryProvider from '../components/providers/QueryProvider';
 import { AuthProvider } from '../components/providers/AuthProvider';
 import { ToastProvider } from '../components/ui/Toast';
+import { LayoutProvider } from '../components/layout/LayoutContext';
 
 export const metadata = {
   title: 'FurnitureOS - Multi-Tenant Furniture Management SaaS',
@@ -15,10 +16,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-background text-foreground min-h-screen font-sans antialiased">
         <QueryProvider>
           <AuthProvider>
-            {/* ToastProvider wraps the entire app and renders the toast viewport */}
-            <ToastProvider>
-              {children}
-            </ToastProvider>
+            <LayoutProvider>
+              {/* ToastProvider wraps the entire app and renders the toast viewport */}
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </LayoutProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

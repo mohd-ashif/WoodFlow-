@@ -86,16 +86,16 @@ export default function LowStockPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
+        <main className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar min-w-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <AlertTriangle className="h-8 w-8 text-yellow-500" /> Low Stock Warning
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-yellow-500 shrink-0" /> Low Stock Warning
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               These items are currently running below their designated minimum threshold levels.
             </p>
           </div>

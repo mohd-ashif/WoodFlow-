@@ -66,12 +66,12 @@ export function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto"
       role="presentation"
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={!loading ? onClose : undefined}
         aria-hidden="true"
       />
@@ -84,16 +84,16 @@ export function Dialog({
         aria-labelledby="dialog-title"
         aria-describedby={description ? 'dialog-description' : undefined}
         className={clsx(
-          'relative w-full rounded-2xl border border-border bg-card shadow-2xl',
+          'relative w-full max-w-[calc(100vw-1.25rem)] rounded-xl sm:rounded-2xl border border-border bg-card shadow-2xl',
           'animate-in zoom-in-95 fade-in duration-200',
-          'flex flex-col max-h-[90vh]',
+          'flex flex-col max-h-[92vh] sm:max-h-[90vh] my-auto',
           maxWidthClass
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border flex-shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-border flex-shrink-0">
           <div>
-            <h2 id="dialog-title" className="text-lg font-semibold text-foreground">
+            <h2 id="dialog-title" className="text-base sm:text-lg font-semibold text-foreground">
               {title}
             </h2>
             {description && (
@@ -113,7 +113,7 @@ export function Dialog({
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto px-6 pt-4 pb-6 flex-1">
+        <div className="overflow-y-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6 flex-1">
           {children}
         </div>
       </div>

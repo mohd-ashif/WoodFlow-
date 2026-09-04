@@ -42,13 +42,13 @@ export default function InvoicesListPage() {
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-hidden">
         <Sidebar />
-        <main className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden min-w-0">
+        <main className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 overflow-hidden min-w-0">
           {/* Header */}
           <div className="flex-shrink-0">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-              <FileText className="h-6 w-6 text-primary" />
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
               Tax Invoices
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -57,9 +57,9 @@ export default function InvoicesListPage() {
           </div>
 
           {/* Search Bar */}
-          <Card className="border-border/80 p-3 flex-shrink-0">
+          <Card className="border-border/80 p-3 flex-shrink-0 min-w-0">
             <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search invoice number, customer name, phone..."
                 value={searchTerm}

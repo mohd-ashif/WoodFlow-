@@ -61,10 +61,10 @@ export function ConfirmDialog({
   const iconBg = variant === 'danger' ? 'bg-rose-500/10' : 'bg-amber-500/10';
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="presentation">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="presentation">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={!isLoading ? onClose : undefined}
         aria-hidden="true"
       />
@@ -75,7 +75,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-desc"
-        className="relative w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl animate-in zoom-in-95 fade-in duration-200"
+        className="relative w-full max-w-[calc(100vw-1.5rem)] sm:max-w-sm rounded-xl sm:rounded-2xl border border-border bg-card shadow-2xl animate-in zoom-in-95 fade-in duration-200 my-auto"
       >
         {/* Close button */}
         <button
@@ -87,7 +87,7 @@ export function ConfirmDialog({
           <X className="h-4 w-4" aria-hidden="true" />
         </button>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Icon */}
           <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${iconBg}`}>
             <AlertTriangle className={`h-6 w-6 ${iconColor}`} aria-hidden="true" />
