@@ -80,12 +80,17 @@ npm run dev:web    # Next.js Frontend on http://localhost:3000
 
 ## Documentation Links
 
+For a complete index of all operational, architectural, and QA documents, see the [Documentation Index](docs/README.md).
+
 - [Architecture Guide](docs/architecture.md)
 - [Database Schema & ERD](docs/database.md)
 - [Authentication Architecture](docs/authentication.md)
 - [Multi-Tenancy Security Model](docs/multi-tenancy.md)
 - [API Reference](docs/api.md)
 - [Development Guide](docs/development.md)
+- [Admin Operational Guide](docs/ADMIN_GUIDE.md)
+- [Company Owner Guide](docs/COMPANY_OWNER_GUIDE.md)
+- [Employee Guide](docs/EMPLOYEE_GUIDE.md)
 
 ---
 

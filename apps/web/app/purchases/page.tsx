@@ -19,6 +19,7 @@ import {
   Eye,
   XCircle,
   TrendingUp,
+  FileText,
   Clock,
   ChevronLeft,
   ChevronRight,
@@ -26,13 +27,15 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
+
 export default function PurchasesListPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [limit, setLimit] = useState(10);
 
   const [cancelModalPurchase, setCancelModalPurchase] = useState<any | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -77,19 +80,19 @@ export default function PurchasesListPage() {
   const totalCount = pagination.total || purchases.length;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
+        <main className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden min-w-0">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-                <ShoppingBag className="h-7 w-7 text-primary" />
+              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+                <ShoppingBag className="h-6 w-6 text-primary" />
                 Purchase Orders
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Manage supplier purchases, track stock acquisitions, and record Stock IN movements.
               </p>
             </div>
@@ -100,100 +103,96 @@ export default function PurchasesListPage() {
                 onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['purchases'] })}
               />
               <Link href="/purchases/overview">
-                <Button size="sm" variant="outline" className="gap-1.5">
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs">
                   <LayoutDashboard className="h-4 w-4" /> Overview
                 </Button>
               </Link>
               <Link href="/purchases/new">
-                <Button size="sm" className="gap-2 font-semibold">
-                  <Plus className="h-4 w-4" /> New Purchase Order
+                <Button size="sm" className="gap-2 font-semibold text-xs">
+                  <Plus className="h-4 w-4" /> Create PO
                 </Button>
               </Link>
             </div>
           </div>
 
           {/* Metrics Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-shrink-0">
             <Card className="border-border/80 bg-card/60">
-              <CardContent className="p-4 flex items-center justify-between">
+              <CardContent className="p-3 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Total Purchase Orders</p>
-                  <h3 className="text-2xl font-bold mt-1 text-foreground">{totalCount}</h3>
+                  <p className="text-xs text-muted-foreground font-medium">Total Orders</p>
+                  <h3 className="text-xl font-bold mt-0.5 text-foreground">{totalCount}</h3>
                 </div>
-                <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
-                  <ShoppingBag className="h-5 w-5" />
+                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                  <FileText className="h-4 w-4" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="border-border/80 bg-card/60">
-              <CardContent className="p-4 flex items-center justify-between">
+              <CardContent className="p-3 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Page Stock IN Value</p>
-                  <h3 className="text-2xl font-bold mt-1 text-emerald-500 font-mono">₹{pageTotal.toLocaleString('en-IN')}</h3>
+                  <p className="text-xs text-muted-foreground font-medium">Total Inflow Value</p>
+                  <h3 className="text-xl font-bold mt-0.5 text-foreground font-mono">₹{pageTotal.toLocaleString('en-IN')}</h3>
                 </div>
-                <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl">
-                  <TrendingUp className="h-5 w-5" />
+                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                  <TrendingUp className="h-4 w-4" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="border-border/80 bg-card/60">
-              <CardContent className="p-4 flex items-center justify-between">
+              <CardContent className="p-3 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Stock IN Status</p>
-                  <h3 className="text-xl font-bold mt-1 text-primary">Active Procurement</h3>
+                  <p className="text-xs text-muted-foreground font-medium">Active Supplier Count</p>
+                  <h3 className="text-xl font-bold mt-0.5 text-amber-500 font-mono">
+                    {Array.from(new Set(purchases.map((p: any) => p.supplierId).filter(Boolean))).length}
+                  </h3>
                 </div>
-                <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
-                  <Truck className="h-5 w-5" />
+                <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
+                  <ShoppingBag className="h-4 w-4" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Filter Toolbar */}
-          <Card className="border-border/80 p-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Search & Filter Bar */}
+          <Card className="border-border/80 p-3 flex-shrink-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search purchase number, supplier name, ref..."
+                  placeholder="Search purchase no., reference, supplier..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-10 text-xs"
+                  className="pl-9 bg-background text-xs h-9"
                 />
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Filter className="h-3.5 w-3.5" /> Status:
-                </div>
-                {[
-                  { label: 'All Statuses', value: '' },
-                  { label: 'Draft', value: 'DRAFT' },
-                  { label: 'Confirmed', value: 'CONFIRMED' },
-                  { label: 'Cancelled', value: 'CANCELLED' },
-                ].map((st) => (
-                  <Button
-                    key={st.value}
-                    size="sm"
-                    variant={statusFilter === st.value ? 'default' : 'outline'}
-                    onClick={() => {
-                      setStatusFilter(st.value);
-                      setPage(1);
-                    }}
-                    className="h-8 text-xs"
-                  >
-                    {st.label}
-                  </Button>
-                ))}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                  <Filter className="h-3.5 w-3.5" /> Filter:
+                </span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-secondary/60 border border-border/80 rounded px-2.5 py-1 text-xs text-foreground focus:outline-none"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="CONFIRMED">Confirmed / Received</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
               </div>
             </div>
           </Card>
 
-          {/* Purchase Orders Table */}
-          <Card className="border-border/80 overflow-hidden">
-            <CardContent className="p-0">
+          {/* Purchases Table Card — Flex 1 to fill available resolution height */}
+          <Card className="flex-1 flex flex-col min-h-0 border-border/80 overflow-hidden shadow-sm">
+            <CardContent className="p-0 flex-1 flex flex-col min-h-0">
               {isLoading ? (
                 <div className="p-6 space-y-3">
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -201,7 +200,7 @@ export default function PurchasesListPage() {
                   ))}
                 </div>
               ) : purchases.length === 0 ? (
-                <div className="text-center py-12 space-y-3">
+                <div className="text-center py-12 space-y-3 flex-1 flex flex-col justify-center items-center">
                   <ShoppingBag className="h-10 w-10 text-muted-foreground/40 mx-auto" />
                   <p className="text-base font-semibold text-foreground">No purchase orders recorded yet</p>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto">
@@ -214,126 +213,117 @@ export default function PurchasesListPage() {
                   </Link>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-secondary/40 text-muted-foreground text-xs uppercase tracking-wider border-b border-border/60">
-                      <tr>
-                        <th className="py-3 px-4">Purchase No.</th>
-                        <th className="py-3 px-4">Supplier</th>
-                        <th className="py-3 px-4">Date</th>
-                        <th className="py-3 px-4 text-right">Cost Total</th>
-                        <th className="py-3 px-4">Payment</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/40">
-                      {purchases.map((purchase: any) => (
-                        <tr key={purchase.id} className="hover:bg-secondary/20 transition-colors">
-                          <td className="py-3.5 px-4 font-mono font-semibold text-foreground">
-                            <Link href={`/purchases/${purchase.id}`} className="hover:underline text-primary">
-                              {purchase.purchaseNumber}
-                            </Link>
-                            {purchase.referenceNumber && (
-                              <p className="text-[11px] font-mono text-muted-foreground font-normal">
-                                Ref: {purchase.referenceNumber}
-                              </p>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {purchase.supplier ? (
-                              <div>
-                                <p className="font-semibold text-foreground text-xs">{purchase.supplier.name}</p>
-                                <p className="text-[11px] text-muted-foreground">{purchase.supplier.phone}</p>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">Direct Purchase</span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                            {new Date(purchase.purchaseDate || purchase.createdAt).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </td>
-                          <td className="py-3.5 px-4 text-right font-mono font-semibold text-foreground text-sm">
-                            ₹{purchase.totalAmount.toLocaleString('en-IN')}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <Badge
-                              variant={purchase.paymentStatus === 'PAID' ? 'default' : 'secondary'}
-                              className="text-[10px]"
-                            >
-                              {purchase.paymentStatus}
-                            </Badge>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <Badge
-                              variant={
-                                purchase.status === 'CONFIRMED' || purchase.status === 'RECEIVED'
-                                  ? 'default'
-                                  : purchase.status === 'CANCELLED'
-                                  ? 'destructive'
-                                  : 'secondary'
-                              }
-                              className="text-[10px]"
-                            >
-                              {purchase.status}
-                            </Badge>
-                          </td>
-                          <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <Link href={`/purchases/${purchase.id}`}>
-                                <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" title="View Purchase">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </Link>
-                              {purchase.status !== 'CANCELLED' && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="text-destructive hover:bg-destructive/15 transition-colors"
-                                  title="Cancel Purchase"
-                                  onClick={() => setCancelModalPurchase(purchase)}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </td>
+                <>
+                  <div className="flex-1 overflow-auto min-h-0">
+                    <table className="w-full text-left text-sm">
+                      <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md text-muted-foreground text-xs uppercase tracking-wider border-b border-border/60 shadow-sm">
+                        <tr>
+                          <th className="py-3 px-4">Purchase No.</th>
+                          <th className="py-3 px-4">Supplier</th>
+                          <th className="py-3 px-4">Date</th>
+                          <th className="py-3 px-4 text-right">Cost Total</th>
+                          <th className="py-3 px-4">Payment</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Pagination footer */}
-              {pagination.totalPages > 1 && (
-                <div className="p-4 border-t border-border/60 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    Page {pagination.page} of {pagination.totalPages} ({pagination.total} total purchases)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Previous
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page >= pagination.totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      Next <ChevronRight className="h-4 w-4" />
-                    </Button>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {purchases.map((purchase: any) => (
+                          <tr key={purchase.id} className="hover:bg-secondary/20 transition-colors">
+                            <td className="py-3.5 px-4 font-mono font-semibold text-foreground">
+                              <Link href={`/purchases/${purchase.id}`} className="hover:underline text-primary">
+                                {purchase.purchaseNumber}
+                              </Link>
+                              {purchase.referenceNumber && (
+                                <p className="text-[11px] font-mono text-muted-foreground font-normal">
+                                  Ref: {purchase.referenceNumber}
+                                </p>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              {purchase.supplier ? (
+                                <div>
+                                  <p className="font-semibold text-foreground text-xs">{purchase.supplier.name}</p>
+                                  <p className="text-[11px] text-muted-foreground">{purchase.supplier.phone}</p>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">Direct Purchase</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-xs text-muted-foreground">
+                              {new Date(purchase.purchaseDate || purchase.createdAt).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </td>
+                            <td className="py-3.5 px-4 text-right font-mono font-semibold text-foreground text-sm">
+                              ₹{purchase.totalAmount.toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <Badge
+                                variant={purchase.paymentStatus === 'PAID' ? 'default' : 'secondary'}
+                                className="text-[10px]"
+                              >
+                                {purchase.paymentStatus}
+                              </Badge>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <Badge
+                                variant={
+                                  purchase.status === 'CONFIRMED' || purchase.status === 'RECEIVED'
+                                    ? 'default'
+                                    : purchase.status === 'CANCELLED'
+                                    ? 'destructive'
+                                    : 'secondary'
+                                }
+                                className="text-[10px]"
+                              >
+                                {purchase.status}
+                              </Badge>
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Link href={`/purchases/${purchase.id}`}>
+                                  <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" title="View Purchase">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                                {purchase.status !== 'CANCELLED' && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/15 transition-colors"
+                                    title="Cancel Purchase"
+                                    onClick={() => setCancelModalPurchase(purchase)}
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
+
+                  {/* Always Visible Fixed Bottom Pagination */}
+                  <div className="flex-shrink-0 border-t border-border/60">
+                    <DataTablePagination
+                      currentPage={page}
+                      totalPages={pagination.totalPages}
+                      totalItems={pagination.total}
+                      limit={limit}
+                      onPageChange={setPage}
+                      onLimitChange={(l) => {
+                        setLimit(l);
+                        setPage(1);
+                      }}
+                      itemLabel="purchase orders"
+                    />
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

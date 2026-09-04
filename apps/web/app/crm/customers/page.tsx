@@ -28,13 +28,15 @@ import {
 } from 'lucide-react';
 import { ImportButton } from '../../../components/import/ImportButton';
 
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
+
 export default function CustomersListPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'>('ALL');
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [limit, setLimit] = useState(10);
 
   const [archiveModalCustomer, setArchiveModalCustomer] = useState<any | null>(null);
 
@@ -75,18 +77,18 @@ export default function CustomersListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <main className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-                <Users className="h-7 w-7 text-primary" />
+              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+                <Users className="h-6 w-6 text-primary" />
                 Customers
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Furniture shop customer database and contact profiles.
               </p>
             </div>
@@ -100,13 +102,13 @@ export default function CustomersListPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleExportCSV}
-                className="gap-2 border-border/80"
+                className="gap-2 border-border/80 text-xs"
               >
                 <Download className="h-4 w-4" />
                 Export CSV
               </Button>
               <Link href="/crm/customers/new">
-                <Button size="sm" className="gap-2 shadow-sm">
+                <Button size="sm" className="gap-2 shadow-sm text-xs">
                   <Plus className="h-4 w-4" />
                   Add Customer
                 </Button>
@@ -115,7 +117,7 @@ export default function CustomersListPage() {
           </div>
 
           {/* Search and Filters Bar */}
-          <Card className="border-border/80 p-4">
+          <Card className="border-border/80 p-3.5 flex-shrink-0">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -123,7 +125,7 @@ export default function CustomersListPage() {
                   placeholder="Search name, phone, email, code or GST..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 bg-background"
+                  className="pl-9 bg-background text-xs h-9"
                 />
               </div>
               <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
@@ -148,9 +150,9 @@ export default function CustomersListPage() {
             </div>
           </Card>
 
-          {/* Customers Table */}
-          <Card className="border-border/80 overflow-hidden">
-            <CardContent className="p-0">
+          {/* Customers Table Card — Flex 1 to fill available resolution height */}
+          <Card className="flex-1 flex flex-col min-h-0 border-border/80 overflow-hidden shadow-sm">
+            <CardContent className="p-0 flex-1 flex flex-col min-h-0">
               {isLoading ? (
                 <div className="p-8 space-y-4">
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -165,7 +167,7 @@ export default function CustomersListPage() {
                   </Button>
                 </div>
               ) : customers.length === 0 ? (
-                <div className="p-12 text-center space-y-4">
+                <div className="p-12 text-center space-y-4 flex-1 flex flex-col justify-center items-center">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto opacity-40" />
                   <div className="space-y-1">
                     <h3 className="font-semibold text-foreground">No customers found</h3>
@@ -181,140 +183,132 @@ export default function CustomersListPage() {
                   </Link>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-secondary/40 border-b border-border text-xs uppercase font-medium text-muted-foreground">
-                      <tr>
-                        <th className="py-3.5 px-4">Customer</th>
-                        <th className="py-3.5 px-4">Phone</th>
-                        <th className="py-3.5 px-4">Email</th>
-                        <th className="py-3.5 px-4">City</th>
-                        <th className="py-3.5 px-4">Orders</th>
-                        <th className="py-3.5 px-4">Outstanding</th>
-                        <th className="py-3.5 px-4">Status</th>
-                        <th className="py-3.5 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/40">
-                      {customers.map((cust: any) => {
-                        const defaultAddress = cust.addresses?.[0];
-                        const cityDisplay = defaultAddress ? `${defaultAddress.city}, ${defaultAddress.state}` : '—';
-                        return (
-                          <tr key={cust.id} className="hover:bg-secondary/20 transition-colors">
-                            <td className="py-3.5 px-4">
-                              <div className="flex flex-col">
-                                <Link
-                                  href={`/crm/customers/${cust.id}`}
-                                  className="font-semibold text-foreground hover:underline"
-                                >
-                                  {cust.name}
-                                </Link>
-                                <span className="text-xs font-mono text-muted-foreground">
-                                  {cust.customerCode}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <div className="flex items-center gap-1.5 text-xs text-foreground">
-                                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                                <a href={`tel:${cust.phone}`} className="hover:underline">
-                                  {cust.phone}
-                                </a>
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                              {cust.email ? (
-                                <div className="flex items-center gap-1.5">
-                                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <a href={`mailto:${cust.email}`} className="hover:underline">
-                                    {cust.email}
+                <>
+                  {/* Scrollable table container filling available height */}
+                  <div className="flex-1 overflow-auto min-h-0">
+                    <table className="w-full text-left text-sm">
+                      <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md border-b border-border text-xs uppercase font-medium text-muted-foreground shadow-sm">
+                        <tr>
+                          <th className="py-3.5 px-4">Customer</th>
+                          <th className="py-3.5 px-4">Phone</th>
+                          <th className="py-3.5 px-4">Email</th>
+                          <th className="py-3.5 px-4">City</th>
+                          <th className="py-3.5 px-4">Orders</th>
+                          <th className="py-3.5 px-4">Outstanding</th>
+                          <th className="py-3.5 px-4">Status</th>
+                          <th className="py-3.5 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {customers.map((cust: any) => {
+                          const defaultAddress = cust.addresses?.[0];
+                          const cityDisplay = defaultAddress ? `${defaultAddress.city}, ${defaultAddress.state}` : '—';
+                          return (
+                            <tr key={cust.id} className="hover:bg-secondary/20 transition-colors">
+                              <td className="py-3.5 px-4">
+                                <div className="flex flex-col">
+                                  <Link
+                                    href={`/crm/customers/${cust.id}`}
+                                    className="font-semibold text-foreground hover:underline"
+                                  >
+                                    {cust.name}
+                                  </Link>
+                                  <span className="text-xs font-mono text-muted-foreground">
+                                    {cust.customerCode}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <div className="flex items-center gap-1.5 text-xs text-foreground">
+                                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <a href={`tel:${cust.phone}`} className="hover:underline">
+                                    {cust.phone}
                                   </a>
                                 </div>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                            <td className="py-3.5 px-4 text-xs text-muted-foreground">
-                              {cityDisplay}
-                            </td>
-                            <td className="py-3.5 px-4 text-xs font-mono">
-                              {cust.totalOrdersDisplay || '—'}
-                            </td>
-                            <td className="py-3.5 px-4 text-xs font-mono">
-                              {cust.outstandingBalanceDisplay || '₹0.00'}
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <Badge
-                                variant={
-                                  cust.status === 'ACTIVE'
-                                    ? 'default'
-                                    : cust.status === 'ARCHIVED'
-                                    ? 'destructive'
-                                    : 'secondary'
-                                }
-                                className="text-[11px]"
-                              >
-                                {cust.status}
-                              </Badge>
-                            </td>
-                            <td className="py-3.5 px-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Link href={`/crm/customers/${cust.id}`}>
-                                  <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" title="View Profile">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </Link>
-                                <Link href={`/crm/customers/${cust.id}/edit`}>
-                                  <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" title="Edit Customer">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                </Link>
-                                {cust.status !== 'ARCHIVED' && (
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="text-destructive hover:bg-destructive/15 transition-colors"
-                                    title="Archive Customer"
-                                    onClick={() => setArchiveModalCustomer(cust)}
-                                  >
-                                    <Archive className="h-4 w-4" />
-                                  </Button>
+                              </td>
+                              <td className="py-3.5 px-4 text-xs text-muted-foreground">
+                                {cust.email ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <a href={`mailto:${cust.email}`} className="hover:underline">
+                                      {cust.email}
+                                    </a>
+                                  </div>
+                                ) : (
+                                  '—'
                                 )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Pagination footer */}
-              {pagination.totalPages > 1 && (
-                <div className="p-4 border-t border-border/60 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    Page {pagination.page} of {pagination.totalPages} ({pagination.total} total customers)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Previous
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page >= pagination.totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      Next <ChevronRight className="h-4 w-4" />
-                    </Button>
+                              </td>
+                              <td className="py-3.5 px-4 text-xs text-muted-foreground">
+                                {cityDisplay}
+                              </td>
+                              <td className="py-3.5 px-4 text-xs font-mono">
+                                {cust.totalOrdersDisplay || '—'}
+                              </td>
+                              <td className="py-3.5 px-4 text-xs font-mono">
+                                {cust.outstandingBalanceDisplay || '₹0.00'}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <Badge
+                                  variant={
+                                    cust.status === 'ACTIVE'
+                                      ? 'default'
+                                      : cust.status === 'ARCHIVED'
+                                      ? 'destructive'
+                                      : 'secondary'
+                                  }
+                                  className="text-[11px]"
+                                >
+                                  {cust.status}
+                                </Badge>
+                              </td>
+                              <td className="py-3.5 px-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Link href={`/crm/customers/${cust.id}`}>
+                                    <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" title="View Profile">
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                  <Link href={`/crm/customers/${cust.id}/edit`}>
+                                    <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" title="Edit Customer">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                  {cust.status !== 'ARCHIVED' && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-destructive hover:bg-destructive/15 transition-colors"
+                                      title="Archive Customer"
+                                      onClick={() => setArchiveModalCustomer(cust)}
+                                    >
+                                      <Archive className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
+
+                  {/* Always Visible Fixed Bottom Pagination */}
+                  <div className="flex-shrink-0 border-t border-border/60">
+                    <DataTablePagination
+                      currentPage={page}
+                      totalPages={pagination.totalPages}
+                      totalItems={pagination.total}
+                      limit={limit}
+                      onPageChange={setPage}
+                      onLimitChange={(l) => {
+                        setLimit(l);
+                        setPage(1);
+                      }}
+                      itemLabel="customers"
+                    />
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

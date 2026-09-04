@@ -53,6 +53,8 @@ function ProductSkeletonRow() {
   );
 }
 
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
+
 export default function ProductsListPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -62,7 +64,7 @@ export default function ProductsListPage() {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(10);
 
   // Quick Adjust Dialog
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
@@ -245,18 +247,18 @@ export default function ProductsListPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-6 lg:p-8 space-y-6">
+        <main className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden min-w-0">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 Products Database
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 View and manage cataloged furniture items and raw materials.
               </p>
             </div>
@@ -267,7 +269,7 @@ export default function ProductsListPage() {
                 onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
               />
               <Link href="/inventory/products/new">
-                <Button className="gap-2">
+                <Button size="sm" className="gap-2 text-xs">
                   <Plus className="h-4 w-4" aria-hidden="true" />
                   Add Product
                 </Button>
@@ -276,38 +278,28 @@ export default function ProductsListPage() {
           </div>
 
           {/* Search & Filters */}
-          <div className="bg-card/40 border border-border p-4 rounded-xl space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+          <div className="bg-card/40 border border-border p-3.5 rounded-xl space-y-3 flex-shrink-0">
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
                 <Input
                   placeholder="Search by name, SKU…"
                   value={search}
                   onChange={handleSearchChange}
-                  className="pl-9 bg-background/50 border-border/80"
+                  className="pl-9 bg-background/50 border-border/80 text-xs h-9"
                   aria-label="Search products"
                 />
               </div>
               <select
                 value={categoryId}
                 onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}
-                className="h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-9 text-xs rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none"
                 aria-label="Filter by category"
               >
                 <option value="">All Categories</option>
                 {categories.map((cat: any) => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
-              </select>
-              <select
-                value={limit}
-                onChange={(e) => { setLimit(parseInt(e.target.value)); setPage(1); }}
-                className="h-10 text-sm rounded-lg border border-border bg-background px-3 text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Items per page"
-              >
-                <option value={20}>20 / page</option>
-                <option value={50}>50 / page</option>
-                <option value={100}>100 / page</option>
               </select>
             </div>
 
@@ -377,10 +369,10 @@ export default function ProductsListPage() {
               )}
             </div>
           ) : (
-            <>
-              <div className="rounded-xl border border-border bg-card/30 overflow-hidden shadow-sm">
+            <div className="flex-1 flex flex-col min-h-0 rounded-xl border border-border bg-card/30 overflow-hidden shadow-sm">
+              <div className="flex-1 overflow-auto min-h-0">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md shadow-sm">
                     <TableRow className="bg-muted/30">
                       <TableHead
                         className="cursor-pointer hover:bg-muted/40 transition-colors select-none"
@@ -544,42 +536,22 @@ export default function ProductsListPage() {
                 </Table>
               </div>
 
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-xs text-muted-foreground">
-                    Showing {(page - 1) * limit + 1}–{Math.min(page * limit, pagination.total)} of{' '}
-                    {pagination.total} products
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                      disabled={page === 1}
-                      className="border-border/80"
-                      aria-label="Previous page"
-                    >
-                      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                      Previous
-                    </Button>
-                    <span className="text-xs font-semibold tabular-nums">
-                      {page} / {pagination.totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.min(p + 1, pagination.totalPages))}
-                      disabled={page === pagination.totalPages}
-                      className="border-border/80"
-                      aria-label="Next page"
-                    >
-                      Next <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+              {/* Always Visible Fixed Bottom Pagination */}
+              <div className="flex-shrink-0 border-t border-border/60">
+                <DataTablePagination
+                  currentPage={page}
+                  totalPages={pagination.totalPages}
+                  totalItems={pagination.total}
+                  limit={limit}
+                  onPageChange={setPage}
+                  onLimitChange={(l) => {
+                    setLimit(l);
+                    setPage(1);
+                  }}
+                  itemLabel="products"
+                />
+              </div>
+            </div>
           )}
 
           {/* ─── Quick Stock Adjustment Dialog ─────────────────────────────────── */}

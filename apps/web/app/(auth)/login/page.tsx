@@ -89,11 +89,6 @@ export default function LoginPage() {
               Register here
             </Link>
           </p>
-          <div className="mt-2 text-[11px] text-muted-foreground/70 bg-secondary/30 p-2 rounded-lg text-left">
-            <p className="font-medium text-foreground mb-0.5">Demo Seed Accounts:</p>
-            <p>Admin: admin@furnitureos.local (AdminPass123!)</p>
-            <p>Owner: owner@royalfurniture.local (OwnerPass123!)</p>
-          </div>
         </CardFooter>
       </Card>
     </div>
