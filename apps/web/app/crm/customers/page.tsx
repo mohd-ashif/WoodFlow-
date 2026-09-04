@@ -57,8 +57,7 @@ export default function CustomersListPage() {
     mutationFn: (id: string) => crmService.archiveCustomer(id),
     onSuccess: () => {
       setArchiveModalCustomer(null);
-      queryClient.invalidateQueries({ queryKey: ['customers-list'] });
-      queryClient.invalidateQueries({ queryKey: ['crm-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['crm'] });
     },
   });
 

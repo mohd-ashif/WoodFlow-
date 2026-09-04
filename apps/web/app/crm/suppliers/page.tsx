@@ -56,8 +56,7 @@ export default function SuppliersListPage() {
     mutationFn: (id: string) => crmService.archiveSupplier(id),
     onSuccess: () => {
       setArchiveModalSupplier(null);
-      queryClient.invalidateQueries({ queryKey: ['suppliers-list'] });
-      queryClient.invalidateQueries({ queryKey: ['crm-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['crm'] });
     },
   });
 
