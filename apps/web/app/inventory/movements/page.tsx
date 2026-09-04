@@ -11,37 +11,27 @@ import { Input } from '../../../components/ui/Input';
 import { Badge } from '../../../components/ui/Badge';
 import { Clock, Search, ChevronLeft, ChevronRight, User, SlidersHorizontal, RefreshCw } from 'lucide-react';
 
+import { useDebounce } from '../../../hooks/useDebounce';
+import { useStockMovements } from '../../../hooks/useInventory';
+
 export default function StockMovementsPage() {
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [movementType, setMovementType] = useState('');
   const [createdBy, setCreatedBy] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
 
-  // Debounce search
-  React.useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(handler);
-  }, [search]);
-
-  // Query Movements
-  const { data: moveData, isLoading, refetch } = useQuery({
-    queryKey: ['movements', debouncedSearch, movementType, createdBy, startDate, endDate, page],
-    queryFn: () =>
-      inventoryService.getStockMovements({
-        search: debouncedSearch,
-        movementType,
-        createdBy,
-        startDate,
-        endDate,
-        page,
-        limit: 20,
-      }),
+  // Query Movements via custom hook (uses keepPreviousData)
+  const { data: moveData, isLoading, refetch } = useStockMovements({
+    search: debouncedSearch,
+    movementType,
+    createdBy,
+    startDate,
+    endDate,
+    page,
+    limit: 20,
   });
 
   const movements = (moveData as any)?.data || [];

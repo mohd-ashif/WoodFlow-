@@ -16,6 +16,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { stockAdjustmentSchema } from '@furniture-os/shared';
 
+import { useLowStock } from '../../../hooks/useInventory';
+
 export default function LowStockPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -24,11 +26,8 @@ export default function LowStockPage() {
   const [adjustSuccessMsg, setAdjustSuccessMsg] = useState('');
   const [adjustErrorMsg, setAdjustErrorMsg] = useState('');
 
-  // Query Low Stock Products
-  const { data: prodData, isLoading, refetch } = useQuery({
-    queryKey: ['products-low-stock', page],
-    queryFn: () => inventoryService.getLowStock(page, 20),
-  });
+  // Query Low Stock Products via custom hook (uses keepPreviousData)
+  const { data: prodData, isLoading, refetch } = useLowStock(page, 20);
 
   const products = (prodData as any)?.data || [];
   const pagination = (prodData as any)?.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 };

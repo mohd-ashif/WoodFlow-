@@ -153,6 +153,15 @@ export default function SalesListPage() {
                   placeholder="Search sale no., customer name, invoice..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 overflow-x-auto">
+                {[
+                  { label: 'All Status', value: '' },
+                  { label: 'Draft', value: 'DRAFT' },
+                  { label: 'Confirmed', value: 'CONFIRMED' },
                   { label: 'Cancelled', value: 'CANCELLED' },
                 ].map((st) => (
                   <Button

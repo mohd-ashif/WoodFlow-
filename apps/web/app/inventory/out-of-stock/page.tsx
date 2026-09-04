@@ -16,6 +16,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { stockAdjustmentSchema } from '@furniture-os/shared';
 
+import { useOutOfStock } from '../../../hooks/useInventory';
+
 export default function OutOfStockPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -24,11 +26,8 @@ export default function OutOfStockPage() {
   const [adjustSuccessMsg, setAdjustSuccessMsg] = useState('');
   const [adjustErrorMsg, setAdjustErrorMsg] = useState('');
 
-  // Query Out of Stock Products
-  const { data: prodData, isLoading } = useQuery({
-    queryKey: ['products-out-of-stock', page],
-    queryFn: () => inventoryService.getOutOfStock(page, 20),
-  });
+  // Query Out of Stock Products via custom hook (uses keepPreviousData)
+  const { data: prodData, isLoading } = useOutOfStock(page, 20);
 
   const products = (prodData as any)?.data || [];
   const pagination = (prodData as any)?.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 };
