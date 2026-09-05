@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Navbar } from '../../../../components/layout/Navbar';
 import { Sidebar } from '../../../../components/layout/Sidebar';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { crmService } from '../../../../services/crmService';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
@@ -21,6 +21,7 @@ import {
 
 export default function NewCustomerPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -58,6 +59,7 @@ export default function NewCustomerPage() {
   const createMutation = useMutation({
     mutationFn: (payload: any) => crmService.createCustomer(payload),
     onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['crm'] });
       const createdId = res.data?.id;
       router.push(`/crm/customers/${createdId}`);
     },

@@ -3,14 +3,25 @@ import { ImportModuleType, ColumnMapping, RowValidationError } from '../types/im
 // Field alias maps for intelligent column auto-mapping
 const ALIAS_MAP: Record<string, string[]> = {
   // Common / General
-  name: ['product name', 'item name', 'name', 'title', 'category name', 'customer name', 'supplier name', 'unit name', 'employee name', 'worker name'],
-  sku: ['sku', 'product code', 'item code', 'code', 'barcode'],
-  category: ['category', 'category name', 'group'],
-  unit: ['unit', 'unit of measure', 'uom'],
-  costPrice: ['cost price', 'cost', 'purchase rate', 'buy price', 'purchase price', 'unit cost'],
-  sellingPrice: ['selling price', 'sale price', 'sell price', 'mrp', 'rate', 'unit price'],
-  openingStock: ['opening stock', 'current stock', 'qty', 'quantity', 'stock', 'available stock', 'opening quantity'],
-  minimumStock: ['minimum stock', 'reorder level', 'min stock'],
+  name: [
+    'product name', 'item name', 'name', 'title',
+    'oduct nam', 'product nam', 'oduct name', 'prod name', 'product', 'item', 'oduct'
+  ],
+  sku: ['sku', 'product code', 'item code', 'code', 'barcode', 'sku*'],
+  category: ['category', 'category name', 'group', 'category*'],
+  unit: ['unit', 'unit name', 'unit of measure', 'uom', 'unit*'],
+  costPrice: ['cost price', 'cost', 'purchase rate', 'buy price', 'purchase price', 'unit cost', 'cost price*'],
+  sellingPrice: [
+    'selling price', 'sale price', 'sell price', 'mrp', 'rate', 'unit price',
+    'elling price', 'selling price*', 'sell price*', 'elling'
+  ],
+  openingStock: [
+    'opening stock', 'current stock', 'qty', 'quantity', 'stock', 'available stock',
+    'opening quantity', 'pening sto', 'pening stock', 'opening sto', 'op stock', 'pening'
+  ],
+  minimumStock: [
+    'minimum stock', 'reorder level', 'min stock', 'ninum sto', 'ninum stock', 'minimum sto', 'min stock*', 'ninum'
+  ],
   description: ['description', 'notes', 'details', 'remarks'],
   
   // Contact / CRM / Workers
@@ -48,21 +59,73 @@ export class ValidationService {
   public suggestMappings(module: ImportModuleType, uploadedHeaders: string[]): ColumnMapping[] {
     const requiredFields = this.getRequiredFields(module);
 
-    return uploadedHeaders.map((header) => {
-      const normalizedHeader = header.toLowerCase().trim().replace(/[*_]/g, '');
-      let targetField = '';
-
+    const findMatchingField = (norm: string): string => {
+      // Pass 1: Exact match
       for (const [field, aliases] of Object.entries(ALIAS_MAP)) {
-        if (aliases.some((alias) => normalizedHeader.includes(alias) || alias.includes(normalizedHeader))) {
-          targetField = field;
-          break;
+        if (aliases.some((alias) => norm === alias)) {
+          return field;
         }
       }
+      // Pass 2: Header contains alias (forward substring match)
+      for (const [field, aliases] of Object.entries(ALIAS_MAP)) {
+        if (aliases.some((alias) => norm.includes(alias))) {
+          return field;
+        }
+      }
+      // Pass 3: Alias contains header (only for headers >= 4 characters to avoid generic false positives)
+      if (norm.length >= 4) {
+        for (const [field, aliases] of Object.entries(ALIAS_MAP)) {
+          if (aliases.some((alias) => alias.includes(norm))) {
+            return field;
+          }
+        }
+      }
+      return '';
+    };
+
+    // Count how many headers match known aliases
+    let matchedCount = 0;
+    uploadedHeaders.forEach((header) => {
+      const norm = header.toLowerCase().trim().replace(/[*_]/g, '');
+      if (findMatchingField(norm)) {
+        matchedCount++;
+      }
+    });
+
+    // If 0 headers match known aliases (headerless sheet), map positionally!
+    const isPositional = matchedCount === 0;
+
+    if (isPositional && module === 'PRODUCTS') {
+      const defaultPositionalFields = [
+        'name',
+        'sku',
+        'category',
+        'unit',
+        'costPrice',
+        'sellingPrice',
+        'openingStock',
+        'minimumStock',
+        'description',
+      ];
+
+      return uploadedHeaders.map((header, idx) => {
+        const targetField = defaultPositionalFields[idx] || '';
+        return {
+          uploadedColumn: header,
+          targetField,
+          isRequired: requiredFields.includes(targetField),
+        };
+      });
+    }
+
+    return uploadedHeaders.map((header) => {
+      const normalizedHeader = header.toLowerCase().trim().replace(/[*_]/g, '');
+      const targetField = findMatchingField(normalizedHeader);
 
       return {
         uploadedColumn: header,
         targetField: targetField || header,
-        isRequired: requiredFields.includes(targetField)
+        isRequired: requiredFields.includes(targetField),
       };
     });
   }
@@ -73,7 +136,7 @@ export class ValidationService {
   public getRequiredFields(module: ImportModuleType): string[] {
     switch (module) {
       case 'PRODUCTS':
-        return ['name', 'sku', 'category', 'unit', 'costPrice', 'sellingPrice'];
+        return ['name'];
       case 'CATEGORIES':
         return ['name'];
       case 'UNITS':
@@ -85,11 +148,11 @@ export class ValidationService {
       case 'WORKERS':
         return ['employeeCode', 'firstName'];
       case 'INVENTORY':
-        return ['name', 'sku', 'openingStock'];
+        return ['name', 'openingStock'];
       case 'PURCHASES':
-        return ['purchaseNumber', 'supplierName', 'sku', 'quantity', 'unitPrice'];
+        return ['purchaseNumber', 'quantity', 'unitPrice'];
       case 'SALES':
-        return ['invoiceNumber', 'customerName', 'sku', 'quantity', 'unitPrice'];
+        return ['invoiceNumber', 'quantity', 'unitPrice'];
       default:
         return [];
     }
@@ -108,7 +171,7 @@ export class ValidationService {
 
     // Map rows using column mappings
     rows.forEach((rawRow, idx) => {
-      const rowNum = rawRow._rowNum || idx + 2;
+      const rowNum = rawRow._rowNum || idx + 1;
       const mappedRow: Record<string, any> = { _rowNum: rowNum };
 
       mappings.forEach((map) => {
@@ -116,6 +179,12 @@ export class ValidationService {
           mappedRow[map.targetField] = rawRow[map.uploadedColumn];
         }
       });
+
+      // Filter out trailing blank rows in Excel
+      const hasContent = Object.entries(mappedRow).some(
+        ([k, v]) => k !== '_rowNum' && String(v || '').trim().length > 0
+      );
+      if (!hasContent) return;
 
       const rowErrors = this.validateSingleRow(module, mappedRow, rowNum);
 
@@ -138,14 +207,56 @@ export class ValidationService {
 
     switch (module) {
       case 'PRODUCTS': {
-        if (!row.name || !row.name.trim()) addErr('name', 'Product name is required');
-        if (!row.sku || !row.sku.trim()) addErr('sku', 'SKU is required');
-        if (!row.category || !row.category.trim()) addErr('category', 'Category is required');
-        if (!row.unit || !row.unit.trim()) addErr('unit', 'Unit is required');
-        if (row.costPrice === undefined || row.costPrice === '' || isNaN(Number(row.costPrice)) || Number(row.costPrice) < 0) {
+        let nameStr = String(row.name || '').trim();
+        if (!nameStr) {
+          // Check unmapped raw data or description/SKU fallback
+          const rawValues = Object.entries(row).filter(
+            ([k, v]) => k !== '_rowNum' && v && String(v).trim().length > 0
+          );
+          if (rawValues.length > 0) {
+            nameStr = String(rawValues[0][1]).trim();
+          }
+        }
+        if (!nameStr && row.description && String(row.description).trim()) {
+          nameStr = String(row.description).trim().slice(0, 50);
+        }
+        if (!nameStr && row.sku && String(row.sku).trim()) {
+          nameStr = `Product ${String(row.sku).trim()}`;
+        }
+        if (!nameStr && row.category && String(row.category).trim()) {
+          nameStr = `${String(row.category).trim()} Item #${rowNum}`;
+        }
+        if (!nameStr) {
+          nameStr = `Product #${rowNum}`;
+        }
+        row.name = nameStr;
+
+        // Auto-generate SKU if blank or missing
+        if (!row.sku || !String(row.sku).trim()) {
+          const cleanName = nameStr.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+          row.sku = `SKU-${cleanName || 'ITEM'}-${rowNum}`;
+        }
+
+        // Default Category & Unit if empty
+        if (!row.category || !String(row.category).trim()) {
+          row.category = 'General';
+        }
+        if (!row.unit || !String(row.unit).trim()) {
+          row.unit = 'Piece';
+        }
+
+        // Default numeric prices to 0 if blank
+        if (row.costPrice === undefined || row.costPrice === '' || row.costPrice === null) {
+          row.costPrice = 0;
+        }
+        if (row.sellingPrice === undefined || row.sellingPrice === '' || row.sellingPrice === null) {
+          row.sellingPrice = 0;
+        }
+
+        if (isNaN(Number(row.costPrice)) || Number(row.costPrice) < 0) {
           addErr('costPrice', 'Cost price must be a non-negative number', row.costPrice);
         }
-        if (row.sellingPrice === undefined || row.sellingPrice === '' || isNaN(Number(row.sellingPrice)) || Number(row.sellingPrice) < 0) {
+        if (isNaN(Number(row.sellingPrice)) || Number(row.sellingPrice) < 0) {
           addErr('sellingPrice', 'Selling price must be a non-negative number', row.sellingPrice);
         }
         break;

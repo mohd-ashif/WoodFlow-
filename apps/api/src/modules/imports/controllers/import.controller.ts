@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { importService } from '../services/import.service.js';
-import { BadRequestError } from '../../../utils/errors.js';
+import { BadRequestError, ApiError } from '../../../utils/errors.js';
 import { ImportModuleType } from '../types/import.types.js';
 
 /**
@@ -34,8 +34,11 @@ export async function uploadAndPreview(req: Request, res: Response, next: NextFu
       success: true,
       data: result
     });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      return next(error);
+    }
+    return next(new BadRequestError(error.message || 'Import parsing failed. Please verify your Excel file formatting.'));
   }
 }
 
@@ -80,11 +83,20 @@ export async function confirmImport(req: Request, res: Response, next: NextFunct
 export async function downloadTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const { module } = req.params;
-    const csvData = importService.getTemplate(module.toUpperCase() as ImportModuleType);
+    const format = ((req.query.format as string) || 'xlsx').toLowerCase();
+    const moduleType = module.toUpperCase() as ImportModuleType;
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${module.toLowerCase()}_import_template.csv"`);
-    res.status(200).send(csvData);
+    if (format === 'csv') {
+      const csvData = importService.getTemplate(moduleType, 'csv');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${module.toLowerCase()}_import_template.csv"`);
+      return res.status(200).send(csvData);
+    } else {
+      const excelData = importService.getTemplate(moduleType, 'xlsx');
+      res.setHeader('Content-Type', 'application/vnd.ms-excel');
+      res.setHeader('Content-Disposition', `attachment; filename="${module.toLowerCase()}_import_template.xls"`);
+      return res.status(200).send(excelData);
+    }
   } catch (error) {
     next(error);
   }

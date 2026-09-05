@@ -11,7 +11,7 @@ interface FileUploaderProps {
 
 export const FileUploader: React.FC<FileUploaderProps> = ({
   onFileSelected,
-  acceptedFormats = ['.xlsx', '.csv'],
+  acceptedFormats = ['.xlsx', '.xls', '.csv'],
   maxSizeMb = 10,
 }) => {
   const [dragActive, setDragActive] = useState(false);

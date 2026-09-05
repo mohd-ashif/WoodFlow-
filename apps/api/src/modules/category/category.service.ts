@@ -3,7 +3,34 @@ import { CreateCategoryInput, UpdateCategoryInput } from '@furniture-os/shared';
 import { ConflictError, NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { createAuditLog } from '../audit/audit.service.js';
 
+interface CachedCategoryList {
+  data: any[];
+  expiresAt: number;
+}
+
+const categoryCache = new Map<string, CachedCategoryList>();
+const CATEGORY_CACHE_TTL_MS = 60000; // 1 minute TTL
+
+export function clearCategoryCache(companyId?: string) {
+  if (companyId) {
+    for (const key of categoryCache.keys()) {
+      if (key.startsWith(`cat_${companyId}`)) {
+        categoryCache.delete(key);
+      }
+    }
+  } else {
+    categoryCache.clear();
+  }
+}
+
 export async function getCategories(companyId: string, search?: string, isActive?: boolean) {
+  const cacheKey = `cat_${companyId}_${search || ''}_${isActive ?? ''}`;
+  const cached = categoryCache.get(cacheKey);
+
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
   const where: any = { companyId };
 
   if (search) {
@@ -17,10 +44,17 @@ export async function getCategories(companyId: string, search?: string, isActive
     where.isActive = isActive;
   }
 
-  return prisma.category.findMany({
+  const categories = await prisma.category.findMany({
     where,
     orderBy: { name: 'asc' },
   });
+
+  categoryCache.set(cacheKey, {
+    data: categories,
+    expiresAt: Date.now() + CATEGORY_CACHE_TTL_MS,
+  });
+
+  return categories;
 }
 
 export async function createCategory(companyId: string, input: CreateCategoryInput, userId: string) {
@@ -46,6 +80,8 @@ export async function createCategory(companyId: string, input: CreateCategoryInp
       isActive: true,
     },
   });
+
+  clearCategoryCache(companyId);
 
   await createAuditLog({
     userId,
@@ -99,6 +135,8 @@ export async function updateCategory(
     },
   });
 
+  clearCategoryCache(companyId);
+
   await createAuditLog({
     userId,
     companyId,
@@ -129,6 +167,8 @@ export async function deactivateCategory(companyId: string, id: string, userId: 
     where: { id },
     data: { isActive: false },
   });
+
+  clearCategoryCache(companyId);
 
   await createAuditLog({
     userId,

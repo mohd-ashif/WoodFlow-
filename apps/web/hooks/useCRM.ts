@@ -23,7 +23,7 @@ export function useCreateCustomer() {
   return useMutation({
     mutationFn: (data: any) => crmService.createCustomer(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.crm.customers(undefined) });
+      queryClient.invalidateQueries({ queryKey: ['crm'] });
     },
   });
 }
@@ -33,7 +33,7 @@ export function useUpdateCustomer() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => crmService.updateCustomer(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.crm.customers(undefined) });
+      queryClient.invalidateQueries({ queryKey: ['crm'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.crm.customerDetail(undefined, variables.id) });
     },
   });
@@ -60,7 +60,7 @@ export function useCreateSupplier() {
   return useMutation({
     mutationFn: (data: any) => crmService.createSupplier(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.crm.suppliers(undefined) });
+      queryClient.invalidateQueries({ queryKey: ['crm'] });
     },
   });
 }
@@ -70,7 +70,7 @@ export function useUpdateSupplier() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => crmService.updateSupplier(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.crm.suppliers(undefined) });
+      queryClient.invalidateQueries({ queryKey: ['crm'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.crm.supplierDetail(undefined, variables.id) });
     },
   });

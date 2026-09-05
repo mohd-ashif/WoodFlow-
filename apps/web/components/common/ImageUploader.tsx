@@ -60,7 +60,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('accessToken') || localStorage.getItem('token')) : null;
       const formData = new FormData();
       formData.append('image', file);
       formData.append('entityType', entityType);
@@ -68,13 +68,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
       const isFirst = images.length === 0;
       formData.append('isPrimary', isFirst ? 'true' : 'false');
-
       const res = await fetch(`${apiUrl}/upload/image`, {
         method: 'POST',
         headers: {
           Authorization: token ? `Bearer ${token}` : '',
         },
         body: formData,
+        credentials: 'include',
       });
 
       const data = await res.json();
@@ -114,10 +114,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     if (target.id) {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         await fetch(`${apiUrl}/upload/image/${target.id}`, {
           method: 'DELETE',
           headers: { Authorization: token ? `Bearer ${token}` : '' },
+          credentials: 'include',
         });
       } catch {
         // Continue clearing local state even if remote fails
@@ -143,10 +144,11 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     if (target.id) {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         await fetch(`${apiUrl}/upload/image/${target.id}/primary`, {
           method: 'PATCH',
           headers: { Authorization: token ? `Bearer ${token}` : '' },
+          credentials: 'include',
         });
       } catch {
         // ignore

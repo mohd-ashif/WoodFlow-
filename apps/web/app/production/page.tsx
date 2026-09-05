@@ -9,6 +9,8 @@ import { Button } from '../../components/ui/Button';
 import { Hammer, Clock, AlertTriangle, CheckCircle2, Users, FileCheck, Plus, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { ImportButton } from '../../components/import/ImportButton';
+
 export default function ProductionDashboardPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['productionDashboardStats'],
@@ -37,6 +39,7 @@ export default function ProductionDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <ImportButton module="PRODUCTS" moduleTitle="Products Data" />
             <Link href="/work-orders/new">
               <Button className="gap-2 shadow-lg shadow-primary/20">
                 <Plus className="h-4 w-4" />

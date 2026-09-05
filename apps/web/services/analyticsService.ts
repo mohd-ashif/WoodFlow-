@@ -1,6 +1,15 @@
 import { fetchApi } from '../lib/api';
 
 export const analyticsService = {
+  async getOwnerSummary(params?: { startDate?: string; endDate?: string; preset?: string }): Promise<any> {
+    const query = new URLSearchParams();
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    if (params?.preset) query.set('preset', params.preset);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return fetchApi(`/analytics/owner-summary${queryString}`);
+  },
+
   async getExecutiveOverview(params?: { startDate?: string; endDate?: string; preset?: string }): Promise<any> {
     const query = new URLSearchParams();
     if (params?.startDate) query.set('startDate', params.startDate);

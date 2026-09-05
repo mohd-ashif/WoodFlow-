@@ -2,6 +2,16 @@ import { Request, Response, NextFunction } from 'express';
 import { analyticsService } from './analytics.service.js';
 import { exportService } from './export.service.js';
 
+export async function getOwnerSummary(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { startDate, endDate, preset } = req.query as any;
+    const data = await analyticsService.getOwnerSummary(req.tenantId!, { startDate, endDate, preset });
+    return res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getExecutiveOverview(req: Request, res: Response, next: NextFunction) {
   try {
     const { startDate, endDate, preset } = req.query as any;

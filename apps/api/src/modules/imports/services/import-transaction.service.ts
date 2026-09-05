@@ -1,5 +1,6 @@
 import { prisma } from '../../../config/prisma.js';
 import { ImportModuleType, DuplicateStrategy } from '../types/import.types.js';
+import { clearCategoryCache } from '../../category/category.service.js';
 
 export class ImportTransactionService {
   /**
@@ -748,6 +749,8 @@ export class ImportTransactionService {
       },
       { timeout: 60000 }
     );
+
+    clearCategoryCache(companyId);
 
     return { successfulCount, failedCount, errors };
   }

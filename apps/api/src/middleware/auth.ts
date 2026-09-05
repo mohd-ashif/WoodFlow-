@@ -4,6 +4,21 @@ import { prisma } from '../config/prisma.js';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors.js';
 import { SystemRole, UserStatus } from '@prisma/client';
 
+interface CachedUserSession {
+  user: any;
+  expiresAt: number;
+}
+const userSessionCache = new Map<string, CachedUserSession>();
+const USER_CACHE_TTL_MS = 30000; // 30s TTL
+
+export function clearUserSessionCache(userId?: string) {
+  if (userId) {
+    userSessionCache.delete(userId);
+  } else {
+    userSessionCache.clear();
+  }
+}
+
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
   try {
     let token: string | undefined;
@@ -25,19 +40,33 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
     const payload = verifyAccessToken(token);
 
-    // Fetch user with active memberships
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      include: {
-        memberships: {
-          include: {
-            company: {
-              select: { id: true, name: true, slug: true, status: true },
+    // Fast memory session lookup
+    const cached = userSessionCache.get(payload.userId);
+    let user: any;
+
+    if (cached && cached.expiresAt > Date.now()) {
+      user = cached.user;
+    } else {
+      user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        include: {
+          memberships: {
+            include: {
+              company: {
+                select: { id: true, name: true, slug: true, status: true },
+              },
             },
           },
         },
-      },
-    });
+      });
+
+      if (user) {
+        userSessionCache.set(payload.userId, {
+          user,
+          expiresAt: Date.now() + USER_CACHE_TTL_MS,
+        });
+      }
+    }
 
     if (!user) {
       throw new UnauthorizedError('User account not found', 'USER_NOT_FOUND');

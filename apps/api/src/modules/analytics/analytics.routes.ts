@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate);
 router.use(tenantContext);
 
+router.get('/owner-summary', analyticsController.getOwnerSummary);
 router.get('/overview', analyticsController.getExecutiveOverview);
 router.get('/sales', analyticsController.getSalesReports);
 router.get('/inventory', analyticsController.getInventoryReports);

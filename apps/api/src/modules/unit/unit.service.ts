@@ -3,7 +3,34 @@ import { CreateUnitInput, UpdateUnitInput } from '@furniture-os/shared';
 import { ConflictError, NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { createAuditLog } from '../audit/audit.service.js';
 
+interface CachedUnitList {
+  data: any[];
+  expiresAt: number;
+}
+
+const unitCache = new Map<string, CachedUnitList>();
+const UNIT_CACHE_TTL_MS = 60000;
+
+export function clearUnitCache(companyId?: string) {
+  if (companyId) {
+    for (const key of unitCache.keys()) {
+      if (key.startsWith(`unit_${companyId}`)) {
+        unitCache.delete(key);
+      }
+    }
+  } else {
+    unitCache.clear();
+  }
+}
+
 export async function getUnits(companyId: string, search?: string, isActive?: boolean) {
+  const cacheKey = `unit_${companyId}_${search || ''}_${isActive ?? ''}`;
+  const cached = unitCache.get(cacheKey);
+
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
   const where: any = { companyId };
 
   if (search) {
@@ -17,10 +44,17 @@ export async function getUnits(companyId: string, search?: string, isActive?: bo
     where.isActive = isActive;
   }
 
-  return prisma.unit.findMany({
+  const units = await prisma.unit.findMany({
     where,
     orderBy: { name: 'asc' },
   });
+
+  unitCache.set(cacheKey, {
+    data: units,
+    expiresAt: Date.now() + UNIT_CACHE_TTL_MS,
+  });
+
+  return units;
 }
 
 export async function createUnit(companyId: string, input: CreateUnitInput, userId: string) {
@@ -60,6 +94,8 @@ export async function createUnit(companyId: string, input: CreateUnitInput, user
       isActive: true,
     },
   });
+
+  clearUnitCache(companyId);
 
   await createAuditLog({
     userId,
@@ -124,6 +160,8 @@ export async function updateUnit(companyId: string, id: string, input: UpdateUni
     },
   });
 
+  clearUnitCache(companyId);
+
   await createAuditLog({
     userId,
     companyId,
@@ -152,6 +190,8 @@ export async function deactivateUnit(companyId: string, id: string, userId: stri
     where: { id },
     data: { isActive: false },
   });
+
+  clearUnitCache(companyId);
 
   await createAuditLog({
     userId,

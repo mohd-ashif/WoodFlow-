@@ -167,8 +167,12 @@ export const inventoryService = {
     const formData = new FormData();
     formData.append('image', file);
 
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('accessToken') || localStorage.getItem('token')) : null;
     const response = await fetch(`${API_BASE}/upload`, {
       method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: formData,
       credentials: 'include',
       // Do NOT set Content-Type — browser sets it with correct boundary for multipart

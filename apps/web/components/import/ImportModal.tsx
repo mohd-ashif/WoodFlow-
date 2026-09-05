@@ -145,13 +145,40 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const downloadTemplate = async () => {
+  const getAuthToken = () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('accessToken') || localStorage.getItem('token');
+  };
+
+  const downloadTemplate = async (format: 'xlsx' | 'csv' = 'xlsx') => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-      window.open(`${apiUrl}/imports/template/${module}`, '_blank');
-      toast.success(`Downloading ${moduleTitle} template...`);
-    } catch {
-      toast.error('Failed to download template');
+      const token = getAuthToken();
+
+      const res = await fetch(`${apiUrl}/imports/template/${module}?format=${format}`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to download template');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${module.toLowerCase()}_import_template.${format === 'csv' ? 'csv' : 'xls'}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`Downloading ${moduleTitle} (${format.toUpperCase()}) template...`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to download template');
     }
   };
 
@@ -165,12 +192,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       formData.append('file', file);
       formData.append('module', module);
 
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`${apiUrl}/imports/upload`, {
         method: 'POST',
         headers: {
           Authorization: token ? `Bearer ${token}` : '',
         },
+        credentials: 'include',
         body: formData,
       });
 
@@ -207,7 +235,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
 
       const res = await fetch(`${apiUrl}/imports/confirm`, {
         method: 'POST',
@@ -215,6 +243,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           'Content-Type': 'application/json',
           Authorization: token ? `Bearer ${token}` : '',
         },
+        credentials: 'include',
         body: JSON.stringify({
           importJobId,
           duplicateStrategy,
@@ -238,10 +267,32 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     }
   };
 
-  const downloadErrorReport = () => {
+  const downloadErrorReport = async () => {
     if (!importJobId) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-    window.open(`${apiUrl}/imports/${importJobId}/errors`, '_blank');
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+      const token = getAuthToken();
+      const res = await fetch(`${apiUrl}/imports/${importJobId}/errors`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        credentials: 'include',
+      });
+
+      if (!res.ok) throw new Error('Failed to download error report');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `import_errors_${importJobId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to download error report');
+    }
   };
 
   return (
@@ -289,22 +340,31 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1">
           {step === 1 && (
             <div className="space-y-6">
-              <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 p-4 rounded-xl flex items-center justify-between">
+              <div className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
                     Step 1: Download Import Template
                   </h4>
                   <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-0.5">
-                    Download our formatted CSV template with required column headers and sample data.
+                    Download our formatted Excel (.xlsx) or CSV (.csv) template pre-configured with column headers and sample data.
                   </p>
                 </div>
-                <button
-                  onClick={downloadTemplate}
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download Template</span>
-                </button>
+                <div className="flex items-center space-x-2 shrink-0">
+                  <button
+                    onClick={() => downloadTemplate('xlsx')}
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Excel (.xlsx)</span>
+                  </button>
+                  <button
+                    onClick={() => downloadTemplate('csv')}
+                    className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>CSV (.csv)</span>
+                  </button>
+                </div>
               </div>
 
               <div>

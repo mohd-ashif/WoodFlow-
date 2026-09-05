@@ -84,6 +84,7 @@ export default function CreateSalePage() {
       const created = res?.data || res;
       setIsCustomerModalOpen(false);
       setNewCustomer({ name: '', phone: '', email: '' });
+      queryClient.invalidateQueries({ queryKey: ['crm'] });
       queryClient.invalidateQueries({ queryKey: ['customers-all'] });
       if (created?.id) {
         setSelectedCustomerId(created.id);
