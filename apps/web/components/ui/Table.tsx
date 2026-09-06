@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 
 export function Table({ children, className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="relative w-full overflow-x-auto rounded-xl border border-border bg-card/40">
+    <div className="relative w-full min-w-full">
       <table className={clsx('w-full caption-bottom text-sm', className)} {...props}>
         {children}
       </table>

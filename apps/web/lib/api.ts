@@ -57,33 +57,36 @@ export async function fetchApi<T>(
 }
 
 export const api = {
-  get: async (endpoint: string) => {
-    const data = await fetchApi<any>(endpoint, { method: 'GET' });
+  get: async (endpoint: string, options: RequestInit = {}) => {
+    const data = await fetchApi<any>(endpoint, { method: 'GET', ...options });
     return { data: { success: true, data } };
   },
-  post: async (endpoint: string, body?: any) => {
+  post: async (endpoint: string, body?: any, options: RequestInit = {}) => {
     const data = await fetchApi<any>(endpoint, {
       method: 'POST',
       body: JSON.stringify(body || {}),
+      ...options,
     });
     return { data: { success: true, data } };
   },
-  put: async (endpoint: string, body?: any) => {
+  put: async (endpoint: string, body?: any, options: RequestInit = {}) => {
     const data = await fetchApi<any>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(body || {}),
+      ...options,
     });
     return { data: { success: true, data } };
   },
-  patch: async (endpoint: string, body?: any) => {
+  patch: async (endpoint: string, body?: any, options: RequestInit = {}) => {
     const data = await fetchApi<any>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(body || {}),
+      ...options,
     });
     return { data: { success: true, data } };
   },
-  delete: async (endpoint: string) => {
-    const data = await fetchApi<any>(endpoint, { method: 'DELETE' });
+  delete: async (endpoint: string, options: RequestInit = {}) => {
+    const data = await fetchApi<any>(endpoint, { method: 'DELETE', ...options });
     return { data: { success: true, data } };
   },
 };

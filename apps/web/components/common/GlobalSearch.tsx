@@ -47,28 +47,37 @@ export function GlobalSearch() {
     }
   }, [isOpen]);
 
-  // Debounced search
+  // Debounced search with request cancellation
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
       return;
     }
 
+    const controller = new AbortController();
+
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const response = await api.get(`/search?q=${encodeURIComponent(query)}`);
+        const response = await api.get(`/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
         if (response.data?.success) {
           setResults(response.data.data || []);
         }
-      } catch {
-        setResults([]);
+      } catch (err: any) {
+        if (err?.name !== 'CanceledError' && err?.code !== 'ERR_CANCELED') {
+          setResults([]);
+        }
       } finally {
         setIsLoading(false);
       }
     }, 250);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query]);
 
   const handleSelect = (link: string) => {

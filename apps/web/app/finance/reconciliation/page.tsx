@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
 import toast from '../../../components/ui/Toast';
 import {
   ShieldCheck,
@@ -148,14 +149,14 @@ export default function FinancialReconciliationPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="h-full flex flex-col space-y-4 min-h-0">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Scale className="h-7 w-7 text-primary" /> Financial Audit & Reconciliation
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Phase 7.5 Ledger Integrity, Accounts Balance Matching & Anomaly Detection.
             </p>
           </div>
@@ -168,7 +169,7 @@ export default function FinancialReconciliationPage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-border space-x-4 overflow-x-auto">
+        <div className="flex border-b border-border space-x-4 overflow-x-auto shrink-0">
           {[
             { id: 'health', label: 'Health Overview', icon: ShieldCheck },
             { id: 'accounts', label: 'Payment Accounts', icon: Building2 },

@@ -21,6 +21,8 @@ import {
   DollarSign,
 } from 'lucide-react';
 
+import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
+
 export default function CustomerReceivablesPage() {
   const queryClient = useQueryClient();
 
@@ -66,6 +68,22 @@ export default function CustomerReceivablesPage() {
   const receivablesList: any[] = receivablesData?.receivables || (Array.isArray(receivablesData) ? receivablesData : []);
   const totalReceivables: number = receivablesData?.totalReceivables ?? 0;
 
+  const resetFormState = () => {
+    setSelectedCustomerId('');
+    setPaymentAccountId('');
+    setAmount('');
+    setPaymentMethod('CASH');
+    setReferenceNumber('');
+    setNotes('');
+    setErrorMsg(null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetFormState();
+    }
+  }, [isOpen]);
+
   // Auto pre-select default account when accounts finish loading or modal opens
   useEffect(() => {
     if (isOpen && accounts.length > 0 && !paymentAccountId) {
@@ -95,11 +113,7 @@ export default function CustomerReceivablesPage() {
       queryClient.invalidateQueries({ queryKey: ['payment-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['finance-dashboard'] });
       setIsOpen(false);
-      setSelectedCustomerId('');
-      setAmount('');
-      setReferenceNumber('');
-      setNotes('');
-      setErrorMsg(null);
+      resetFormState();
       toast.success('Customer payment recorded successfully');
     },
     onError: (err: any) => {
@@ -165,11 +179,11 @@ export default function CustomerReceivablesPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="h-full flex flex-col space-y-4 min-h-0">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Customer Receivables</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Customer Receivables</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Track outstanding customer dues and collect partial or full payments.
             </p>
           </div>
@@ -178,14 +192,14 @@ export default function CustomerReceivablesPage() {
           </Button>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold">Receivables Directory</CardTitle>
+        <TableCard>
+          <div className="p-4 flex flex-row items-center justify-between border-b border-border/60 shrink-0">
+            <h3 className="text-base font-semibold">Receivables Directory</h3>
             <div className="text-sm font-semibold text-amber-600 dark:text-amber-400">
               Total Outstanding: {formatCurrency(totalReceivables)}
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <TableCardBody>
             {isLoading ? (
               <div className="py-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading receivables...
@@ -241,8 +255,8 @@ export default function CustomerReceivablesPage() {
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </TableCardBody>
+        </TableCard>
       </div>
 
       {/* Receive Customer Payment Modal */}

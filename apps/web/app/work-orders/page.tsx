@@ -14,6 +14,7 @@ import Link from 'next/link';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { useWorkOrders } from '../../hooks/useWorkOrders';
+import { TableCard, TableCardBody } from '../../components/ui/TableCard';
 
 export default function WorkOrdersListPage() {
   const [search, setSearch] = useState('');
@@ -37,72 +38,74 @@ export default function WorkOrdersListPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Work Orders Directory</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                View all manufacturing jobs, custom furniture specifications, progress, and material status.
-              </p>
-            </div>
-            <Link href="/work-orders/new" className="self-start sm:self-auto">
-              <Button className="gap-2 shadow-lg shadow-primary/20 text-xs sm:text-sm">
-                <Plus className="h-4 w-4" />
-                <span>Create Work Order</span>
-              </Button>
-            </Link>
+      <div className="h-full flex flex-col space-y-3 sm:space-y-4 min-h-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Work Orders Directory</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              View all manufacturing jobs, custom furniture specifications, progress, and material status.
+            </p>
           </div>
+          <Link href="/work-orders/new" className="self-start sm:self-auto">
+            <Button className="gap-2 shadow-lg shadow-primary/20 text-xs sm:text-sm">
+              <Plus className="h-4 w-4" />
+              <span>Create Work Order</span>
+            </Button>
+          </Link>
+        </div>
 
-          {/* Search & Filters */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-card/30 border border-border p-3 sm:p-4 rounded-xl sm:rounded-2xl">
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Search WO number, title..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-9 text-xs h-9"
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
-              <select
-                value={status}
-                onChange={(e) => {
-                  setStatus(e.target.value);
-                  setPage(1);
-                }}
-                className="h-9 px-3 rounded-lg border border-input bg-background text-xs font-semibold flex-1 md:flex-none"
-              >
-                <option value="">All Statuses</option>
-                <option value="DRAFT">Draft</option>
-                <option value="PLANNED">Planned</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="ON_HOLD">On Hold</option>
-                <option value="QUALITY_CHECK">Quality Check</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-              <select
-                value={priority}
-                onChange={(e) => {
-                  setPriority(e.target.value);
-                  setPage(1);
-                }}
-                className="h-10 px-3 rounded-lg border border-input bg-background text-xs font-semibold"
-              >
-                <option value="">All Priorities</option>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </select>
-            </div>
+        {/* Search & Filters */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-card/30 border border-border p-3 sm:p-4 rounded-xl shrink-0">
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search WO number, title..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9 text-xs h-9"
+            />
           </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 px-3 rounded-lg border border-input bg-background text-xs font-semibold flex-1 md:flex-none"
+            >
+              <option value="">All Statuses</option>
+              <option value="DRAFT">Draft</option>
+              <option value="PLANNED">Planned</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="ON_HOLD">On Hold</option>
+              <option value="QUALITY_CHECK">Quality Check</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+            <select
+              value={priority}
+              onChange={(e) => {
+                setPriority(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 px-3 rounded-lg border border-input bg-background text-xs font-semibold"
+            >
+              <option value="">All Priorities</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
+            </select>
+          </div>
+        </div>
 
-          {/* Work Orders Table */}
-          <Card>
+        {/* Work Orders Table */}
+        <TableCard>
+          <TableCardBody>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -219,7 +222,9 @@ export default function WorkOrdersListPage() {
                 )}
               </TableBody>
             </Table>
-          </Card>
+          </TableCardBody>
+        </TableCard>
+      </div>
     </AppShell>
   );
 }

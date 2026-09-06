@@ -13,6 +13,8 @@ import { useToast } from '../../../components/ui/Toast';
 import { Building2, Plus, Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
+import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
+
 export default function DepartmentsPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -46,65 +48,66 @@ export default function DepartmentsPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Link href="/workers">
-              <Button variant="outline" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Workers</span>
-              </Button>
-            </Link>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">Company Departments</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage factory departments (e.g. Carpentry, Polishing, Assembly, Warehouse).
-              </p>
-            </div>
-            <Button onClick={() => setIsAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
-              <Plus className="h-4 w-4" />
-              <span>Add Department</span>
+      <div className="h-full flex flex-col space-y-4 min-h-0">
+        <div className="flex items-center gap-4 shrink-0">
+          <Link href="/workers">
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to Workers</span>
             </Button>
+          </Link>
+        </div>
+
+        <div className="flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Company Departments</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Manage factory departments (e.g. Carpentry, Polishing, Assembly, Warehouse).
+            </p>
           </div>
+          <Button onClick={() => setIsAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20 text-xs">
+            <Plus className="h-4 w-4" />
+            <span>Add Department</span>
+          </Button>
+        </div>
 
-          {isAddOpen && (
-            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
-                <h3 className="text-lg font-bold text-foreground">Create Department</h3>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Department Name *</label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Carpentry"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Description</label>
-                    <Input
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Wood cutting and structural assembly department"
-                    />
-                  </div>
-                  <div className="flex items-center justify-end gap-3 pt-2">
-                    <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={createDeptMutation.isPending}>
-                      {createDeptMutation.isPending ? 'Creating...' : 'Create'}
-                    </Button>
-                  </div>
-                </form>
-              </div>
+        {isAddOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+              <h3 className="text-lg font-bold text-foreground">Create Department</h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground">Department Name *</label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Carpentry"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground">Description</label>
+                  <Input
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Wood cutting and structural assembly department"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createDeptMutation.isPending}>
+                    {createDeptMutation.isPending ? 'Creating...' : 'Create'}
+                  </Button>
+                </div>
+              </form>
             </div>
-          )}
+          </div>
+        )}
 
-          <Card>
+        <TableCard>
+          <TableCardBody>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -155,7 +158,8 @@ export default function DepartmentsPage() {
                 )}
               </TableBody>
             </Table>
-          </Card>
+          </TableCardBody>
+        </TableCard>
       </div>
     </AppShell>
   );

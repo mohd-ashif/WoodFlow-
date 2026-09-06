@@ -62,6 +62,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     if (e.target.files && e.target.files[0]) {
       validateAndPass(e.target.files[0]);
     }
+    // Reset input target value so re-selecting the exact same file fires onChange
+    e.target.value = '';
   };
 
   const clearFile = () => {

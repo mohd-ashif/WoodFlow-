@@ -158,36 +158,14 @@ export const inventoryService = {
   },
 
   /**
-   * Securely upload an image to the backend.
-   * The backend proxies to Cloudinary — no secrets reach the browser.
-   * Returns { url, publicId }
+   * Securely upload an image via mediaService (supports direct Cloudinary signed upload or backend proxy)
    */
   async uploadImage(file: File): Promise<{ url: string; publicId: string | null }> {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-    const formData = new FormData();
-    formData.append('image', file);
-
-    const token = typeof window !== 'undefined' ? (localStorage.getItem('accessToken') || localStorage.getItem('token')) : null;
-    const response = await fetch(`${API_BASE}/upload`, {
-      method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: formData,
-      credentials: 'include',
-      // Do NOT set Content-Type — browser sets it with correct boundary for multipart
-    });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new ApiError(
-        data.message || 'Image upload failed. Please try again.',
-        response.status,
-        data.code
-      );
-    }
-
-    return data.data as { url: string; publicId: string | null };
+    const { mediaService } = await import('./mediaService');
+    const asset = await mediaService.uploadImage(file, 'PRODUCT');
+    return {
+      url: asset.url || asset.secureUrl,
+      publicId: asset.publicId || null,
+    };
   },
 };

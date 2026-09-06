@@ -21,6 +21,8 @@ import {
   DollarSign,
 } from 'lucide-react';
 
+import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
+
 export default function SupplierPayablesPage() {
   const queryClient = useQueryClient();
 
@@ -66,6 +68,22 @@ export default function SupplierPayablesPage() {
   const payablesList: any[] = payablesData?.payables || (Array.isArray(payablesData) ? payablesData : []);
   const totalPayables: number = payablesData?.totalPayables ?? 0;
 
+  const resetFormState = () => {
+    setSelectedSupplierId('');
+    setPaymentAccountId('');
+    setAmount('');
+    setPaymentMethod('CASH');
+    setReferenceNumber('');
+    setNotes('');
+    setErrorMsg(null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetFormState();
+    }
+  }, [isOpen]);
+
   // Auto pre-select default account when accounts finish loading or modal opens
   useEffect(() => {
     if (isOpen && accounts.length > 0 && !paymentAccountId) {
@@ -95,11 +113,7 @@ export default function SupplierPayablesPage() {
       queryClient.invalidateQueries({ queryKey: ['payment-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['finance-dashboard'] });
       setIsOpen(false);
-      setSelectedSupplierId('');
-      setAmount('');
-      setReferenceNumber('');
-      setNotes('');
-      setErrorMsg(null);
+      resetFormState();
       toast.success('Supplier payment recorded successfully');
     },
     onError: (err: any) => {
@@ -163,11 +177,11 @@ export default function SupplierPayablesPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="h-full flex flex-col space-y-4 min-h-0">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Supplier Payables</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Supplier Payables</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Manage money owed to timber, fabric, hardware & raw material suppliers.
             </p>
           </div>
@@ -176,14 +190,14 @@ export default function SupplierPayablesPage() {
           </Button>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold">Payables Directory</CardTitle>
+        <TableCard>
+          <div className="p-4 flex flex-row items-center justify-between border-b border-border/60 shrink-0">
+            <h3 className="text-base font-semibold">Payables Directory</h3>
             <div className="text-sm font-semibold text-rose-600 dark:text-rose-400">
               Total Outstanding Payables: {formatCurrency(totalPayables)}
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <TableCardBody>
             {isLoading ? (
               <div className="py-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading payables...
@@ -239,8 +253,8 @@ export default function SupplierPayablesPage() {
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </TableCardBody>
+        </TableCard>
       </div>
 
       {/* Pay Supplier Modal */}

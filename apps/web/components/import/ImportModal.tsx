@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { X, Download, ArrowRight, ArrowLeft, CheckCircle2, RefreshCw, Layers } from 'lucide-react';
 import toast from '../ui/Toast';
 import { FileUploader } from './FileUploader';
@@ -59,6 +60,7 @@ const MODULE_FIELDS: Record<ImportModule, { field: string; label: string; requir
     { field: 'city', label: 'City' },
     { field: 'state', label: 'State' },
     { field: 'postalCode', label: 'Postal Code' },
+    { field: 'notes', label: 'Notes' },
   ],
   SUPPLIERS: [
     { field: 'name', label: 'Supplier Name', required: true },
@@ -70,6 +72,7 @@ const MODULE_FIELDS: Record<ImportModule, { field: string; label: string; requir
     { field: 'city', label: 'City' },
     { field: 'state', label: 'State' },
     { field: 'postalCode', label: 'Postal Code' },
+    { field: 'notes', label: 'Notes' },
   ],
   WORKERS: [
     { field: 'employeeCode', label: 'Employee Code', required: true },
@@ -78,6 +81,7 @@ const MODULE_FIELDS: Record<ImportModule, { field: string; label: string; requir
     { field: 'phone', label: 'Phone Number' },
     { field: 'email', label: 'Email Address' },
     { field: 'employmentType', label: 'Employment Type' },
+    { field: 'joiningDate', label: 'Joining Date' },
     { field: 'monthlySalary', label: 'Monthly Salary' },
     { field: 'dailyWage', label: 'Daily Wage' },
     { field: 'address', label: 'Address' },
@@ -85,7 +89,8 @@ const MODULE_FIELDS: Record<ImportModule, { field: string; label: string; requir
   INVENTORY: [
     { field: 'name', label: 'Product Name', required: true },
     { field: 'sku', label: 'SKU Code', required: true },
-    { field: 'openingStock', label: 'Opening Stock Quantity', required: true },
+    { field: 'category', label: 'Category Name' },
+    { field: 'openingStock', label: 'Opening Quantity', required: true },
     { field: 'costPrice', label: 'Cost Price' },
     { field: 'sellingPrice', label: 'Selling Price' },
   ],
@@ -118,6 +123,9 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   moduleTitle,
   onImportComplete,
 }) => {
+  const queryClient = useQueryClient();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const [step, setStep] = useState<number>(1);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -131,6 +139,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     validRowsCount: number;
     invalidRowsCount: number;
     duplicateRowsCount: number;
+    masterData?: any;
     previewSample: Record<string, any>[];
   }>({
     totalRows: 0,
@@ -143,7 +152,46 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const [duplicateStrategy, setDuplicateStrategy] = useState<DuplicateStrategy>('SKIP');
   const [importResult, setImportResult] = useState<any | null>(null);
 
+  const resetWorkflowState = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setStep(1);
+    setSelectedFile(null);
+    setIsUploading(false);
+    setIsExecuting(false);
+    setImportJobId(null);
+    setMappings([]);
+    setValidationErrors([]);
+    setPreviewData({
+      totalRows: 0,
+      validRowsCount: 0,
+      invalidRowsCount: 0,
+      duplicateRowsCount: 0,
+      previewSample: [],
+    });
+    setDuplicateStrategy('SKIP');
+    setImportResult(null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetWorkflowState();
+    }
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    resetWorkflowState();
+    onClose();
+  };
 
   const getAuthToken = () => {
     if (typeof window === 'undefined') return null;
@@ -178,6 +226,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
       toast.success(`Downloading ${moduleTitle} (${format.toUpperCase()}) template...`);
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       toast.error(err.message || 'Failed to download template');
     }
   };
@@ -185,6 +234,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const handleFileUpload = async (file: File) => {
     setSelectedFile(file);
     setIsUploading(true);
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -200,6 +254,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         },
         credentials: 'include',
         body: formData,
+        signal: abortControllerRef.current.signal,
       });
 
       const data = await res.json();
@@ -217,12 +272,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         validRowsCount: preview.validRowsCount || 0,
         invalidRowsCount: preview.invalidRowsCount || 0,
         duplicateRowsCount: preview.duplicateRowsCount || 0,
+        masterData: preview.masterData,
         previewSample: preview.previewSample || [],
       });
 
       setStep(3); // Proceed to column mapping
       toast.success('File processed! Please review column mappings.');
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       toast.error(err.message || 'File parsing error');
     } finally {
       setIsUploading(false);
@@ -232,6 +289,11 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const handleConfirmImport = async () => {
     if (!importJobId) return;
     setIsExecuting(true);
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -248,6 +310,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           importJobId,
           duplicateStrategy,
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       const data = await res.json();
@@ -258,9 +321,18 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
       setImportResult(data.data);
       setStep(6); // Step 6: Complete
+
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['units'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+
       toast.success('Data import completed successfully!');
       if (onImportComplete) onImportComplete();
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
       toast.error(err.message || 'Import execution failed');
     } finally {
       setIsExecuting(false);
@@ -414,6 +486,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               duplicateRowsCount={previewData.duplicateRowsCount}
               duplicateStrategy={duplicateStrategy}
               onStrategyChange={setDuplicateStrategy}
+              masterData={previewData.masterData}
               previewSample={previewData.previewSample}
             />
           )}
@@ -445,7 +518,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
 
               <div className="pt-4">
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
                 >
                   Close & View Records

@@ -17,6 +17,8 @@ import { ImportButton } from '../../components/import/ImportButton';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useWorkers } from '../../hooks/useWorkers';
 
+import { TableCard, TableCardBody } from '../../components/ui/TableCard';
+
 export default function WorkersListPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -87,183 +89,184 @@ export default function WorkersListPage() {
 
   return (
     <AppShell>
-      <div className="space-y-4 sm:space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Workers Directory</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                Manage factory workers, skills, departments, wages, and active production status.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-              <ImportButton
-                module="WORKERS"
-                moduleTitle="Workers"
-                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['workers'] })}
-              />
-              <Link href="/workers/departments">
-                <Button variant="outline" size="sm" className="gap-2 text-xs">
-                  <Building2 className="h-4 w-4" />
-                  <span>Departments</span>
-                </Button>
-              </Link>
-              <Button size="sm" onClick={() => setIsAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20 text-xs">
-                <Plus className="h-4 w-4" />
-                <span>Add Worker</span>
-              </Button>
-            </div>
+      <div className="h-full flex flex-col space-y-3 sm:space-y-4 min-h-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Workers Directory</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Manage factory workers, skills, departments, wages, and active production status.
+            </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <ImportButton
+              module="WORKERS"
+              moduleTitle="Workers"
+              onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['workers'] })}
+            />
+            <Link href="/workers/departments">
+              <Button variant="outline" size="sm" className="gap-2 text-xs">
+                <Building2 className="h-4 w-4" />
+                <span>Departments</span>
+              </Button>
+            </Link>
+            <Button size="sm" onClick={() => setIsAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20 text-xs">
+              <Plus className="h-4 w-4" />
+              <span>Add Worker</span>
+            </Button>
+          </div>
+        </div>
 
-          {/* Add Worker Dialog Modal */}
-          {isAddOpen && (
-            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-              <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-lg space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto my-auto">
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Add New Worker</h3>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">First Name *</label>
-                      <Input
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Ravi"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Last Name *</label>
-                      <Input
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Kumar"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Phone Number</label>
-                      <Input
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+91 9876543210"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Email</label>
-                      <Input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="worker@company.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Department</label>
-                      <select
-                        value={selectedDept}
-                        onChange={(e) => setSelectedDept(e.target.value)}
-                        className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        <option value="">No Department</option>
-                        {departments.map((d: any) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Employment Type</label>
-                      <select
-                        value={employmentType}
-                        onChange={(e) => setEmploymentType(e.target.value)}
-                        className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        <option value="FULL_TIME">Full Time</option>
-                        <option value="PART_TIME">Part Time</option>
-                        <option value="CONTRACT">Contract</option>
-                        <option value="DAILY_WAGE">Daily Wage</option>
-                      </select>
-                    </div>
-                  </div>
-
+        {/* Add Worker Dialog Modal */}
+        {isAddOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-lg space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto my-auto">
+              <h3 className="text-base sm:text-lg font-bold text-foreground">Add New Worker</h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-muted-foreground">Daily Wage (₹)</label>
+                    <label className="text-xs font-semibold text-muted-foreground">First Name *</label>
                     <Input
-                      type="number"
-                      value={dailyWage}
-                      onChange={(e) => setDailyWage(e.target.value)}
-                      placeholder="800"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Ravi"
+                      required
                     />
                   </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={createWorkerMutation.isPending}>
-                      {createWorkerMutation.isPending ? 'Saving...' : 'Save Worker'}
-                    </Button>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Last Name *</label>
+                    <Input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Kumar"
+                      required
+                    />
                   </div>
-                </form>
-              </div>
-            </div>
-          )}
+                </div>
 
-          {/* Search & Filter Bar */}
-          <div className="flex flex-wrap gap-4 items-center justify-between bg-card/30 border border-border p-4 rounded-2xl">
-            <div className="relative w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search worker name, code, phone..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <select
-                value={departmentId}
-                onChange={(e) => {
-                  setDepartmentId(e.target.value);
-                  setPage(1);
-                }}
-                className="h-10 px-3 rounded-lg border border-input bg-background text-xs font-semibold"
-              >
-                <option value="">All Departments</option>
-                {departments.map((d: any) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={status}
-                onChange={(e) => {
-                  setStatus(e.target.value);
-                  setPage(1);
-                }}
-                className="h-10 px-3 rounded-lg border border-input bg-background text-xs font-semibold"
-              >
-                <option value="">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="ON_LEAVE">On Leave</option>
-                <option value="TERMINATED">Terminated</option>
-              </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Phone Number</label>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+91 9876543210"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Email</label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="worker@company.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Department</label>
+                    <select
+                      value={selectedDept}
+                      onChange={(e) => setSelectedDept(e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">No Department</option>
+                      {departments.map((d: any) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Employment Type</label>
+                    <select
+                      value={employmentType}
+                      onChange={(e) => setEmploymentType(e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="FULL_TIME">Full Time</option>
+                      <option value="PART_TIME">Part Time</option>
+                      <option value="CONTRACT">Contract</option>
+                      <option value="DAILY_WAGE">Daily Wage</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground">Daily Wage (₹)</label>
+                  <Input
+                    type="number"
+                    value={dailyWage}
+                    onChange={(e) => setDailyWage(e.target.value)}
+                    placeholder="800"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createWorkerMutation.isPending}>
+                    {createWorkerMutation.isPending ? 'Saving...' : 'Save Worker'}
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
+        )}
 
-          {/* Workers Table */}
-          <Card>
+        {/* Search & Filter Bar */}
+        <div className="flex flex-wrap gap-3 items-center justify-between bg-card/30 border border-border p-3 sm:p-4 rounded-xl shrink-0">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search worker name, code, phone..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pl-9 text-xs h-9"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={departmentId}
+              onChange={(e) => {
+                setDepartmentId(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 px-3 rounded-lg border border-input bg-background text-xs font-semibold"
+            >
+              <option value="">All Departments</option>
+              {departments.map((d: any) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 px-3 rounded-lg border border-input bg-background text-xs font-semibold"
+            >
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="ON_LEAVE">On Leave</option>
+              <option value="TERMINATED">Terminated</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Workers Table */}
+        <TableCard>
+          <TableCardBody>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -347,7 +350,8 @@ export default function WorkersListPage() {
                 )}
               </TableBody>
             </Table>
-          </Card>
+          </TableCardBody>
+        </TableCard>
       </div>
     </AppShell>
   );

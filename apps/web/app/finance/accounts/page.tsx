@@ -190,6 +190,23 @@ export default function PaymentAccountsPage() {
     setAccountErrorMsg(null);
   };
 
+  // State lifecycle resets when modals close
+  React.useEffect(() => {
+    if (!isAccountModalOpen) {
+      resetAccountForm();
+    }
+  }, [isAccountModalOpen]);
+
+  React.useEffect(() => {
+    if (!isTransferOpen) {
+      setFromAccountId('');
+      setToAccountId('');
+      setTransferAmount('');
+      setTransferNotes('');
+      setTransferErrorMsg(null);
+    }
+  }, [isTransferOpen]);
+
   const handleOpenTransfer = () => {
     setTransferAmount('');
     setTransferNotes('');
@@ -252,34 +269,34 @@ export default function PaymentAccountsPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="h-full flex flex-col space-y-4 min-h-0">
         {/* Page Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Payment Accounts</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Payment Accounts</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Manage Cash in Hand, Bank & UPI accounts for your workspace.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={handleOpenTransfer} className="gap-2">
+            <Button variant="outline" onClick={handleOpenTransfer} className="gap-2 text-xs sm:text-sm">
               <ArrowLeftRight className="h-4 w-4" /> Internal Transfer
             </Button>
-            <Button onClick={handleOpenCreate} className="gap-2">
+            <Button onClick={handleOpenCreate} className="gap-2 text-xs sm:text-sm">
               <Plus className="h-4 w-4" /> Create Account
             </Button>
           </div>
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between bg-card/45 border border-border p-4 rounded-xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between bg-card/45 border border-border p-3 sm:p-4 rounded-xl shrink-0">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Search by name or A/C number..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-background/50 border-border/85"
+              className="pl-9 bg-background/50 border-border/85 text-xs h-9"
             />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -298,89 +315,91 @@ export default function PaymentAccountsPage() {
         </div>
 
         {/* Accounts Cards List */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {isLoading ? (
-            <div className="col-span-full py-12 text-center text-muted-foreground flex items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" /> Loading payment accounts...
-            </div>
-          ) : filteredAccounts.length === 0 ? (
-            <div className="col-span-full py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl">
-              <p className="text-base font-semibold text-foreground">No accounts found</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {searchQuery || typeFilter !== 'ALL'
-                  ? 'Try matching different search query or filters.'
-                  : 'Click "Create Account" above to add your first payment account.'}
-              </p>
-            </div>
-          ) : (
-            filteredAccounts.map((acc: any) => (
-              <Card
-                key={acc.id}
-                className="relative overflow-hidden border-border/80 hover:border-primary/50 transition-all shadow-sm group"
-              >
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/80 border border-border">
-                      {getAccountIcon(acc.type)}
+        <div className="flex-1 min-h-0 overflow-auto pr-1">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {isLoading ? (
+              <div className="col-span-full py-12 text-center text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" /> Loading payment accounts...
+              </div>
+            ) : filteredAccounts.length === 0 ? (
+              <div className="col-span-full py-16 text-center text-muted-foreground border border-dashed border-border rounded-xl">
+                <p className="text-base font-semibold text-foreground">No accounts found</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {searchQuery || typeFilter !== 'ALL'
+                    ? 'Try matching different search query or filters.'
+                    : 'Click "Create Account" above to add your first payment account.'}
+                </p>
+              </div>
+            ) : (
+              filteredAccounts.map((acc: any) => (
+                <Card
+                  key={acc.id}
+                  className="relative overflow-hidden border-border/80 hover:border-primary/50 transition-all shadow-sm group"
+                >
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/80 border border-border">
+                        {getAccountIcon(acc.type)}
+                      </div>
+                      <div>
+                        <CardTitle className="text-base font-semibold">{acc.name}</CardTitle>
+                        <Badge variant="outline" className="text-[10px] uppercase mt-0.5">
+                          {acc.type ? acc.type.replace('_', ' ') : 'CASH'}
+                        </Badge>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-base font-semibold">{acc.name}</CardTitle>
-                      <Badge variant="outline" className="text-[10px] uppercase mt-0.5">
-                        {acc.type ? acc.type.replace('_', ' ') : 'CASH'}
-                      </Badge>
-                    </div>
-                  </div>
 
-                  {/* Card Quick Actions */}
-                  <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                    <Tooltip content="Edit Account">
+                    {/* Card Quick Actions */}
+                    <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <Tooltip content="Edit Account">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEdit(acc)}
+                          className="h-8 w-8 p-0 hover:bg-secondary text-muted-foreground hover:text-foreground"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip content="Delete Account">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAccountToDelete(acc)}
+                          className="h-8 w-8 p-0 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </Tooltip>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Current Balance</p>
+                      <p className="text-2xl font-bold text-foreground tracking-tight">
+                        {formatCurrency(acc.currentBalance ?? acc.currentbalance ?? 0)}
+                      </p>
+                    </div>
+                    {(acc.accountNumber || acc.accountnumber) ? (
+                      <p className="text-xs text-muted-foreground truncate">A/C: {acc.accountNumber || acc.accountnumber}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No account number recorded</p>
+                    )}
+                    <div className="pt-3 border-t border-border flex justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleOpenEdit(acc)}
-                        className="h-8 w-8 p-0 hover:bg-secondary text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelectedAccountId(acc.id)}
+                        className="gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
                       >
-                        <Edit2 className="h-3.5 w-3.5" />
+                        <History className="h-3.5 w-3.5" /> Ledger History
                       </Button>
-                    </Tooltip>
-                    <Tooltip content="Delete Account">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setAccountToDelete(acc)}
-                        className="h-8 w-8 p-0 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </Tooltip>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Current Balance</p>
-                    <p className="text-2xl font-bold text-foreground tracking-tight">
-                      {formatCurrency(acc.currentBalance ?? acc.currentbalance ?? 0)}
-                    </p>
-                  </div>
-                  {(acc.accountNumber || acc.accountnumber) ? (
-                    <p className="text-xs text-muted-foreground truncate">A/C: {acc.accountNumber || acc.accountnumber}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">No account number recorded</p>
-                  )}
-                  <div className="pt-3 border-t border-border flex justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedAccountId(acc.id)}
-                      className="gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
-                    >
-                      <History className="h-3.5 w-3.5" /> Ledger History
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </div>
       </div>
 

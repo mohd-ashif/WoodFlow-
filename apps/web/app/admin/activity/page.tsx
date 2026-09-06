@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminService, AuditLogItem } from '../../../services/adminService';
-import { Navbar } from '../../../components/layout/Navbar';
-import { Sidebar } from '../../../components/layout/Sidebar';
+import { AppShell } from '../../../components/layout/AppShell';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import { TableCard, TableCardBody, TableCardFooter } from '../../../components/ui/TableCard';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -53,65 +53,63 @@ export default function AdminActivityPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">System Activity Logs</h2>
-              <p className="text-sm text-muted-foreground">Audit trail for all sensitive platform administrative actions.</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 text-xs">
-              <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
-              Refresh Logs
-            </Button>
+    <AppShell>
+      <div className="h-full flex flex-col space-y-3 sm:space-y-4 min-h-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">System Activity Logs</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Audit trail for all sensitive platform administrative actions.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 text-xs self-start sm:self-auto">
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
+            Refresh Logs
+          </Button>
+        </div>
+
+        {/* Filters and search */}
+        <div className="flex flex-wrap gap-3 items-center justify-between bg-card/25 border border-border/80 p-3 sm:p-4 rounded-xl shrink-0">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search actor name, email, action, details..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-9 bg-secondary/20 text-xs h-9"
+            />
           </div>
 
-          {/* Filters and search */}
-          <div className="flex flex-wrap gap-4 items-center justify-between bg-card/25 border border-border/80 p-4 rounded-2xl">
-            <div className="relative w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search actor name, email, action, details..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="pl-9 bg-secondary/20"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground uppercase font-semibold">Action:</span>
-              <select
-                value={actionFilter}
-                onChange={(e) => {
-                  setActionFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-xl border border-border/60 bg-secondary/30 px-3 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {actionOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground uppercase font-semibold">Action:</span>
+            <select
+              value={actionFilter}
+              onChange={(e) => {
+                setActionFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-lg border border-border/60 bg-secondary/30 px-3 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {actionOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
-          {/* Logs Table */}
+        {/* Logs Table */}
+        <TableCard>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+            <TableCardBody className="p-12 text-center text-muted-foreground flex items-center justify-center gap-2">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span>Loading audit logs...</span>
-            </div>
+            </TableCardBody>
           ) : (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-border/80 bg-card/10 overflow-hidden">
+            <>
+              <TableCardBody>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -177,11 +175,11 @@ export default function AdminActivityPage() {
                     )}
                   </TableBody>
                 </Table>
-              </div>
+              </TableCardBody>
 
               {/* Pagination controls */}
               {pagination && pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-border/40 pt-4">
+                <TableCardFooter className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
                     Showing page {pagination.page} of {pagination.totalPages} ({pagination.total} records)
                   </span>
@@ -203,12 +201,13 @@ export default function AdminActivityPage() {
                       Next
                     </Button>
                   </div>
-                </div>
+                </TableCardFooter>
               )}
-            </div>
+            </>
           )}
-        </main>
+        </TableCard>
       </div>
-    </div>
+    </AppShell>
   );
 }
+

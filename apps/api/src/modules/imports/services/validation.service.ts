@@ -188,10 +188,15 @@ export class ValidationService {
 
       const rowErrors = this.validateSingleRow(module, mappedRow, rowNum);
 
+      const hasBlockingError = rowErrors.some(
+        (e) => !e.severity || e.severity === 'BLOCKING_ERROR'
+      );
+
+      if (!hasBlockingError) {
+        validRows.push(mappedRow);
+      }
       if (rowErrors.length > 0) {
         errors.push(...rowErrors);
-      } else {
-        validRows.push(mappedRow);
       }
     });
 
@@ -201,8 +206,8 @@ export class ValidationService {
   private validateSingleRow(module: ImportModuleType, row: Record<string, any>, rowNum: number): RowValidationError[] {
     const rowErrors: RowValidationError[] = [];
 
-    const addErr = (field: string, message: string, value?: any) => {
-      rowErrors.push({ row: rowNum, field, message, value, rawData: row });
+    const addErr = (field: string, message: string, value?: any, severity: 'BLOCKING_ERROR' | 'WARNING' | 'AUTO_RESOLVED' = 'BLOCKING_ERROR') => {
+      rowErrors.push({ row: rowNum, field, message, severity, value, rawData: row });
     };
 
     switch (module) {
@@ -228,21 +233,32 @@ export class ValidationService {
         }
         if (!nameStr) {
           nameStr = `Product #${rowNum}`;
+          addErr('name', `Product name missing; auto-named to "${nameStr}"`, nameStr, 'WARNING');
         }
-        row.name = nameStr;
+        row.name = nameStr.replace(/\s+/g, ' ');
 
         // Auto-generate SKU if blank or missing
         if (!row.sku || !String(row.sku).trim()) {
           const cleanName = nameStr.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
           row.sku = `SKU-${cleanName || 'ITEM'}-${rowNum}`;
+          addErr('sku', `SKU missing; auto-generated "${row.sku}"`, row.sku, 'WARNING');
+        } else {
+          row.sku = String(row.sku).trim();
         }
 
-        // Default Category & Unit if empty
+        // Clean Category & Unit string names (or default if blank)
         if (!row.category || !String(row.category).trim()) {
           row.category = 'General';
+          addErr('category', 'Category missing; defaulted to "General"', 'General', 'AUTO_RESOLVED');
+        } else {
+          row.category = String(row.category).trim().replace(/\s+/g, ' ');
         }
+
         if (!row.unit || !String(row.unit).trim()) {
           row.unit = 'Piece';
+          addErr('unit', 'Unit missing; defaulted to "Piece"', 'Piece', 'AUTO_RESOLVED');
+        } else {
+          row.unit = String(row.unit).trim().replace(/\s+/g, ' ');
         }
 
         // Default numeric prices to 0 if blank
@@ -254,10 +270,10 @@ export class ValidationService {
         }
 
         if (isNaN(Number(row.costPrice)) || Number(row.costPrice) < 0) {
-          addErr('costPrice', 'Cost price must be a non-negative number', row.costPrice);
+          addErr('costPrice', 'Cost price must be a non-negative number', row.costPrice, 'BLOCKING_ERROR');
         }
         if (isNaN(Number(row.sellingPrice)) || Number(row.sellingPrice) < 0) {
-          addErr('sellingPrice', 'Selling price must be a non-negative number', row.sellingPrice);
+          addErr('sellingPrice', 'Selling price must be a non-negative number', row.sellingPrice, 'BLOCKING_ERROR');
         }
         break;
       }

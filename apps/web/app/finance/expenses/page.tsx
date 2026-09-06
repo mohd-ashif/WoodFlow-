@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '../../../components/layout/AppShell';
 import { financeService } from '../../../services/financeService';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Dialog } from '../../../components/ui/Dialog';
@@ -97,6 +98,21 @@ export default function ExpensesPage() {
     },
   });
 
+  const resetFormState = () => {
+    setTitle('');
+    setAmount('');
+    setDescription('');
+    setReferenceNumber('');
+    setPaymentMethod('CASH');
+    setErrorMsg(null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetFormState();
+    }
+  }, [isOpen]);
+
   // Auto pre-select default account & category when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -110,14 +126,10 @@ export default function ExpensesPage() {
   }, [isOpen, accounts, categoryOptions, paymentAccountId, categoryId]);
 
   const handleOpenAddModal = () => {
-    setTitle('');
-    setAmount('');
-    setDescription('');
-    setReferenceNumber('');
+    resetFormState();
     setExpenseDate(new Date().toISOString().split('T')[0]);
     if (accounts.length > 0) setPaymentAccountId(accounts[0].id);
     if (categoryOptions.length > 0) setCategoryId(categoryOptions[0].id);
-    setErrorMsg(null);
     setIsOpen(true);
   };
 
@@ -155,11 +167,7 @@ export default function ExpensesPage() {
       queryClient.invalidateQueries({ queryKey: ['payment-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['finance-dashboard'] });
       setIsOpen(false);
-      setTitle('');
-      setAmount('');
-      setDescription('');
-      setReferenceNumber('');
-      setErrorMsg(null);
+      resetFormState();
       toast.success('Business expense recorded successfully');
     },
     onError: (err: any) => {
@@ -189,11 +197,11 @@ export default function ExpensesPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="h-full flex flex-col space-y-4 min-h-0">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Business Expenses</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Business Expenses</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Track rent, electricity, transportation, wages, and operational costs.
             </p>
           </div>
@@ -203,14 +211,14 @@ export default function ExpensesPage() {
         </div>
 
         {/* Expenses Table Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold">Expense Log</CardTitle>
+        <TableCard>
+          <div className="p-4 flex flex-row items-center justify-between border-b border-border/60 shrink-0">
+            <h3 className="text-base font-semibold">Expense Log</h3>
             <div className="text-sm font-semibold text-rose-600 dark:text-rose-400">
               Total Expenses: {formatCurrency(expensesData?.totalExpensesAmount)}
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <TableCardBody>
             {isLoading ? (
               <div className="py-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading expenses...
@@ -282,8 +290,8 @@ export default function ExpensesPage() {
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </TableCardBody>
+        </TableCard>
       </div>
 
       {/* Add Expense Modal */}

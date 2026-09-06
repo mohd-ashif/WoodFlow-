@@ -6,6 +6,7 @@ import { validationService } from './validation.service.js';
 import { duplicateService } from './duplicate.service.js';
 import { importTransactionService } from './import-transaction.service.js';
 import { importTemplateService } from '../templates/import-template.service.js';
+import { masterDataResolverService } from './master-data-resolver.service.js';
 
 const inMemoryJobs = new Map<string, any>();
 
@@ -203,8 +204,48 @@ export class ImportService {
     // Detect duplicates on valid rows
     const duplicates = await duplicateService.checkDuplicates(companyId, module, validRows);
 
+    // Bulk resolve master data in READ-ONLY mode for preview (no database modification during upload)
+    const rawCategories = validRows.map((r) => r.category).filter(Boolean);
+    const rawUnits = validRows.map((r) => r.unit).filter(Boolean);
+
+    const { categoryMap, unitMap, summary: masterDataSummary } =
+      await masterDataResolverService.bulkResolveMasters(
+        prisma,
+        companyId,
+        rawCategories,
+        rawUnits,
+        true // Read-only preview mode!
+      );
+
+    // Annotate preview sample rows with master resolution details
+    const sampleRows = parsed.rows.slice(0, 10);
+    const previewSample = sampleRows.map((r, idx) => {
+      const mappedRow: Record<string, any> = { _rowNum: r._rowNum || idx + 1 };
+      mappings.forEach((m) => {
+        if (m.targetField && r[m.uploadedColumn] !== undefined) {
+          mappedRow[m.targetField] = r[m.uploadedColumn];
+        }
+      });
+
+      const catNorm = masterDataResolverService.normalizeMasterName(mappedRow.category || 'General');
+      const unitNorm = masterDataResolverService.normalizeMasterName(mappedRow.unit || 'Piece');
+
+      const catRes = categoryMap.get(catNorm) || { id: '', name: mappedRow.category || 'General', normalizedName: catNorm, created: true, isDefault: false };
+      const unitRes = unitMap.get(unitNorm) || { id: '', name: mappedRow.unit || 'Piece', normalizedName: unitNorm, created: true, isDefault: false };
+
+      return {
+        ...mappedRow,
+        _categoryResolution: { name: catRes.name, created: catRes.created, isDefault: catRes.isDefault },
+        _unitResolution: { name: unitRes.name, created: unitRes.created, isDefault: unitRes.isDefault }
+      };
+    });
+
+    const blockingErrorsCount = errors.filter((e) => !e.severity || e.severity === 'BLOCKING_ERROR').length;
+    const warningRowsCount = errors.filter((e) => e.severity === 'WARNING').length;
+    const autoResolvedRowsCount = errors.filter((e) => e.severity === 'AUTO_RESOLVED').length;
+
     const validRowsCount = validRows.length;
-    const invalidRowsCount = errors.length;
+    const invalidRowsCount = blockingErrorsCount;
     const duplicateRowsCount = duplicates.length;
 
     // Create ImportJob DB record
@@ -224,12 +265,11 @@ export class ImportService {
           mappings,
           errors,
           duplicates,
-          validRows
+          validRows,
+          masterData: masterDataSummary
         }
       }
     });
-
-    const previewSample = parsed.rows.slice(0, 5);
 
     return {
       importJobId: job.id,
@@ -237,10 +277,13 @@ export class ImportService {
         totalRows: parsed.totalRows,
         validRowsCount,
         invalidRowsCount,
+        warningRowsCount,
+        autoResolvedRowsCount,
         duplicateRowsCount,
         mappings,
         errors,
         duplicates,
+        masterData: masterDataSummary,
         previewSample
       }
     };

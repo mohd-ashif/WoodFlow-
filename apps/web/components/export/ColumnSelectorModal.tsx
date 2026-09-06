@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Check, X } from 'lucide-react';
 
 export interface ColumnOption {
@@ -23,6 +23,12 @@ export function ColumnSelectorModal({
   onApply,
 }: ColumnSelectorModalProps) {
   const [columns, setColumns] = useState<ColumnOption[]>(initialColumns);
+
+  useEffect(() => {
+    if (isOpen) {
+      setColumns(initialColumns);
+    }
+  }, [isOpen, initialColumns]);
 
   if (!isOpen) return null;
 

@@ -455,7 +455,7 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop Sticky Sidebar */}
-      <aside className="hidden md:flex w-64 shrink-0 h-[calc(100vh-4rem)] sticky top-16 flex-col min-h-0 border-r border-border bg-card/40 overflow-hidden">
+      <aside className="hidden md:flex w-64 shrink-0 h-full flex-col min-h-0 border-r border-border bg-card/40 overflow-hidden">
         {navContent}
       </aside>
 

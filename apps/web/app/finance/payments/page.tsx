@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AppShell } from '../../../components/layout/AppShell';
 import { financeService } from '../../../services/financeService';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
+import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
 import { Badge } from '../../../components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 import {
@@ -40,11 +41,11 @@ export default function PaymentHistoryPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="h-full flex flex-col space-y-4 min-h-0">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Payment Activity History</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Payment Activity History</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Audit log of all payments received from customers and paid to suppliers.
             </p>
           </div>
@@ -70,13 +71,13 @@ export default function PaymentHistoryPage() {
         </div>
 
         {tab === 'customer' ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+          <TableCard>
+            <div className="p-4 border-b border-border/60 shrink-0">
+              <h3 className="text-base font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
                 <ArrowDownRight className="h-5 w-5" /> Customer Payments Received
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </h3>
+            </div>
+            <TableCardBody>
               {isCustLoading ? (
                 <div className="py-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading payments...
@@ -124,16 +125,16 @@ export default function PaymentHistoryPage() {
                   </TableBody>
                 </Table>
               )}
-            </CardContent>
-          </Card>
+            </TableCardBody>
+          </TableCard>
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+          <TableCard>
+            <div className="p-4 border-b border-border/60 shrink-0">
+              <h3 className="text-base font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-2">
                 <ArrowUpRight className="h-5 w-5" /> Supplier Payments Paid
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </h3>
+            </div>
+            <TableCardBody>
               {isSuppLoading ? (
                 <div className="py-12 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading payments...
@@ -181,10 +182,11 @@ export default function PaymentHistoryPage() {
                   </TableBody>
                 </Table>
               )}
-            </CardContent>
-          </Card>
+            </TableCardBody>
+          </TableCard>
         )}
       </div>
     </AppShell>
   );
 }
+

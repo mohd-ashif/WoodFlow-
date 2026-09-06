@@ -1,6 +1,7 @@
 import { prisma } from '../../../config/prisma.js';
 import { ImportModuleType, DuplicateStrategy } from '../types/import.types.js';
 import { clearCategoryCache } from '../../category/category.service.js';
+import { masterDataResolverService } from './master-data-resolver.service.js';
 
 export class ImportTransactionService {
   /**
@@ -23,28 +24,58 @@ export class ImportTransactionService {
       async (tx: any) => {
         switch (module) {
           case 'PRODUCTS': {
+            const rawCategories = rows.map((r) => r.category).filter(Boolean);
+            const rawUnits = rows.map((r) => r.unit).filter(Boolean);
+
+            const { categoryMap, unitMap } = await masterDataResolverService.bulkResolveMasters(
+              tx,
+              companyId,
+              rawCategories,
+              rawUnits,
+              false // Execution phase: creates missing masters in DB
+            );
+
+            // Create AuditLog records for auto-created categories & units
+            for (const catRes of categoryMap.values()) {
+              if (catRes.created) {
+                await tx.auditLog.create({
+                  data: {
+                    userId,
+                    companyId,
+                    action: 'AUTO_CREATED',
+                    entity: 'Category',
+                    entityId: catRes.id,
+                    metadata: { sourceValue: catRes.name, importModule: 'PRODUCTS' }
+                  }
+                });
+              }
+            }
+
+            for (const unitRes of unitMap.values()) {
+              if (unitRes.created) {
+                await tx.auditLog.create({
+                  data: {
+                    userId,
+                    companyId,
+                    action: 'AUTO_CREATED',
+                    entity: 'Unit',
+                    entityId: unitRes.id,
+                    metadata: { sourceValue: unitRes.name, importModule: 'PRODUCTS' }
+                  }
+                });
+              }
+            }
+
             for (const row of rows) {
               try {
-                // Ensure category exists
-                let category = await tx.category.findFirst({
-                  where: { companyId, name: { equals: row.category, mode: 'insensitive' } }
-                });
-                if (!category) {
-                  category = await tx.category.create({
-                    data: { companyId, name: row.category.trim() }
-                  });
-                }
+                const catNorm = masterDataResolverService.normalizeMasterName(row.category || 'General');
+                const unitNorm = masterDataResolverService.normalizeMasterName(row.unit || 'Piece');
 
-                // Ensure unit exists
-                let unit = await tx.unit.findFirst({
-                  where: { companyId, name: { equals: row.unit, mode: 'insensitive' } }
-                });
-                if (!unit) {
-                  const shortCode = row.unit.trim().slice(0, 5).toUpperCase();
-                  unit = await tx.unit.create({
-                    data: { companyId, name: row.unit.trim(), shortCode }
-                  });
-                }
+                const category = categoryMap.get(catNorm) || categoryMap.get('general');
+                const unit = unitMap.get(unitNorm) || unitMap.get('piece');
+
+                const categoryId = category!.id;
+                const unitId = unit!.id;
 
                 const existingProduct = await tx.product.findUnique({
                   where: { companyId_sku: { companyId, sku: row.sku.trim() } }
@@ -63,8 +94,8 @@ export class ImportTransactionService {
                       where: { id: existingProduct.id },
                       data: {
                         name: row.name.trim(),
-                        categoryId: category.id,
-                        unitId: unit.id,
+                        categoryId,
+                        unitId,
                         purchasePrice: costPrice,
                         sellingPrice,
                         minimumStock: minStock,
@@ -83,8 +114,8 @@ export class ImportTransactionService {
                     name: row.name.trim(),
                     sku: row.sku.trim(),
                     productType: 'FINISHED_PRODUCT',
-                    categoryId: category.id,
-                    unitId: unit.id,
+                    categoryId,
+                    unitId,
                     purchasePrice: costPrice,
                     sellingPrice,
                     minimumStock: minStock,
@@ -379,6 +410,17 @@ export class ImportTransactionService {
           }
 
           case 'INVENTORY': {
+            const rawCategories = rows.map((r) => r.category).filter(Boolean);
+            const rawUnits = rows.map((r) => r.unit).filter(Boolean);
+
+            const { categoryMap, unitMap } = await masterDataResolverService.bulkResolveMasters(
+              tx,
+              companyId,
+              rawCategories,
+              rawUnits,
+              false
+            );
+
             for (const row of rows) {
               try {
                 let product = await tx.product.findUnique({
@@ -390,19 +432,11 @@ export class ImportTransactionService {
                 const sellingPrice = Number(row.sellingPrice) || 0;
 
                 if (!product) {
-                  // Create category if missing
-                  const catName = row.category ? row.category.trim() : 'General';
-                  let category = await tx.category.findFirst({
-                    where: { companyId, name: { equals: catName, mode: 'insensitive' } }
-                  });
-                  if (!category) {
-                    category = await tx.category.create({ data: { companyId, name: catName } });
-                  }
+                  const catNorm = masterDataResolverService.normalizeMasterName(row.category || 'General');
+                  const unitNorm = masterDataResolverService.normalizeMasterName(row.unit || 'Piece');
 
-                  let unit = await tx.unit.findFirst({ where: { companyId } });
-                  if (!unit) {
-                    unit = await tx.unit.create({ data: { companyId, name: 'Piece', shortCode: 'Pcs' } });
-                  }
+                  const category = categoryMap.get(catNorm) || categoryMap.get('general');
+                  const unit = unitMap.get(unitNorm) || unitMap.get('piece');
 
                   product = await tx.product.create({
                     data: {
@@ -410,8 +444,8 @@ export class ImportTransactionService {
                       name: row.name.trim(),
                       sku: row.sku.trim(),
                       productType: 'FINISHED_PRODUCT',
-                      categoryId: category.id,
-                      unitId: unit.id,
+                      categoryId: category!.id,
+                      unitId: unit!.id,
                       purchasePrice: costPrice,
                       sellingPrice,
                       openingStock: openingQty,

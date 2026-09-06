@@ -1383,8 +1383,15 @@ model ImportJob {
   @@map("import_jobs")
 }
 
+enum MediaAssetStatus {
+  TEMP
+  ACTIVE
+  DELETE_PENDING
+  DELETED
+}
+
 model MediaAsset {
-  id           String          @id @default(cuid())
+  id           String           @id @default(cuid())
   companyId    String
   entityType   MediaEntityType
   entityId     String?
@@ -1395,15 +1402,21 @@ model MediaAsset {
   fileSize     Int?
   width        Int?
   height       Int?
-  isPrimary    Boolean         @default(false)
-  displayOrder Int             @default(0)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  checksum     String?
+  status       MediaAssetStatus @default(ACTIVE)
+  isPrimary    Boolean          @default(false)
+  displayOrder Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  deletedAt    DateTime?
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([companyId, entityType, entityId])
+  @@index([companyId, entityType, entityId, isPrimary])
+  @@index([companyId, checksum])
+  @@index([companyId, status])
   @@index([publicId])
   @@map("media_assets")
 }

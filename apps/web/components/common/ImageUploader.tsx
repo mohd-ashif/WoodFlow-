@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, Star, Trash2, RefreshCw, X, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Star, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import toast from '../ui/Toast';
+import { mediaService, MediaAssetDTO } from '../../services/mediaService';
+import { ProductImage } from '../ui/ProductImage';
 
 export interface ImageAssetItem {
   id?: string;
@@ -36,6 +38,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setImages(existingImages);
+  }, [existingImages]);
+
   const notifyChange = (updatedList: ImageAssetItem[]) => {
     setImages(updatedList);
     if (onImagesChanged) onImagesChanged(updatedList);
@@ -44,9 +50,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const uploadFileToServer = async (file: File) => {
     setError(null);
 
-    // Validate MIME & Size
+    // Validate type & size
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-    if (!allowedTypes.includes(file.type)) {
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
       setError('Invalid file type. Only JPG, PNG, or WEBP images are allowed.');
       return;
     }
@@ -59,46 +65,31 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     setIsUploading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-      const token = typeof window !== 'undefined' ? (localStorage.getItem('accessToken') || localStorage.getItem('token')) : null;
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('entityType', entityType);
-      if (entityId) formData.append('entityId', entityId);
-
       const isFirst = images.length === 0;
-      formData.append('isPrimary', isFirst ? 'true' : 'false');
-      const res = await fetch(`${apiUrl}/upload/image`, {
-        method: 'POST',
-        headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-        },
-        body: formData,
-        credentials: 'include',
-      });
+      const uploadedAsset: MediaAssetDTO = await mediaService.uploadImage(
+        file,
+        entityType,
+        entityId,
+        isFirst
+      );
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Image upload failed');
-      }
-
-      const uploadedAsset: ImageAssetItem = {
-        id: data.data.id,
-        url: data.data.url,
-        publicId: data.data.publicId,
-        isPrimary: isFirst || data.data.isPrimary,
+      const newItem: ImageAssetItem = {
+        id: uploadedAsset.id,
+        url: uploadedAsset.url || uploadedAsset.secureUrl,
+        publicId: uploadedAsset.publicId,
+        isPrimary: isFirst || uploadedAsset.isPrimary,
         fileName: file.name,
       };
 
-      const updated = multiple ? [...images, uploadedAsset] : [uploadedAsset];
+      const updated = multiple ? [...images, newItem] : [newItem];
       notifyChange(updated);
-      toast.success('Image uploaded successfully to Cloudinary!');
+      toast.success('Image uploaded successfully!');
     } catch (err: any) {
       setError(err.message || 'Failed to upload image.');
       toast.error(err.message || 'Upload failed');
     } finally {
       setIsUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
@@ -113,15 +104,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
     if (target.id) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        await fetch(`${apiUrl}/upload/image/${target.id}`, {
-          method: 'DELETE',
-          headers: { Authorization: token ? `Bearer ${token}` : '' },
-          credentials: 'include',
-        });
+        await mediaService.deleteImage(target.id);
       } catch {
-        // Continue clearing local state even if remote fails
+        // Continue clearing local state
       }
     }
 
@@ -134,26 +119,22 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   };
 
   const handleSetPrimary = async (indexToSet: number) => {
+    const target = images[indexToSet];
+
+    if (target.id) {
+      try {
+        await mediaService.setPrimaryImage(target.id);
+      } catch {
+        // ignore
+      }
+    }
+
     const updated = images.map((img, idx) => ({
       ...img,
       isPrimary: idx === indexToSet,
     }));
     notifyChange(updated);
-
-    const target = updated[indexToSet];
-    if (target.id) {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        await fetch(`${apiUrl}/upload/image/${target.id}/primary`, {
-          method: 'PATCH',
-          headers: { Authorization: token ? `Bearer ${token}` : '' },
-          credentials: 'include',
-        });
-      } catch {
-        // ignore
-      }
-    }
+    toast.success('Primary image updated');
   };
 
   return (
@@ -162,7 +143,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       {(multiple ? images.length < maxFiles : images.length === 0) && (
         <div
           onClick={() => inputRef.current?.click()}
-          className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 rounded-xl p-5 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-900/40 transition-colors"
+          className="border-2 border-dashed border-border/70 hover:border-primary/60 rounded-xl p-5 text-center cursor-pointer bg-card/30 hover:bg-primary/5 transition-all"
         >
           <input
             ref={inputRef}
@@ -173,24 +154,24 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           />
           <div className="flex flex-col items-center justify-center space-y-2">
             {isUploading ? (
-              <RefreshCw className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin" />
+              <RefreshCw className="w-8 h-8 text-primary animate-spin" />
             ) : (
-              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-full">
+              <div className="p-3 bg-primary/10 text-primary rounded-full">
                 <Camera className="w-6 h-6" />
               </div>
             )}
             <div>
-              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                {isUploading ? 'Uploading to Cloudinary...' : 'Click or Drag images to upload'}
+              <p className="text-xs font-semibold text-foreground">
+                {isUploading ? 'Uploading image...' : 'Click or drag images to upload'}
               </p>
-              <p className="text-[11px] text-slate-500">PNG, JPG, WEBP • Max 5 MB per file</p>
+              <p className="text-[11px] text-muted-foreground">PNG, JPG, WEBP • Max 5 MB per file</p>
             </div>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center space-x-2 text-rose-600 text-xs">
+        <div className="p-2.5 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center space-x-2 text-destructive text-xs">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -201,22 +182,26 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-1">
           {images.map((img, idx) => (
             <div
-              key={idx}
-              className="relative group border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-900 aspect-square shadow-sm"
+              key={img.id || idx}
+              className="relative group border border-border/80 rounded-xl overflow-hidden bg-card aspect-square shadow-sm"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt={img.fileName || 'Image'} className="w-full h-full object-cover" />
+              <ProductImage
+                src={img.url}
+                alt={img.fileName || 'Product image'}
+                variant="medium"
+                className="w-full h-full"
+              />
 
               {/* Primary Badge */}
               {img.isPrimary && (
-                <div className="absolute top-2 left-2 bg-amber-500 text-white px-2 py-0.5 rounded-md text-[10px] font-bold shadow flex items-center space-x-1">
+                <div className="absolute top-2 left-2 bg-amber-500 text-white px-2 py-0.5 rounded-md text-[10px] font-bold shadow flex items-center space-x-1 z-10">
                   <Star className="w-3 h-3 fill-current" />
                   <span>Main</span>
                 </div>
               )}
 
               {/* Overlay Actions */}
-              <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
+              <div className="absolute inset-0 bg-background/70 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2 z-20">
                 {!img.isPrimary && (
                   <button
                     type="button"
@@ -231,7 +216,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                   type="button"
                   onClick={() => handleDeleteImage(idx)}
                   title="Delete Image"
-                  className="p-1.5 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors"
+                  className="p-1.5 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

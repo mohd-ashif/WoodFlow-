@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, RotateCcw, Package, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -37,7 +37,22 @@ export function ReturnModal({
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setReturnQtyMap({});
+      setReason('');
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    setReturnQtyMap({});
+    setReason('');
+    setIsSubmitting(false);
+    onClose();
+  };
 
   const handleQtyChange = (itemId: string, maxQty: number, value: number) => {
     const qty = Math.max(0, Math.min(maxQty, value || 0));
@@ -93,7 +108,7 @@ export function ReturnModal({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground">
+          <button onClick={handleClose} className="p-1 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -146,7 +161,7 @@ export function ReturnModal({
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting} className="gap-2 shadow-lg shadow-amber-500/20">

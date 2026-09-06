@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { ImageIcon, Upload, X, RefreshCw, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { ProductImage } from './ProductImage';
 
 export interface ImageUploadProps {
   /** Currently persisted image URL (from DB / existing record) */
   value?: string | null;
   /** Called with the uploaded URL after backend confirms the upload */
   onChange: (url: string | null) => void;
-  /** Async function that uploads a File and returns the URL */
-  onUpload: (file: File) => Promise<string>;
+  /** Optional custom upload handler or default backend upload */
+  onUpload?: (file: File) => Promise<string>;
   disabled?: boolean;
   className?: string;
 }
@@ -26,12 +27,21 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // The preview to display: local blob takes precedence over persisted URL
+  // Clean up object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (localPreview && localPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(localPreview);
+      }
+    };
+  }, [localPreview]);
+
+  // Preview priority: local blob preview > value from DB
   const displaySrc = localPreview || value || null;
   const hasImage = !!displaySrc;
 
   const validateFile = useCallback((file: File): string | null => {
-    if (!ACCEPTED_TYPES.includes(file.type)) {
+    if (!ACCEPTED_TYPES.includes(file.type.toLowerCase())) {
       return 'Only JPG, PNG, or WEBP images are supported.';
     }
     if (file.size > MAX_SIZE_BYTES) {
@@ -50,24 +60,33 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
         return;
       }
 
-      // Show local preview immediately
+      // Show local blob preview immediately
       const objectUrl = URL.createObjectURL(file);
       setLocalPreview(objectUrl);
 
-      // Simulate progress while uploading
+      // Simulate progress
       setUploading(true);
-      setUploadProgress(10);
+      setUploadProgress(15);
 
       const progressInterval = setInterval(() => {
-        setUploadProgress((p) => Math.min(p + 15, 85));
-      }, 300);
+        setUploadProgress((p) => Math.min(p + 20, 85));
+      }, 250);
 
       try {
-        const uploadedUrl = await onUpload(file);
+
+        let uploadedUrl = '';
+        if (onUpload) {
+          uploadedUrl = await onUpload(file);
+        } else {
+          const { mediaService } = await import('../../services/mediaService');
+          const asset = await mediaService.uploadImage(file, 'PRODUCT');
+          uploadedUrl = asset.url || asset.secureUrl;
+        }
+
         clearInterval(progressInterval);
         setUploadProgress(100);
 
-        // Revoke the local blob URL to free memory, backend URL now serves as the real preview
+        // Revoke local object URL safely
         URL.revokeObjectURL(objectUrl);
         setLocalPreview(null);
         onChange(uploadedUrl);
@@ -75,7 +94,7 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
         setTimeout(() => {
           setUploading(false);
           setUploadProgress(0);
-        }, 400);
+        }, 300);
       } catch (err: any) {
         clearInterval(progressInterval);
         setUploading(false);
@@ -83,6 +102,10 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
         URL.revokeObjectURL(objectUrl);
         setLocalPreview(null);
         setError(err.message || 'Upload failed. Please try again.');
+      } finally {
+        if (inputRef.current) {
+          inputRef.current.value = '';
+        }
       }
     },
     [onUpload, onChange, validateFile]
@@ -92,7 +115,6 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) handleFileSelect(file);
-      // Reset input so the same file can be re-selected
       e.target.value = '';
     },
     [handleFileSelect]
@@ -109,9 +131,12 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
 
   const handleRemove = useCallback(() => {
     setError(null);
+    if (localPreview && localPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(localPreview);
+    }
     setLocalPreview(null);
     onChange(null);
-  }, [onChange]);
+  }, [localPreview, onChange]);
 
   return (
     <div className={clsx('space-y-2', className)}>
@@ -120,21 +145,19 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
       </label>
 
       {hasImage ? (
-        // ─── Image Preview State ───────────────────────────────────────────────
+        // Preview State
         <div className="relative rounded-xl border border-border bg-secondary/20 overflow-hidden">
-          {/* Preview */}
           <div className="relative aspect-video flex items-center justify-center bg-muted/20">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={displaySrc!}
+            <ProductImage
+              src={displaySrc}
               alt="Product preview"
+              variant="medium"
               className="max-h-52 max-w-full object-contain"
-              style={{ imageRendering: 'crisp-edges' }}
             />
 
             {/* Upload progress overlay */}
             {uploading && (
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-xs flex flex-col items-center justify-center gap-3 z-20">
                 <Loader2 className="h-6 w-6 text-primary animate-spin" aria-hidden="true" />
                 <div className="w-32 h-1.5 bg-border rounded-full overflow-hidden">
                   <div
@@ -154,7 +177,7 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 disabled={disabled}
-                className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors disabled:opacity-50 rounded"
                 aria-label="Replace image"
               >
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
@@ -165,7 +188,7 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
                 type="button"
                 onClick={handleRemove}
                 disabled={disabled}
-                className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50 rounded"
                 aria-label="Remove image"
               >
                 <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -175,7 +198,7 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
           )}
         </div>
       ) : (
-        // ─── Empty Upload Zone ─────────────────────────────────────────────────
+        // Empty Upload Zone
         <div
           role="button"
           tabIndex={disabled ? -1 : 0}
@@ -192,7 +215,6 @@ export function ImageUpload({ value, onChange, onUpload, disabled, className }: 
           className={clsx(
             'group flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed',
             'py-10 px-4 text-center cursor-pointer transition-all duration-200',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             disabled
               ? 'border-border/30 opacity-50 cursor-not-allowed'
               : 'border-border/60 hover:border-primary/50 hover:bg-primary/5'

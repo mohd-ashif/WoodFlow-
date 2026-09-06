@@ -1,11 +1,13 @@
 import path from 'path';
 import fs from 'fs/promises';
 import https from 'https';
+import crypto from 'crypto';
 import { createRequire } from 'module';
 import { BadRequestError } from './errors.js';
+import { ImageValidator, ImageDimensions } from './imageValidator.js';
+import { ImageVariant, UploadSignatureResponse } from '../modules/media/media.types.js';
 
 const require = createRequire(import.meta.url);
-// form-data is CJS-only; imported via createRequire
 const FormData = require('form-data') as typeof import('form-data');
 
 export interface UploadedFile {
@@ -15,10 +17,20 @@ export interface UploadedFile {
   mimetype: string;
 }
 
+export interface StoredAssetResult {
+  url: string;
+  publicId?: string;
+  checksum?: string;
+  width?: number;
+  height?: number;
+}
+
 export interface IStorageService {
-  uploadFile(file: UploadedFile, folder: string): Promise<{ url: string; publicId?: string }>;
+  uploadFile(file: UploadedFile, folder: string): Promise<StoredAssetResult>;
   deleteFile(publicIdOrUrl: string): Promise<void>;
-  validateImage(file: UploadedFile): void;
+  validateImage(file: UploadedFile): { checksum: string; dimensions?: ImageDimensions };
+  generateUploadSignature(folder: string, companyId: string): Promise<UploadSignatureResponse>;
+  getVariantUrl(publicIdOrUrl: string, variant?: ImageVariant): string;
 }
 
 // ─── Local Storage (Development Fallback) ─────────────────────────────────────
@@ -31,20 +43,32 @@ export class LocalStorageService implements IStorageService {
     this.baseUrl = process.env.API_URL || 'http://localhost:4000';
   }
 
-  async uploadFile(file: UploadedFile, folder: string): Promise<{ url: string; publicId?: string }> {
-    this.validateImage(file);
+  validateImage(file: UploadedFile): { checksum: string; dimensions?: ImageDimensions } {
+    return ImageValidator.validateImage(file);
+  }
+
+  async uploadFile(file: UploadedFile, folder: string): Promise<StoredAssetResult> {
+    const { checksum, dimensions } = this.validateImage(file);
 
     const folderPath = path.join(this.uploadDir, folder);
     await fs.mkdir(folderPath, { recursive: true });
 
-    const ext = path.extname(file.name);
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}${ext}`;
+    const ext = path.extname(file.name).toLowerCase();
+    const uniqueName = `img_${Date.now()}_${crypto.randomBytes(4).toString('hex')}${ext}`;
     const filePath = path.join(folderPath, uniqueName);
 
     await fs.writeFile(filePath, file.data);
 
     const url = `${this.baseUrl}/uploads/${folder}/${uniqueName}`;
-    return { url, publicId: `${folder}/${uniqueName}` };
+    const publicId = `${folder}/${uniqueName}`;
+
+    return {
+      url,
+      publicId,
+      checksum,
+      width: dimensions?.width,
+      height: dimensions?.height,
+    };
   }
 
   async deleteFile(publicIdOrUrl: string): Promise<void> {
@@ -53,31 +77,25 @@ export class LocalStorageService implements IStorageService {
       const filePath = path.join(this.uploadDir, relativePath);
       await fs.unlink(filePath);
     } catch {
-      // Don't fail if file not found
+      // Ignore if file already deleted
     }
   }
 
-  validateImage(file: UploadedFile): void {
-    const MAX_SIZE = 5 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      throw new BadRequestError('File size exceeds the 5MB limit');
-    }
+  async generateUploadSignature(folder: string, companyId: string): Promise<UploadSignatureResponse> {
+    const timestamp = Math.round(Date.now() / 1000);
+    return {
+      cloudName: 'local',
+      apiKey: 'local',
+      timestamp,
+      folder,
+      signature: 'local_dev_signature',
+      uploadUrl: `${this.baseUrl}/api/v1/upload/image`,
+    };
+  }
 
-    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
-    const ext = path.extname(file.name).toLowerCase();
-    if (!allowedExtensions.includes(ext)) {
-      throw new BadRequestError(`Invalid file extension. Allowed: ${allowedExtensions.join(', ')}`);
-    }
-
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestError('Invalid file type. Only images are allowed');
-    }
-
-    const dangerousPattern = /\.(exe|bat|sh|js|ts|html|php|py)$/i;
-    if (dangerousPattern.test(file.name)) {
-      throw new BadRequestError('Forbidden file upload');
-    }
+  getVariantUrl(publicIdOrUrl: string, variant: ImageVariant = 'original'): string {
+    if (!publicIdOrUrl) return '';
+    return publicIdOrUrl; // Local fallback returns main URL
   }
 }
 
@@ -93,38 +111,40 @@ export class CloudinaryStorageService implements IStorageService {
     this.apiSecret = apiSecret;
   }
 
-  validateImage(file: UploadedFile): void {
-    const MAX_SIZE = 5 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      throw new BadRequestError('File size exceeds the 5MB limit');
-    }
-
-    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-    const ext = path.extname(file.name).toLowerCase();
-    if (!allowedExtensions.includes(ext)) {
-      throw new BadRequestError(`Invalid file type. Allowed: JPG, PNG, WEBP`);
-    }
-
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestError('Invalid file type. Only JPG, PNG, or WEBP images are allowed');
-    }
+  validateImage(file: UploadedFile): { checksum: string; dimensions?: ImageDimensions } {
+    return ImageValidator.validateImage(file);
   }
 
-  async uploadFile(file: UploadedFile, folder: string): Promise<{ url: string; publicId: string }> {
-    this.validateImage(file);
-
-    // Generate SHA-1 signature for secure upload
-    const timestamp = Math.round(Date.now() / 1000).toString();
+  async generateUploadSignature(folder: string, companyId: string): Promise<UploadSignatureResponse> {
+    const timestamp = Math.round(Date.now() / 1000);
     const params = `folder=${folder}&timestamp=${timestamp}`;
 
-    // Use Node's built-in crypto for SHA-1 HMAC
-    const { createHash } = await import('crypto');
-    const signature = createHash('sha1')
+    const signature = crypto
+      .createHash('sha1')
       .update(params + this.apiSecret)
       .digest('hex');
 
-    // Build multipart form
+    return {
+      cloudName: this.cloudName,
+      apiKey: this.apiKey,
+      timestamp,
+      folder,
+      signature,
+      uploadUrl: `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`,
+    };
+  }
+
+  async uploadFile(file: UploadedFile, folder: string): Promise<StoredAssetResult> {
+    const { checksum, dimensions } = this.validateImage(file);
+
+    const timestamp = Math.round(Date.now() / 1000).toString();
+    const params = `folder=${folder}&timestamp=${timestamp}`;
+
+    const signature = crypto
+      .createHash('sha1')
+      .update(params + this.apiSecret)
+      .digest('hex');
+
     const form = new FormData();
     form.append('file', file.data, {
       filename: file.name,
@@ -152,15 +172,14 @@ export class CloudinaryStorageService implements IStorageService {
             const result = JSON.parse(data);
             if (result.error) {
               const errMsg = result.error.message || 'Cloudinary upload failed';
-              if (errMsg.toLowerCase().includes('invalid signature')) {
-                reject(new BadRequestError('Invalid Cloudinary API Secret. Please update CLOUDINARY_API_SECRET in your .env file with your Cloudinary API Secret.'));
-              } else {
-                reject(new BadRequestError(errMsg));
-              }
+              reject(new BadRequestError(errMsg));
             } else {
               resolve({
                 url: result.secure_url,
                 publicId: result.public_id,
+                checksum,
+                width: result.width || dimensions?.width,
+                height: result.height || dimensions?.height,
               });
             }
           } catch {
@@ -182,10 +201,10 @@ export class CloudinaryStorageService implements IStorageService {
     if (!publicId) return;
 
     try {
-      const { createHash } = await import('crypto');
       const timestamp = Math.round(Date.now() / 1000).toString();
       const params = `public_id=${publicId}&timestamp=${timestamp}`;
-      const signature = createHash('sha1')
+      const signature = crypto
+        .createHash('sha1')
         .update(params + this.apiSecret)
         .digest('hex');
 
@@ -203,7 +222,7 @@ export class CloudinaryStorageService implements IStorageService {
           headers: form.getHeaders(),
         };
         const req = https.request(options, (res) => {
-          res.resume(); // consume response
+          res.resume();
           res.on('end', resolve);
         });
         req.on('error', reject);
@@ -211,12 +230,38 @@ export class CloudinaryStorageService implements IStorageService {
         req.end();
       });
     } catch {
-      // Don't fail the main operation if cleanup fails
+      // Resilient cleanup
     }
+  }
+
+  getVariantUrl(publicIdOrUrl: string, variant: ImageVariant = 'original'): string {
+    if (!publicIdOrUrl) return '';
+
+    // If it's a Cloudinary URL, inject variant transformation specs
+    if (publicIdOrUrl.includes('res.cloudinary.com')) {
+      let transformation = '';
+      switch (variant) {
+        case 'thumbnail':
+          transformation = 'c_thumb,w_120,h_120,g_face,q_auto,f_auto';
+          break;
+        case 'medium':
+          transformation = 'c_limit,w_800,h_800,q_auto,f_auto';
+          break;
+        case 'large':
+          transformation = 'c_limit,w_1600,h_1600,q_auto,f_auto';
+          break;
+        default:
+          transformation = 'q_auto,f_auto';
+          break;
+      }
+      return publicIdOrUrl.replace('/upload/', `/upload/${transformation}/`);
+    }
+
+    return publicIdOrUrl;
   }
 }
 
-// ─── Dynamic Storage Proxy — auto-selects based on current process.env ────────────────────────
+// ─── Dynamic Storage Proxy ───────────────────────────────────────────────────
 export class DynamicStorageService implements IStorageService {
   private localService = new LocalStorageService();
 
@@ -244,7 +289,7 @@ export class DynamicStorageService implements IStorageService {
     return this.localService;
   }
 
-  async uploadFile(file: UploadedFile, folder: string): Promise<{ url: string; publicId?: string }> {
+  async uploadFile(file: UploadedFile, folder: string): Promise<StoredAssetResult> {
     return this.getActiveService().uploadFile(file, folder);
   }
 
@@ -252,10 +297,17 @@ export class DynamicStorageService implements IStorageService {
     return this.getActiveService().deleteFile(publicIdOrUrl);
   }
 
-  validateImage(file: UploadedFile): void {
+  validateImage(file: UploadedFile): { checksum: string; dimensions?: ImageDimensions } {
     return this.getActiveService().validateImage(file);
+  }
+
+  async generateUploadSignature(folder: string, companyId: string): Promise<UploadSignatureResponse> {
+    return this.getActiveService().generateUploadSignature(folder, companyId);
+  }
+
+  getVariantUrl(publicIdOrUrl: string, variant: ImageVariant = 'original'): string {
+    return this.getActiveService().getVariantUrl(publicIdOrUrl, variant);
   }
 }
 
 export const storageService = new DynamicStorageService();
-

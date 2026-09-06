@@ -1,8 +1,23 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, AlertOctagon, Copy, Layers } from 'lucide-react';
+import { CheckCircle2, AlertOctagon, Copy, Layers, Sparkles, PlusCircle } from 'lucide-react';
 export type DuplicateStrategy = 'SKIP' | 'UPDATE' | 'CREATE_NEW';
+
+export interface MasterDataSummary {
+  categories: {
+    existingCount: number;
+    toCreateCount: number;
+    namesToCreate: string[];
+    existingNames: string[];
+  };
+  units: {
+    existingCount: number;
+    toCreateCount: number;
+    namesToCreate: string[];
+    existingNames: string[];
+  };
+}
 
 interface ImportPreviewProps {
   totalRows: number;
@@ -11,6 +26,7 @@ interface ImportPreviewProps {
   duplicateRowsCount: number;
   duplicateStrategy: DuplicateStrategy;
   onStrategyChange: (strategy: DuplicateStrategy) => void;
+  masterData?: MasterDataSummary;
   previewSample?: Record<string, any>[];
 }
 
@@ -21,8 +37,13 @@ export const ImportPreview: React.FC<ImportPreviewProps> = ({
   duplicateRowsCount,
   duplicateStrategy,
   onStrategyChange,
+  masterData,
   previewSample = [],
 }) => {
+  const categoriesToCreate = masterData?.categories?.namesToCreate || [];
+  const unitsToCreate = masterData?.units?.namesToCreate || [];
+  const hasMastersToCreate = categoriesToCreate.length > 0 || unitsToCreate.length > 0;
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -59,6 +80,59 @@ export const ImportPreview: React.FC<ImportPreviewProps> = ({
           <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">Duplicates</div>
         </div>
       </div>
+
+      {/* Smart Master Data Resolution Banner */}
+      {hasMastersToCreate && (
+        <div className="bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-4 rounded-xl space-y-3">
+          <div className="flex items-center space-x-2 text-indigo-900 dark:text-indigo-200 font-semibold text-sm">
+            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Smart Master Data Auto-Resolution</span>
+          </div>
+          <p className="text-xs text-indigo-700 dark:text-indigo-300">
+            The smart import engine will automatically create missing master records in your catalog during import execution:
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            {categoriesToCreate.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/50 space-y-1.5">
+                <div className="text-xs font-bold text-indigo-900 dark:text-indigo-200 flex items-center space-x-1">
+                  <PlusCircle className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Categories to be Created ({categoriesToCreate.length})</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {categoriesToCreate.map((cat, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300"
+                    >
+                      ✓ {cat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {unitsToCreate.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/50 space-y-1.5">
+                <div className="text-xs font-bold text-indigo-900 dark:text-indigo-200 flex items-center space-x-1">
+                  <PlusCircle className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Units to be Created ({unitsToCreate.length})</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {unitsToCreate.map((u, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300"
+                    >
+                      ✓ {u}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Duplicate Strategy Selector */}
       {duplicateRowsCount > 0 && (
@@ -132,15 +206,18 @@ export const ImportPreview: React.FC<ImportPreviewProps> = ({
       {/* Sample Data Table Preview */}
       {previewSample.length > 0 && (
         <div className="space-y-2">
-          <div className="text-xs font-semibold uppercase text-slate-500 tracking-wider">
-            Sample Data Preview (First 5 Rows)
+          <div className="text-xs font-semibold uppercase text-slate-500 tracking-wider flex justify-between items-center">
+            <span>Sample Data Preview (First 5-10 Rows)</span>
+            <span className="text-[11px] font-normal text-indigo-600 dark:text-indigo-400">
+              Master Resolution Active
+            </span>
           </div>
           <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
                 <tr>
                   {Object.keys(previewSample[0])
-                    .filter((k) => k !== '_rowNum')
+                    .filter((k) => !k.startsWith('_'))
                     .map((header) => (
                       <th key={header} className="py-2 px-3 font-semibold whitespace-nowrap">
                         {header}
@@ -152,12 +229,39 @@ export const ImportPreview: React.FC<ImportPreviewProps> = ({
                 {previewSample.map((row, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     {Object.keys(row)
-                      .filter((k) => k !== '_rowNum')
-                      .map((key) => (
-                        <td key={key} className="py-2 px-3 whitespace-nowrap text-slate-700 dark:text-slate-300">
-                          {row[key] !== undefined ? String(row[key]) : '—'}
-                        </td>
-                      ))}
+                      .filter((k) => !k.startsWith('_'))
+                      .map((key) => {
+                        const val = row[key] !== undefined ? String(row[key]) : '—';
+                        const isCat = key.toLowerCase() === 'category';
+                        const isUnit = key.toLowerCase() === 'unit';
+
+                        const catRes = row._categoryResolution;
+                        const unitRes = row._unitResolution;
+
+                        return (
+                          <td key={key} className="py-2 px-3 whitespace-nowrap text-slate-700 dark:text-slate-300">
+                            <span>{val}</span>
+                            {isCat && catRes && (
+                              <span className={`ml-2 inline-flex items-center text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                                catRes.created
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                              }`}>
+                                {catRes.created ? 'Will Be Created' : 'Existing'}
+                              </span>
+                            )}
+                            {isUnit && unitRes && (
+                              <span className={`ml-2 inline-flex items-center text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                                unitRes.created
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                              }`}>
+                                {unitRes.created ? 'Will Be Created' : 'Existing'}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
                   </tr>
                 ))}
               </tbody>
