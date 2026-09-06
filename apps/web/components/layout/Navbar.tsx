@@ -19,15 +19,15 @@ export function Navbar() {
   const role = user?.activeMembership?.role;
 
   return (
-    <header className="h-16 shrink-0 z-40 flex w-full items-center justify-between border-b border-border bg-card/80 px-3 sm:px-4 md:px-6 backdrop-blur-md">
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        {/* Mobile Hamburger Drawer Toggle */}
+    <header className="h-16 shrink-0 z-40 flex w-full max-w-[100vw] items-center justify-between border-b border-border bg-card/80 px-2.5 sm:px-4 md:px-6 backdrop-blur-md">
+      <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+        {/* Mobile Hamburger Drawer Toggle with 44px Touch Target */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleMobileMenu}
           aria-label="Toggle mobile menu"
-          className="md:hidden h-9 w-9 text-muted-foreground hover:text-foreground"
+          className="md:hidden h-10 w-10 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground active:scale-95"
         >
           {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
@@ -36,14 +36,14 @@ export function Navbar() {
           <Building2 className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-sm sm:text-base font-semibold tracking-tight text-foreground flex items-center gap-1.5 truncate">
+          <h1 className="text-xs sm:text-base font-semibold tracking-tight text-foreground flex items-center gap-1.5 truncate">
             {isPlatformAdmin ? (
               <>
-                <span>FurnitureOS</span> <Badge variant="info" className="hidden sm:inline-flex">Admin</Badge>
+                <span className="truncate max-w-[90px] sm:max-w-none">FurnitureOS</span> <Badge variant="info" className="hidden sm:inline-flex">Admin</Badge>
               </>
             ) : activeCompany ? (
               <>
-                <span className="truncate max-w-[120px] sm:max-w-[200px] md:max-w-none">{activeCompany.name}</span>
+                <span className="truncate max-w-[95px] sm:max-w-[200px] md:max-w-none">{activeCompany.name}</span>
                 {role && <Badge variant="default" className="hidden sm:inline-flex">{role.replace('_', ' ')}</Badge>}
               </>
             ) : (
@@ -58,7 +58,7 @@ export function Navbar() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
         {/* Global Search Mobile Icon toggle */}
         <div className="sm:hidden">
           <GlobalSearch />
@@ -68,16 +68,16 @@ export function Navbar() {
         <NotificationCenter />
 
         {user ? (
-          <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-border bg-secondary/30 px-2.5 py-1 text-xs font-medium text-foreground">
+          <div className="flex items-center gap-1 sm:gap-2 rounded-full border border-border bg-secondary/30 px-2 py-1 text-xs font-medium text-foreground">
             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="truncate max-w-[80px] sm:max-w-[120px] md:max-w-none">{user.name}</span>
+            <span className="truncate max-w-[65px] sm:max-w-[120px] md:max-w-none">{user.name}</span>
             <span className="text-muted-foreground hidden lg:inline">({user.email})</span>
           </div>
         ) : (
-          <div className="h-7 w-20 sm:w-32 rounded-full bg-secondary/30 animate-pulse" />
+          <div className="h-7 w-16 sm:w-32 rounded-full bg-secondary/30 animate-pulse" />
         )}
 
-        <Button variant="ghost" size="sm" onClick={logout} className="gap-1.5 text-muted-foreground hover:text-foreground px-2 sm:px-3">
+        <Button variant="ghost" size="sm" onClick={logout} className="gap-1.5 text-muted-foreground hover:text-foreground min-h-[40px] px-2 sm:px-3">
           <LogOut className="h-4 w-4" />
           <span className="hidden sm:inline">Logout</span>
         </Button>

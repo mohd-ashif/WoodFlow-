@@ -199,100 +199,161 @@ export default function SalesListPage() {
         ) : (
           <>
             <TableCardBody>
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md border-b border-border text-xs uppercase font-medium text-muted-foreground shadow-sm">
-                  <tr>
-                    <th className="py-3 px-4">Sale Order #</th>
-                    <th className="py-3 px-4">Customer</th>
-                    <th className="py-3 px-4 hidden sm:table-cell">Date</th>
-                    <th className="py-3 px-4 text-right">Total Amount</th>
-                    <th className="py-3 px-4">Order Status</th>
-                    <th className="py-3 px-4 hidden md:table-cell">Payment</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {sales.map((sale: any) => (
-                    <tr key={sale.id} className="hover:bg-secondary/20 transition-colors">
-                      <td className="py-3 px-4 font-mono font-semibold text-foreground">
-                        <Link href={`/sales/${sale.id}`} className="hover:underline">
+              {/* Mobile Sales Cards (< 768px) */}
+              <div className="block md:hidden space-y-3 p-3">
+                {sales.map((sale: any) => (
+                  <div key={sale.id} className="rounded-xl border border-border/80 bg-card/60 p-3.5 space-y-3 shadow-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <Link href={`/sales/${sale.id}`} className="font-mono font-bold text-sm text-foreground hover:underline">
                           #{sale.saleNumber}
                         </Link>
-                      </td>
-                      <td className="py-3 px-4 font-medium text-foreground">
-                        {sale.customer?.name || 'Walk-in Customer'}
-                      </td>
-                      <td className="py-3 px-4 text-xs text-muted-foreground hidden sm:table-cell">
-                        {new Date(sale.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-semibold text-foreground">
-                        ₹{(sale.totalAmount || 0).toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge
-                          variant={
-                            sale.status === 'CONFIRMED'
-                              ? 'default'
-                              : sale.status === 'CANCELLED'
-                              ? 'destructive'
-                              : 'secondary'
-                          }
-                          className="text-[11px]"
-                        >
+                        <p className="text-xs font-medium text-muted-foreground mt-0.5">
+                          {sale.customer?.name || 'Walk-in Customer'}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant={sale.status === 'CONFIRMED' ? 'default' : sale.status === 'CANCELLED' ? 'destructive' : 'secondary'} className="text-[11px]">
                           {sale.status}
                         </Badge>
-                      </td>
-                      <td className="py-3 px-4 hidden md:table-cell">
-                        <Badge
-                          variant={
-                            sale.paymentStatus === 'PAID'
-                              ? 'default'
-                              : sale.paymentStatus === 'PARTIAL'
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                          className="text-[11px]"
-                        >
+                        <Badge variant={sale.paymentStatus === 'PAID' ? 'default' : sale.paymentStatus === 'PARTIAL' ? 'secondary' : 'outline'} className="text-[10px]">
                           {sale.paymentStatus}
                         </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-right min-w-[120px] pr-4">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Tooltip content="View Sale">
-                            <Link href={`/sales/${sale.id}`}>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View sale ${sale.saleNumber}`}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                          </Tooltip>
-                          {sale.invoices?.[0] && (
-                            <Tooltip content="View Invoice">
-                              <Link href={`/invoices/${sale.invoices[0].id}`}>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View invoice for sale ${sale.saleNumber}`}>
-                                  <Printer className="h-4 w-4" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
+                      <span className="text-muted-foreground">{new Date(sale.createdAt).toLocaleDateString()}</span>
+                      <span className="font-mono font-bold text-sm text-foreground">
+                        ₹{(sale.totalAmount || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/40">
+                      <Link href={`/sales/${sale.id}`} className="flex-1">
+                        <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1">
+                          <Eye className="h-3.5 w-3.5" /> View
+                        </Button>
+                      </Link>
+                      {sale.invoices?.[0] && (
+                        <Link href={`/invoices/${sale.invoices[0].id}`} className="flex-1">
+                          <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1">
+                            <Printer className="h-3.5 w-3.5" /> Invoice
+                          </Button>
+                        </Link>
+                      )}
+                      {sale.status === 'CONFIRMED' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-xs text-destructive hover:bg-destructive/15 gap-1"
+                          onClick={() => setCancelModalSale(sale)}
+                        >
+                          <XCircle className="h-3.5 w-3.5" /> Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Sales Table (≥ 768px) */}
+              <div className="hidden md:block">
+                <table className="w-full text-left text-sm">
+                  <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md border-b border-border text-xs uppercase font-medium text-muted-foreground shadow-sm">
+                    <tr>
+                      <th className="py-3 px-4">Sale Order #</th>
+                      <th className="py-3 px-4">Customer</th>
+                      <th className="py-3 px-4 hidden sm:table-cell">Date</th>
+                      <th className="py-3 px-4 text-right">Total Amount</th>
+                      <th className="py-3 px-4">Order Status</th>
+                      <th className="py-3 px-4 hidden md:table-cell">Payment</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {sales.map((sale: any) => (
+                      <tr key={sale.id} className="hover:bg-secondary/20 transition-colors">
+                        <td className="py-3 px-4 font-mono font-semibold text-foreground">
+                          <Link href={`/sales/${sale.id}`} className="hover:underline">
+                            #{sale.saleNumber}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-4 font-medium text-foreground">
+                          {sale.customer?.name || 'Walk-in Customer'}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-muted-foreground hidden sm:table-cell">
+                          {new Date(sale.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-semibold text-foreground">
+                          ₹{(sale.totalAmount || 0).toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge
+                            variant={
+                              sale.status === 'CONFIRMED'
+                                ? 'default'
+                                : sale.status === 'CANCELLED'
+                                ? 'destructive'
+                                : 'secondary'
+                            }
+                            className="text-[11px]"
+                          >
+                            {sale.status}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 hidden md:table-cell">
+                          <Badge
+                            variant={
+                              sale.paymentStatus === 'PAID'
+                                ? 'default'
+                                : sale.paymentStatus === 'PARTIAL'
+                                ? 'secondary'
+                                : 'outline'
+                            }
+                            className="text-[11px]"
+                          >
+                            {sale.paymentStatus}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-right min-w-[120px] pr-4">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Tooltip content="View Sale">
+                              <Link href={`/sales/${sale.id}`}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View sale ${sale.saleNumber}`}>
+                                  <Eye className="h-4 w-4" />
                                 </Button>
                               </Link>
                             </Tooltip>
-                          )}
-                          {sale.status === 'CONFIRMED' && (
-                            <Tooltip content="Cancel Order">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
-                                aria-label={`Cancel order ${sale.saleNumber}`}
-                                onClick={() => setCancelModalSale(sale)}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                            {sale.invoices?.[0] && (
+                              <Tooltip content="View Invoice">
+                                <Link href={`/invoices/${sale.invoices[0].id}`}>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View invoice for sale ${sale.saleNumber}`}>
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                </Link>
+                              </Tooltip>
+                            )}
+                            {sale.status === 'CONFIRMED' && (
+                              <Tooltip content="Cancel Order">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
+                                  aria-label={`Cancel order ${sale.saleNumber}`}
+                                  onClick={() => setCancelModalSale(sale)}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </TableCardBody>
 
             <TableCardFooter>

@@ -34,7 +34,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   return (
-    <div className={clsx('relative flex items-center', wrapperClassName || 'w-full sm:w-80', className)}>
+    <div className={clsx('relative flex items-center w-full min-w-0', wrapperClassName || 'sm:w-80', className)}>
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none shrink-0" />
 
       <input
@@ -43,7 +43,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="h-9 w-full rounded-lg border border-border bg-secondary/20 pl-9 pr-8 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-all disabled:opacity-50"
+        className="h-10 sm:h-9 w-full rounded-lg border border-border bg-secondary/20 pl-9 pr-8 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background transition-all disabled:opacity-50"
       />
 
       {isLoading ? (
@@ -52,10 +52,10 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground rounded transition-colors"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 min-h-[32px] min-w-[32px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition-colors"
           aria-label="Clear search"
         >
-          <X className="h-3.5 w-3.5 shrink-0" />
+          <X className="h-4 w-4 shrink-0" />
         </button>
       ) : null}
     </div>

@@ -39,6 +39,11 @@ export function Sidebar() {
 
   const isPlatformAdmin = user ? Boolean(user.isPlatformAdmin) : false;
 
+  // Auto-close mobile navigation drawer on route change
+  useEffect(() => {
+    closeMobileMenu();
+  }, [pathname, closeMobileMenu]);
+
   // Smoothly auto-scroll active item into view on route change without affecting window scroll
   useEffect(() => {
     const container = scrollContainerRef.current;

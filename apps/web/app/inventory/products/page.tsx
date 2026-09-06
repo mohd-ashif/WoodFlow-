@@ -348,20 +348,20 @@ export default function ProductsListPage() {
             </Table>
           </TableCardBody>
         ) : products.length === 0 ? (
-          <TableCardBody className="flex items-center justify-center p-12">
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/60">
-                <PackageSearch className="h-8 w-8 text-muted-foreground/70" aria-hidden="true" />
+          <TableCardBody className="flex items-center justify-center p-6 sm:p-12 min-h-[220px]">
+            <div className="text-center max-w-sm mx-auto">
+              <div className="mx-auto mb-3 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-secondary/60 text-muted-foreground">
+                <PackageSearch className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden="true" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">No products found</h3>
-              <p className="mt-1.5 text-xs text-muted-foreground max-w-xs mx-auto">
+              <h3 className="text-sm sm:text-base font-semibold text-foreground">No products found</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
                 {debouncedSearch || filterType !== 'ALL' || categoryId
-                  ? 'No products match your current filters. Try adjusting your search or filters.'
+                  ? 'No products match your current filters. Try adjusting search or category.'
                   : 'Start building your product catalog by adding your first product.'}
               </p>
               {!debouncedSearch && filterType === 'ALL' && !categoryId && (
                 <Link href="/inventory/products/new">
-                  <Button size="sm" className="mt-4 gap-2 text-xs">
+                  <Button size="sm" className="mt-3.5 gap-2 text-xs">
                     <Plus className="h-4 w-4" aria-hidden="true" />
                     Add First Product
                   </Button>
@@ -372,161 +372,263 @@ export default function ProductsListPage() {
         ) : (
           <>
             <TableCardBody>
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md shadow-sm">
-                  <TableRow className="bg-muted/30">
-                    <TableHead
-                      className="cursor-pointer hover:bg-muted/40 transition-colors select-none"
-                      onClick={() => handleSort('name')}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        Product <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                      </span>
-                    </TableHead>
-                    <TableHead
-                      className="cursor-pointer hover:bg-muted/40 transition-colors select-none"
-                      onClick={() => handleSort('sku')}
-                    >
-                      <span className="flex items-center gap-1.5">
-                        SKU <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                      </span>
-                    </TableHead>
-                    <TableHead className="hidden md:table-cell">Type</TableHead>
-                    <TableHead className="hidden sm:table-cell">Category</TableHead>
-                    <TableHead
-                      className="cursor-pointer hover:bg-muted/40 transition-colors select-none text-right"
-                      onClick={() => handleSort('currentStock')}
-                    >
-                      <span className="flex items-center justify-end gap-1.5">
-                        Stock <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                      </span>
-                    </TableHead>
-                    <TableHead
-                      className="cursor-pointer hover:bg-muted/40 transition-colors select-none text-right"
-                      onClick={() => handleSort('sellingPrice')}
-                    >
-                      <span className="flex items-center justify-end gap-1.5">
-                        Price <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                      </span>
-                    </TableHead>
-                    <TableHead>Status</TableHead>
-                      <TableHead className="min-w-[140px] text-right pr-4">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((product: any) => (
-                    <TableRow key={product.id} className="hover:bg-muted/20 transition-colors group">
-                      {/* Product Name + Image thumbnail */}
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <ProductImage
-                            src={product.imageUrl}
-                            alt={product.name}
-                            variant="thumbnail"
-                            className="h-9 w-9 flex-shrink-0"
-                          />
-                          <span className="font-semibold text-foreground leading-tight">
+              {/* ─── 1. MOBILE CARD VIEW (screens < 768px) ─────────────────── */}
+              <div className="block md:hidden space-y-3 p-3">
+                {products.map((product: any) => (
+                  <div
+                    key={product.id}
+                    className="rounded-xl border border-border/80 bg-card/60 p-3.5 space-y-3 shadow-xs transition-colors hover:border-primary/40"
+                  >
+                    {/* Top Row: Image + Name + Category + Status */}
+                    <div className="flex items-start gap-3">
+                      <ProductImage
+                        src={product.imageUrl}
+                        alt={product.name}
+                        variant="thumbnail"
+                        className="h-11 w-11 shrink-0 rounded-lg"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-sm text-foreground leading-tight truncate">
                             {product.name}
-                          </span>
+                          </h3>
+                          <div className="shrink-0">{getStockStatusBadge(product)}</div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <code className="font-mono text-xs bg-secondary/60 px-2 py-0.5 rounded border border-border/40 text-muted-foreground uppercase">
-                          {product.sku}
-                        </code>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
-                        {product.productType === 'FINISHED_PRODUCT' ? 'Finished' : 'Raw Material'}
-                      </TableCell>
-                      <TableCell className="text-sm hidden sm:table-cell">{product.category?.name || 'N/A'}</TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums">
-                        {product.currentStock}{' '}
-                        <span className="text-xs font-normal text-muted-foreground">{product.unit?.shortCode}</span>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm tabular-nums">
-                        ₹{product.sellingPrice.toLocaleString('en-IN')}
-                      </TableCell>
-                      <TableCell>{getStockStatusBadge(product)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1 sm:gap-1.5">
-                          {/* View */}
-                          <Tooltip content="View details">
-                            <Link href={`/inventory/products/${product.id}`}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`View ${product.name}`}
-                                className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors"
-                              >
-                                <Eye className="h-4 w-4" aria-hidden="true" />
-                              </Button>
-                            </Link>
-                          </Tooltip>
-
-                          {/* Edit */}
-                          <Tooltip content="Edit product">
-                            <Link href={`/inventory/products/${product.id}/edit`}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Edit ${product.name}`}
-                                className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors"
-                              >
-                                <Edit2 className="h-4 w-4" aria-hidden="true" />
-                              </Button>
-                            </Link>
-                          </Tooltip>
-
-                          {/* Adjust Stock */}
-                          {product.isActive && (
-                            <Tooltip content="Adjust stock">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenAdjust(product)}
-                                aria-label={`Adjust stock for ${product.name}`}
-                                className="h-8 px-2 text-xs hover:bg-primary/20 hover:text-primary transition-colors"
-                              >
-                                <SlidersHorizontal className="h-3.5 w-3.5 sm:mr-1" aria-hidden="true" />
-                                <span className="hidden sm:inline">Adjust</span>
-                              </Button>
-                            </Tooltip>
-                          )}
-
-                          {/* Deactivate / Reactivate */}
-                          {product.isActive ? (
-                            <Tooltip content="Deactivate product">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeactivateClick(product)}
-                                aria-label={`Deactivate ${product.name}`}
-                                className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
-                                isLoading={deactivateMutation.isPending && confirmTarget?.id === product.id}
-                              >
-                                <ShieldAlert className="h-4 w-4" aria-hidden="true" />
-                              </Button>
-                            </Tooltip>
-                          ) : (
-                            <Tooltip content="Reactivate product">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleReactivate(product)}
-                                aria-label={`Reactivate ${product.name}`}
-                                className="h-8 w-8 text-emerald-500 hover:bg-emerald-500/15 transition-colors"
-                                isLoading={activateMutation.isPending}
-                              >
-                                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                              </Button>
-                            </Tooltip>
-                          )}
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <code className="font-mono text-[11px] bg-secondary/60 px-1.5 py-0.5 rounded border border-border/40 text-muted-foreground uppercase">
+                            {product.sku}
+                          </code>
+                          <span>•</span>
+                          <span className="truncate">{product.category?.name || 'Uncategorized'}</span>
                         </div>
-                      </TableCell>
+                      </div>
+                    </div>
+
+                    {/* Middle Row: Stock & Price Key-Value */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40 text-xs">
+                      <div className="bg-secondary/30 rounded-lg p-2 flex flex-col">
+                        <span className="text-[11px] text-muted-foreground">Stock Level</span>
+                        <span className="font-semibold text-foreground text-xs mt-0.5 tabular-nums">
+                          {product.currentStock} {product.unit?.shortCode || 'units'}
+                        </span>
+                      </div>
+                      <div className="bg-secondary/30 rounded-lg p-2 flex flex-col text-right">
+                        <span className="text-[11px] text-muted-foreground">Selling Price</span>
+                        <span className="font-bold text-foreground text-xs mt-0.5 font-mono tabular-nums">
+                          ₹{product.sellingPrice.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Row: Mobile Action Buttons */}
+                    <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-border/40">
+                      {product.isActive && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenAdjust(product)}
+                          className="h-9 px-2.5 text-xs flex-1 gap-1 text-primary hover:bg-primary/10"
+                        >
+                          <SlidersHorizontal className="h-3.5 w-3.5" />
+                          <span>+ Stock</span>
+                        </Button>
+                      )}
+
+                      <Link href={`/inventory/products/${product.id}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="h-9 px-2.5 text-xs w-full gap-1">
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>View</span>
+                        </Button>
+                      </Link>
+
+                      <Link href={`/inventory/products/${product.id}/edit`} className="flex-1">
+                        <Button variant="outline" size="sm" className="h-9 px-2.5 text-xs w-full gap-1">
+                          <Edit2 className="h-3.5 w-3.5" />
+                          <span>Edit</span>
+                        </Button>
+                      </Link>
+
+                      {product.isActive ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeactivateClick(product)}
+                          className="h-9 w-9 min-w-[36px] text-destructive hover:bg-destructive/15"
+                          isLoading={deactivateMutation.isPending && confirmTarget?.id === product.id}
+                          aria-label="Deactivate product"
+                        >
+                          <ShieldAlert className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleReactivate(product)}
+                          className="h-9 w-9 min-w-[36px] text-emerald-500 hover:bg-emerald-500/15"
+                          isLoading={activateMutation.isPending}
+                          aria-label="Reactivate product"
+                        >
+                          <ShieldCheck className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ─── 2. DESKTOP TABLE VIEW (screens ≥ 768px) ─────────────────── */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md shadow-sm">
+                    <TableRow className="bg-muted/30">
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/40 transition-colors select-none"
+                        onClick={() => handleSort('name')}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          Product <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                        </span>
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/40 transition-colors select-none"
+                        onClick={() => handleSort('sku')}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          SKU <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                        </span>
+                      </TableHead>
+                      <TableHead className="hidden md:table-cell">Type</TableHead>
+                      <TableHead className="hidden sm:table-cell">Category</TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/40 transition-colors select-none text-right"
+                        onClick={() => handleSort('currentStock')}
+                      >
+                        <span className="flex items-center justify-end gap-1.5">
+                          Stock <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                        </span>
+                      </TableHead>
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/40 transition-colors select-none text-right"
+                        onClick={() => handleSort('sellingPrice')}
+                      >
+                        <span className="flex items-center justify-end gap-1.5">
+                          Price <ArrowUpDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                        </span>
+                      </TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="min-w-[140px] text-right pr-4">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product: any) => (
+                      <TableRow key={product.id} className="hover:bg-muted/20 transition-colors group">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <ProductImage
+                              src={product.imageUrl}
+                              alt={product.name}
+                              variant="thumbnail"
+                              className="h-9 w-9 flex-shrink-0"
+                            />
+                            <span className="font-semibold text-foreground leading-tight">
+                              {product.name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="font-mono text-xs bg-secondary/60 px-2 py-0.5 rounded border border-border/40 text-muted-foreground uppercase">
+                            {product.sku}
+                          </code>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
+                          {product.productType === 'FINISHED_PRODUCT' ? 'Finished' : 'Raw Material'}
+                        </TableCell>
+                        <TableCell className="text-sm hidden sm:table-cell">{product.category?.name || 'N/A'}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">
+                          {product.currentStock}{' '}
+                          <span className="text-xs font-normal text-muted-foreground">{product.unit?.shortCode}</span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm tabular-nums">
+                          ₹{product.sellingPrice.toLocaleString('en-IN')}
+                        </TableCell>
+                        <TableCell>{getStockStatusBadge(product)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1 sm:gap-1.5">
+                            <Tooltip content="View details">
+                              <Link href={`/inventory/products/${product.id}`}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`View ${product.name}`}
+                                  className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors"
+                                >
+                                  <Eye className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
+
+                            <Tooltip content="Edit product">
+                              <Link href={`/inventory/products/${product.id}/edit`}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Edit ${product.name}`}
+                                  className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors"
+                                >
+                                  <Edit2 className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
+
+                            {product.isActive && (
+                              <Tooltip content="Adjust stock">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenAdjust(product)}
+                                  aria-label={`Adjust stock for ${product.name}`}
+                                  className="h-8 px-2 text-xs hover:bg-primary/20 hover:text-primary transition-colors"
+                                >
+                                  <SlidersHorizontal className="h-3.5 w-3.5 sm:mr-1" aria-hidden="true" />
+                                  <span className="hidden sm:inline">Adjust</span>
+                                </Button>
+                              </Tooltip>
+                            )}
+
+                            {product.isActive ? (
+                              <Tooltip content="Deactivate product">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeactivateClick(product)}
+                                  aria-label={`Deactivate ${product.name}`}
+                                  className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
+                                  isLoading={deactivateMutation.isPending && confirmTarget?.id === product.id}
+                                >
+                                  <ShieldAlert className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip content="Reactivate product">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleReactivate(product)}
+                                  aria-label={`Reactivate ${product.name}`}
+                                  className="h-8 w-8 text-emerald-500 hover:bg-emerald-500/15 transition-colors"
+                                  isLoading={activateMutation.isPending}
+                                >
+                                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </TableCardBody>
 
             <TableCardFooter>

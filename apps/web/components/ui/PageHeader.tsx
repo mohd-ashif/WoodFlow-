@@ -25,26 +25,26 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div
       className={clsx(
-        'flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0 pb-1',
+        'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 shrink-0 pb-1 w-full max-w-[100vw]',
         className
       )}
     >
       {/* Title & Icon Column */}
-      <div className="flex items-start sm:items-center gap-3 min-w-0">
+      <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
         {icon && (
           <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary shrink-0">
             <AppIcon name={typeof icon === 'string' ? icon : undefined} icon={typeof icon !== 'string' ? icon : undefined} size="lg" />
           </div>
         )}
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-foreground leading-snug">
               {title}
             </h1>
             {badge}
           </div>
           {description && (
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-normal">
               {description}
             </p>
           )}
@@ -53,7 +53,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
       {/* Action Buttons Container */}
       {actions && (
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap shrink-0 self-start sm:self-auto">
+        <div className="flex items-center gap-2 flex-wrap shrink-0 w-full sm:w-auto [&>button]:flex-1 [&>button]:sm:flex-none [&>a]:flex-1 [&>a]:sm:flex-none [&>a>button]:w-full font-medium">
           {actions}
         </div>
       )}
