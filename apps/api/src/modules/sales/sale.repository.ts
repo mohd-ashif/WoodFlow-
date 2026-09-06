@@ -186,3 +186,6 @@ export async function listSales(
     },
   };
 }
+
+export { listSales as findAll };
+

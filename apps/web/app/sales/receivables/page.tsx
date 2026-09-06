@@ -16,12 +16,9 @@ export default function SalesReceivablesPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
 
-  const { data: receivablesData, isLoading } = useQuery({
+  const { data: receivablesResponse, isLoading } = useQuery({
     queryKey: ['sales-receivables-list'],
-    queryFn: async () => {
-      const res = await financeService.getReceivables();
-      return (res as any)?.data || [];
-    },
+    queryFn: () => financeService.getReceivables(),
   });
 
   const { data: customersData } = useQuery({
@@ -29,23 +26,28 @@ export default function SalesReceivablesPage() {
     queryFn: () => crmService.getCustomers({ limit: 100 }),
   });
 
-  const rawList = receivablesData || [];
-  const customersList = Array.isArray(customersData) ? customersData : (customersData as any)?.items || [];
+  const receivablesData = (receivablesResponse as any)?.data || receivablesResponse;
+  const rawList: any[] = receivablesData?.receivables || (Array.isArray(receivablesData) ? receivablesData : []);
+  const customersList = Array.isArray(customersData) ? customersData : (customersData as any)?.data || (customersData as any)?.items || [];
 
   const filteredList = rawList.filter((item: any) => {
-    if (selectedCustomerId && item.customerId !== selectedCustomerId) return false;
-    if (selectedStatus && item.paymentStatus !== selectedStatus) return false;
+    const custId = item.customer?.id || item.customerId;
+    const custName = item.customer?.name || item.customerName || '';
+    
+    if (selectedCustomerId && custId !== selectedCustomerId) return false;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       return (
-        item.customerName?.toLowerCase().includes(term) ||
+        custName.toLowerCase().includes(term) ||
+        item.customer?.phone?.includes(term) ||
+        item.customer?.customerCode?.toLowerCase().includes(term) ||
         item.saleNumber?.toLowerCase().includes(term)
       );
     }
     return true;
   });
 
-  const totalOutstanding = filteredList.reduce((sum: number, item: any) => sum + (item.dueAmount || 0), 0);
+  const totalOutstanding = filteredList.reduce((sum: number, item: any) => sum + (item.outstanding ?? item.dueAmount ?? 0), 0);
 
   return (
     <AppShell>
@@ -141,49 +143,55 @@ export default function SalesReceivablesPage() {
                 <thead className="border-b border-border bg-secondary/40 text-muted-foreground uppercase font-semibold">
                   <tr>
                     <th className="p-3">Customer</th>
-                    <th className="p-3">Order / Invoice</th>
-                    <th className="p-3">Date</th>
-                    <th className="p-3">Total Amount</th>
-                    <th className="p-3">Paid Amount</th>
-                    <th className="p-3">Outstanding</th>
-                    <th className="p-3">Status</th>
+                    <th className="p-3">Reference / Order #</th>
+                    <th className="p-3 text-right">Total Sales</th>
+                    <th className="p-3 text-right">Paid Amount</th>
+                    <th className="p-3 text-right">Outstanding Balance</th>
+                    <th className="p-3 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {filteredList.map((item: any) => {
-                    const isUnpaid = item.paymentStatus === 'UNPAID';
-                    const isPartial = item.paymentStatus === 'PARTIALLY_PAID';
+                  {filteredList.map((item: any, idx: number) => {
+                    const custName = item.customer?.name || item.customerName || 'Walk-in Customer';
+                    const custCode = item.customer?.customerCode || item.customer?.phone || '';
+                    const totalSales = item.totalSales ?? item.totalAmount ?? 0;
+                    const totalPaid = item.totalPaid ?? item.paidAmount ?? 0;
+                    const outstanding = item.outstanding ?? item.dueAmount ?? 0;
+                    const isFullyPaid = outstanding <= 0.01;
+                    const isUnpaid = totalPaid <= 0 && outstanding > 0;
+                    const isPartial = totalPaid > 0 && outstanding > 0.01;
+
                     return (
-                      <tr key={item.id} className="hover:bg-secondary/20 transition-colors">
+                      <tr key={item.id || item.customer?.id || idx} className="hover:bg-secondary/20 transition-colors">
                         <td className="p-3 font-semibold text-foreground">
-                          {item.customerName || 'Walk-in Customer'}
+                          <div>
+                            <span>{custName}</span>
+                            {custCode && <span className="block text-[11px] text-muted-foreground font-mono mt-0.5">{custCode}</span>}
+                          </div>
                         </td>
                         <td className="p-3 font-mono text-primary font-medium">
-                          {item.saleNumber}
+                          {item.saleNumber ? `#${item.saleNumber}` : `${item.unpaidSalesCount || 0} Unpaid Orders`}
                         </td>
-                        <td className="p-3 text-muted-foreground">
-                          {new Date(item.saleDate || item.createdAt).toLocaleDateString('en-IN')}
+                        <td className="p-3 text-right font-bold text-foreground">
+                          ₹{totalSales.toLocaleString('en-IN')}
                         </td>
-                        <td className="p-3 font-bold text-foreground">
-                          ₹{(item.totalAmount || 0).toLocaleString('en-IN')}
+                        <td className="p-3 text-right text-emerald-500 font-medium font-mono">
+                          ₹{totalPaid.toLocaleString('en-IN')}
                         </td>
-                        <td className="p-3 text-emerald-500 font-medium">
-                          ₹{(item.paidAmount || 0).toLocaleString('en-IN')}
+                        <td className="p-3 text-right font-mono font-bold text-amber-500">
+                          ₹{outstanding.toLocaleString('en-IN')}
                         </td>
-                        <td className="p-3 font-bold text-amber-500">
-                          ₹{(item.dueAmount || 0).toLocaleString('en-IN')}
-                        </td>
-                        <td className="p-3">
+                        <td className="p-3 text-center">
                           <span
                             className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              isUnpaid
-                                ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                              isFullyPaid
+                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                                 : isPartial
                                 ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                                : 'bg-emerald-500/10 text-emerald-500'
+                                : 'bg-red-500/10 text-red-500 border border-red-500/20'
                             }`}
                           >
-                            {item.paymentStatus}
+                            {isFullyPaid ? 'PAID' : isPartial ? 'PARTIALLY_PAID' : 'UNPAID'}
                           </span>
                         </td>
                       </tr>

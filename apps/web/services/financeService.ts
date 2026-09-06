@@ -70,6 +70,20 @@ export const financeService = {
     });
   },
 
+  async updateCustomerPayment(id: string, input: any): Promise<{ success: boolean; data: any }> {
+    return fetchApi(`/finance/customer-payments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+  },
+
+  async deleteCustomerPayment(id: string): Promise<{ success: boolean; data: any }> {
+    return fetchApi(`/finance/customer-payments/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+
   // Supplier Payments
   async getSupplierPayments(params?: { page?: number; limit?: number; supplierId?: string; purchaseId?: string }): Promise<{ success: boolean; data: any[]; pagination: any }> {
     const query = new URLSearchParams();

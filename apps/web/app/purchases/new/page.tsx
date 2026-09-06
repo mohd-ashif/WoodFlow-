@@ -24,6 +24,7 @@ import {
   Truck,
   Plus,
 } from 'lucide-react';
+import { queryKeys } from '../../../lib/queryKeys';
 
 export default function CreatePurchasePage() {
   const router = useRouter();
@@ -61,8 +62,10 @@ export default function CreatePurchasePage() {
   });
 
   const { data: productsData } = useQuery({
-    queryKey: ['products-search', productSearch],
+    queryKey: queryKeys.products.list(undefined, { search: productSearch, limit: 20 }),
     queryFn: () => fetchApi<any[]>(`/products?search=${productSearch}&limit=20`),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const rawSuppliers = (suppliersData as any)?.data || (Array.isArray(suppliersData) ? suppliersData : []);

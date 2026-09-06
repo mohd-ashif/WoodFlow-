@@ -1,16 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { salesService } from '../../../services/salesService';
 import { Button } from '../../../components/ui/Button';
 import Link from 'next/link';
-import { Printer, ArrowLeft, Download, Building2, AlertTriangle } from 'lucide-react';
+import { Printer, ArrowLeft, Download, Building2, AlertTriangle, MessageCircle } from 'lucide-react';
+import { ShareInvoiceModal } from '../../../components/invoices/ShareInvoiceModal';
 
 export default function InvoicePrintPage() {
   const params = useParams();
   const invoiceId = params.id as string;
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const { data: responseData, isLoading, error } = useQuery({
     queryKey: ['invoice', invoiceId],
@@ -71,8 +73,16 @@ export default function InvoicePrintPage() {
               </Button>
             </Link>
           )}
-          <Button size="sm" onClick={handlePrint} className="gap-2 font-semibold shadow-lg">
+          <Button size="sm" onClick={handlePrint} variant="outline" className="gap-2 font-semibold">
             <Printer className="h-4 w-4" /> Print / Save PDF
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setIsShareModalOpen(true)}
+            className="gap-2 font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
+          >
+            <MessageCircle className="h-4 w-4 fill-current" />
+            <span>Share via WhatsApp</span>
           </Button>
         </div>
       </div>
@@ -259,6 +269,17 @@ export default function InvoicePrintPage() {
           <p className="mt-1 text-[11px]">This is a computer-generated tax invoice issued by {company.name || 'Furniture OS'}.</p>
         </div>
       </div>
+
+      {/* Share Modal */}
+      <ShareInvoiceModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        invoiceId={invoice.id}
+        invoiceNumber={invoice.invoiceNumber}
+        customerName={invoice.customerNameSnapshot}
+        totalAmount={invoice.totalAmount}
+        customerId={invoice.customerId}
+      />
     </div>
   );
 }

@@ -180,11 +180,29 @@ export class ValidationService {
         }
       });
 
-      // Filter out trailing blank rows in Excel
+      // Filter out trailing blank rows or instruction/note rows in template sheets
       const hasContent = Object.entries(mappedRow).some(
         ([k, v]) => k !== '_rowNum' && String(v || '').trim().length > 0
       );
       if (!hasContent) return;
+
+      // Detect and skip template instructions / notes rows
+      const isInstructionRow = Object.entries(mappedRow).every(([k, v]) => {
+        if (k === '_rowNum') return true;
+        const str = String(v || '').trim().toLowerCase();
+        if (!str) return true;
+        return (
+          str === 'required.' ||
+          str === 'optional.' ||
+          str.startsWith('required.') ||
+          str.startsWith('optional.') ||
+          str.startsWith('e.g.') ||
+          str.includes('field instructions') ||
+          str.includes('validation rules') ||
+          str.includes('10-digit mobile')
+        );
+      });
+      if (isInstructionRow) return;
 
       const rowErrors = this.validateSingleRow(module, mappedRow, rowNum);
 
@@ -201,6 +219,60 @@ export class ValidationService {
     });
 
     return { validRows, errors };
+  }
+
+  private sanitizePhone(phoneRaw: any, rowNum: number): { phone: string; isFallback: boolean; msg?: string } {
+    const rawStr = String(phoneRaw || '').trim();
+    const lower = rawStr.toLowerCase();
+
+    // Check if empty or instruction / placeholder
+    if (
+      !rawStr ||
+      lower.startsWith('required') ||
+      lower.startsWith('optional') ||
+      lower === 'n/a' ||
+      lower === 'na' ||
+      lower === 'none' ||
+      lower === 'nil' ||
+      lower === '-'
+    ) {
+      const fallback = `9000${String(rowNum).padStart(6, '0')}`;
+      return { phone: fallback, isFallback: true, msg: 'Missing or placeholder phone number; set fallback' };
+    }
+
+    // Extract numbers
+    const digits = rawStr.replace(/[^0-9]/g, '');
+    if (digits.length >= 7 && digits.length <= 15) {
+      return { phone: digits, isFallback: rawStr !== digits, msg: rawStr !== digits ? 'Phone sanitized' : undefined };
+    }
+
+    if (digits.length > 15) {
+      return { phone: digits.slice(0, 15), isFallback: true, msg: 'Phone truncated to 15 digits' };
+    }
+
+    const fallback = `9000${String(rowNum).padStart(6, '0')}`;
+    return { phone: fallback, isFallback: true, msg: 'Phone number auto-formatted' };
+  }
+
+  private sanitizeEmail(emailRaw: any): { email: string | null; isFallback: boolean; msg?: string } {
+    const rawStr = String(emailRaw || '').trim();
+    if (!rawStr) return { email: null, isFallback: false };
+    const lower = rawStr.toLowerCase();
+    if (
+      lower.startsWith('required') ||
+      lower.startsWith('optional') ||
+      lower === 'n/a' ||
+      lower === 'na' ||
+      lower === 'none' ||
+      lower === '-'
+    ) {
+      return { email: null, isFallback: false };
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawStr)) {
+      return { email: null, isFallback: true, msg: 'Invalid email format cleared' };
+    }
+    return { email: rawStr, isFallback: false };
   }
 
   private validateSingleRow(module: ImportModuleType, row: Record<string, any>, rowNum: number): RowValidationError[] {
@@ -287,26 +359,58 @@ export class ValidationService {
         break;
       }
       case 'CUSTOMERS': {
-        if (!row.name || !row.name.trim()) addErr('name', 'Customer name is required');
-        if (!row.phone || !row.phone.trim()) {
-          addErr('phone', 'Phone number is required');
-        } else if (!/^\+?[0-9\s\-]{8,15}$/.test(row.phone.trim())) {
-          addErr('phone', 'Invalid phone number format', row.phone);
+        let nameStr = String(row.name || '').trim();
+        if (!nameStr) {
+          nameStr = `Customer #${rowNum}`;
+          addErr('name', `Customer name missing; auto-named to "${nameStr}"`, nameStr, 'WARNING');
         }
-        if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email.trim())) {
-          addErr('email', 'Invalid email address format', row.email);
+        row.name = nameStr;
+
+        const phoneRes = this.sanitizePhone(row.phone, rowNum);
+        row.phone = phoneRes.phone;
+        if (phoneRes.isFallback) {
+          addErr('phone', phoneRes.msg || 'Phone number auto-formatted', phoneRes.phone, 'AUTO_RESOLVED');
+        }
+
+        const emailRes = this.sanitizeEmail(row.email);
+        row.email = emailRes.email;
+        if (emailRes.isFallback) {
+          addErr('email', emailRes.msg || 'Email auto-cleared', null, 'AUTO_RESOLVED');
+        }
+
+        if (!row.customerCode || !String(row.customerCode).trim()) {
+          row.customerCode = `CUST-${Math.floor(100000 + Math.random() * 900000)}`;
+          addErr('customerCode', `Customer code missing; auto-generated "${row.customerCode}"`, row.customerCode, 'AUTO_RESOLVED');
+        } else {
+          row.customerCode = String(row.customerCode).trim();
         }
         break;
       }
       case 'SUPPLIERS': {
-        if (!row.name || !row.name.trim()) addErr('name', 'Supplier name is required');
-        if (!row.phone || !row.phone.trim()) {
-          addErr('phone', 'Phone number is required');
-        } else if (!/^\+?[0-9\s\-]{8,15}$/.test(row.phone.trim())) {
-          addErr('phone', 'Invalid phone number format', row.phone);
+        let nameStr = String(row.name || '').trim();
+        if (!nameStr) {
+          nameStr = `Supplier #${rowNum}`;
+          addErr('name', `Supplier name missing; auto-named to "${nameStr}"`, nameStr, 'WARNING');
         }
-        if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email.trim())) {
-          addErr('email', 'Invalid email address format', row.email);
+        row.name = nameStr;
+
+        const phoneRes = this.sanitizePhone(row.phone, rowNum);
+        row.phone = phoneRes.phone;
+        if (phoneRes.isFallback) {
+          addErr('phone', phoneRes.msg || 'Phone number auto-formatted', phoneRes.phone, 'AUTO_RESOLVED');
+        }
+
+        const emailRes = this.sanitizeEmail(row.email);
+        row.email = emailRes.email;
+        if (emailRes.isFallback) {
+          addErr('email', emailRes.msg || 'Email auto-cleared', null, 'AUTO_RESOLVED');
+        }
+
+        if (!row.supplierCode || !String(row.supplierCode).trim()) {
+          row.supplierCode = `SUPP-${Math.floor(100000 + Math.random() * 900000)}`;
+          addErr('supplierCode', `Supplier code missing; auto-generated "${row.supplierCode}"`, row.supplierCode, 'AUTO_RESOLVED');
+        } else {
+          row.supplierCode = String(row.supplierCode).trim();
         }
         break;
       }

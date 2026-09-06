@@ -89,6 +89,25 @@ export async function recordCustomerPayment(req: Request, res: Response, next: N
   }
 }
 
+export async function deleteCustomerPayment(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await financeService.deleteCustomerPayment(req.tenantId!, req.user!.id, req.params.id);
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateCustomerPayment(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await financeService.updateCustomerPayment(req.tenantId!, req.user!.id, req.params.id, req.body);
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
 // SUPPLIER PAYMENTS
 export async function getSupplierPayments(req: Request, res: Response, next: NextFunction) {
   try {

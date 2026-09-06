@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { getInvoicesList, getInvoiceDetails, exportInvoices } from './invoice.service.js';
+import { getInvoicesList, getInvoiceDetails, exportInvoices, getPublicInvoiceDetailsByToken } from './invoice.service.js';
+import { prepareInvoiceWhatsAppShare } from './whatsappShare.service.js';
+import { createAuditLog } from '../audit/audit.service.js';
 
 export async function listInvoicesController(req: Request, res: Response, next: NextFunction) {
   try {
@@ -40,6 +42,59 @@ export async function getInvoiceController(req: Request, res: Response, next: Ne
   }
 }
 
+export async function getPublicInvoiceController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = req.params.token;
+    const invoice = await getPublicInvoiceDetailsByToken(token);
+    res.json({
+      success: true,
+      data: invoice,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function prepareWhatsAppShareController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const invoiceId = req.params.id;
+    const customMessage = req.body?.message;
+    const updatedPhone = req.body?.updatedPhone || req.body?.phone;
+    const appBaseUrl = (req.headers.origin as string) || (req.headers.referer as string) || 'http://localhost:3000';
+
+    const payload = await prepareInvoiceWhatsAppShare(
+      req.tenantId!,
+      invoiceId,
+      appBaseUrl,
+      customMessage,
+      updatedPhone
+    );
+
+    // Audit log ERP-side share initiation
+    if (req.user?.id) {
+      await createAuditLog({
+        userId: req.user.id,
+        companyId: req.tenantId!,
+        action: 'WHATSAPP_SHARE_INITIATED',
+        entity: 'Invoice',
+        entityId: invoiceId,
+        metadata: {
+          whatsappUrl: payload.whatsappUrl,
+          normalizedPhone: payload.normalizedPhone,
+          phoneValid: payload.phoneValid,
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      data: payload,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function exportInvoicesController(req: Request, res: Response, next: NextFunction) {
   try {
     const search = req.query.search as string;
@@ -69,4 +124,5 @@ export async function exportInvoicesController(req: Request, res: Response, next
     next(error);
   }
 }
+
 

@@ -567,6 +567,8 @@ export class FinanceService {
   // --- CUSTOMER PAYMENTS ---
   async recordCustomerPayment(companyId: string, userId: string, input: RecordCustomerPaymentInput) {
     await ensureFinanceTablesExist();
+    const db = prisma as any;
+
     if (db.customerPayment && db.financialTransaction && db.paymentAccount) {
       return db.$transaction(async (tx: any) => {
         let sale = null;
@@ -576,21 +578,26 @@ export class FinanceService {
           sale = await tx.sale.findFirst({
             where: { id: input.saleId, companyId },
           });
-          if (!sale) throw new Error('Sale order not found');
+          if (!sale) throw new BadRequestError('Sale order not found');
+
+          if (sale.paymentStatus === 'PAID' || Number(sale.dueAmount || 0) <= 0.01) {
+            throw new BadRequestError(`Sales order #${sale.saleNumber} is already fully paid.`);
+          }
 
           customerId = sale.customerId || customerId;
-          const currentPaid = sale.paidAmount || 0;
-          const outstanding = sale.totalAmount - currentPaid;
+          const currentPaid = Number(sale.paidAmount || 0);
+          const totalAmt = Number(sale.totalAmount || 0);
+          const outstanding = Math.max(0, totalAmt - currentPaid);
 
           if (input.amount > outstanding + 0.01) {
-            throw new Error(`Payment amount (₹${input.amount}) exceeds outstanding balance (₹${outstanding.toFixed(2)})`);
+            throw new BadRequestError(`Payment amount (₹${input.amount}) exceeds outstanding balance (₹${outstanding.toFixed(2)})`);
           }
         }
 
         const account = await tx.paymentAccount.findFirst({
           where: { id: input.paymentAccountId, companyId, isActive: true },
         });
-        if (!account) throw new Error('Payment account not found or inactive');
+        if (!account) throw new BadRequestError('Payment account not found or inactive');
 
         const payment = await tx.customerPayment.create({
           data: {
@@ -630,8 +637,8 @@ export class FinanceService {
         });
 
         if (sale) {
-          const newPaidAmount = (sale.paidAmount || 0) + input.amount;
-          const newDueAmount = Math.max(0, sale.totalAmount - newPaidAmount);
+          const newPaidAmount = Number(sale.paidAmount || 0) + Number(input.amount);
+          const newDueAmount = Math.max(0, Number(sale.totalAmount || 0) - newPaidAmount);
           let newPaymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' = 'PARTIALLY_PAID';
 
           if (newDueAmount <= 0.01) {
@@ -648,33 +655,6 @@ export class FinanceService {
               paymentStatus: newPaymentStatus,
             },
           });
-        } else if (customerId) {
-          let remainingPayment = input.amount;
-          const openSales = await tx.sale.findMany({
-            where: { companyId, customerId, dueAmount: { gt: 0 } },
-            orderBy: { saleDate: 'asc' },
-          });
-
-          for (const s of openSales) {
-            if (remainingPayment <= 0) break;
-            const currentPaid = s.paidAmount || 0;
-            const due = s.dueAmount || Math.max(0, s.totalAmount - currentPaid);
-            const payForThisSale = Math.min(remainingPayment, due);
-            const newPaidAmount = currentPaid + payForThisSale;
-            const newDueAmount = Math.max(0, s.totalAmount - newPaidAmount);
-            const newPaymentStatus = newDueAmount <= 0.01 ? 'PAID' : 'PARTIALLY_PAID';
-
-            await tx.sale.update({
-              where: { id: s.id },
-              data: {
-                paidAmount: newPaidAmount,
-                dueAmount: newDueAmount,
-                paymentStatus: newPaymentStatus,
-              },
-            });
-
-            remainingPayment -= payForThisSale;
-          }
         }
 
         await createAuditLog({
@@ -690,67 +670,105 @@ export class FinanceService {
       });
     }
 
-    // RAW SQL fallback
+    // Fail-safe SQL & Prisma execution for dynamic tables
     let sale: any = null;
     let customerId = input.customerId || null;
 
     if (input.saleId) {
-      const saleRows: any[] = await prisma.$queryRawUnsafe(
-        `SELECT * FROM sales WHERE id = $1 AND "companyId" = $2 LIMIT 1`,
-        input.saleId, companyId
-      );
-      if (!saleRows.length) throw new Error('Sale order not found');
-      sale = saleRows[0];
+      sale = await db.sale.findFirst({
+        where: { id: input.saleId, companyId },
+      });
+      if (!sale) throw new BadRequestError('Sale order not found');
+
+      if (sale.paymentStatus === 'PAID' || Number(sale.dueAmount || 0) <= 0.01) {
+        throw new BadRequestError(`Sales order #${sale.saleNumber} is already fully paid.`);
+      }
 
       customerId = sale.customerId || customerId;
       const currentPaid = Number(sale.paidAmount || 0);
-      const outstanding = Number(sale.totalAmount || 0) - currentPaid;
+      const totalAmt = Number(sale.totalAmount || 0);
+      const outstanding = Math.max(0, totalAmt - currentPaid);
 
       if (input.amount > outstanding + 0.01) {
-        throw new Error(`Payment amount (₹${input.amount}) exceeds outstanding balance (₹${outstanding.toFixed(2)})`);
+        throw new BadRequestError(`Payment amount (₹${input.amount}) exceeds outstanding balance (₹${outstanding.toFixed(2)})`);
       }
     }
 
-    const accRows: any[] = await prisma.$queryRawUnsafe(
-      `SELECT * FROM payment_accounts WHERE id = $1 AND "companyId" = $2 AND "isActive" = true LIMIT 1`,
-      input.paymentAccountId, companyId
-    );
-    if (!accRows.length) throw new Error('Payment account not found or inactive');
+    let accRows: any[] = [];
+    try {
+      accRows = await prisma.$queryRawUnsafe(
+        `SELECT * FROM payment_accounts WHERE id = $1 AND "companyId" = $2 AND ("isActive" = true OR "isActive" IS NULL) LIMIT 1`,
+        input.paymentAccountId, companyId
+      );
+    } catch {
+      accRows = await prisma.$queryRawUnsafe(
+        `SELECT * FROM payment_accounts WHERE id = $1 AND companyid = $2 LIMIT 1`,
+        input.paymentAccountId, companyId
+      );
+    }
+    if (!accRows.length) throw new BadRequestError('Payment account not found or inactive');
 
     const paymentId = 'pay_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
     const paymentDate = input.paymentDate ? new Date(input.paymentDate) : new Date();
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO customer_payments (id, "companyId", "customerId", "saleId", "paymentAccountId", amount, "paymentMethod", "referenceNumber", notes, "paymentDate", "createdBy", "createdAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
-      paymentId, companyId, customerId, input.saleId || null, input.paymentAccountId, Number(input.amount), input.paymentMethod || 'CASH', input.referenceNumber || null, input.notes || null, paymentDate, userId
-    );
+    try {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO customer_payments (id, "companyId", "customerId", "saleId", "paymentAccountId", amount, "paymentMethod", "referenceNumber", notes, "paymentDate", "createdBy", "createdAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
+        paymentId, companyId, customerId, input.saleId || null, input.paymentAccountId, Number(input.amount), input.paymentMethod || 'CASH', input.referenceNumber || null, input.notes || null, paymentDate, userId
+      );
+    } catch {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO customer_payments (id, companyid, customerid, saleid, paymentaccountid, amount, paymentmethod, referencenumber, notes, paymentdate, createdby, createdat)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
+        paymentId, companyId, customerId, input.saleId || null, input.paymentAccountId, Number(input.amount), input.paymentMethod || 'CASH', input.referenceNumber || null, input.notes || null, paymentDate, userId
+      );
+    }
 
     const txId = 'tx_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
     const description = sale ? `Customer Payment for Sale ${sale.saleNumber}` : `Customer Payment from Customer`;
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO financial_transactions (id, "companyId", "accountId", type, direction, amount, "referenceType", "referenceId", description, "transactionDate", "createdBy", "createdAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
-      txId, companyId, input.paymentAccountId, 'CUSTOMER_PAYMENT', 'CREDIT', Number(input.amount), 'CUSTOMER_PAYMENT', paymentId, description, paymentDate, userId
-    );
+    try {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO financial_transactions (id, "companyId", "accountId", type, direction, amount, "referenceType", "referenceId", description, "transactionDate", "createdBy", "createdAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
+        txId, companyId, input.paymentAccountId, 'CUSTOMER_PAYMENT', 'CREDIT', Number(input.amount), 'CUSTOMER_PAYMENT', paymentId, description, paymentDate, userId
+      );
+    } catch {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO financial_transactions (id, companyid, accountid, type, direction, amount, referencetype, referenceid, description, transactiondate, createdby, createdat)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())`,
+        txId, companyId, input.paymentAccountId, 'CUSTOMER_PAYMENT', 'CREDIT', Number(input.amount), 'CUSTOMER_PAYMENT', paymentId, description, paymentDate, userId
+      );
+    }
 
-    await prisma.$executeRawUnsafe(
-      `UPDATE payment_accounts SET "currentBalance" = "currentBalance" + $1, "updatedAt" = NOW() WHERE id = $2`,
-      Number(input.amount), input.paymentAccountId
-    );
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE payment_accounts SET "currentBalance" = "currentBalance" + $1, "updatedAt" = NOW() WHERE id = $2`,
+        Number(input.amount), input.paymentAccountId
+      );
+    } catch {
+      await prisma.$executeRawUnsafe(
+        `UPDATE payment_accounts SET currentbalance = currentbalance + $1, updatedat = NOW() WHERE id = $2`,
+        Number(input.amount), input.paymentAccountId
+      );
+    }
 
     if (sale) {
       const newPaidAmount = Number(sale.paidAmount || 0) + Number(input.amount);
       const newDueAmount = Math.max(0, Number(sale.totalAmount || 0) - newPaidAmount);
-      let newPaymentStatus = 'PARTIALLY_PAID';
+      let newPaymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' = 'PARTIALLY_PAID';
       if (newDueAmount <= 0.01) newPaymentStatus = 'PAID';
       else if (newPaidAmount <= 0) newPaymentStatus = 'UNPAID';
 
-      await prisma.$executeRawUnsafe(
-        `UPDATE sales SET "paidAmount" = $1, "dueAmount" = $2, "paymentStatus" = $3, "updatedAt" = NOW() WHERE id = $4`,
-        newPaidAmount, newDueAmount, newPaymentStatus, sale.id
-      );
+      await db.sale.update({
+        where: { id: sale.id },
+        data: {
+          paidAmount: newPaidAmount,
+          dueAmount: newDueAmount,
+          paymentStatus: newPaymentStatus,
+        },
+      });
     }
 
     await createAuditLog({
@@ -762,8 +780,341 @@ export class FinanceService {
       metadata: { amount: input.amount, saleId: input.saleId, customerId, paymentAccountId: input.paymentAccountId },
     });
 
-    return { id: paymentId, amount: input.amount, paymentAccountId: input.paymentAccountId };
+    return { id: paymentId, amount: input.amount, paymentAccountId: input.paymentAccountId, success: true };
   }
+
+  async deleteCustomerPayment(companyId: string, userId: string, paymentId: string) {
+    await ensureFinanceTablesExist();
+    const db = prisma as any;
+
+    let payment: any = null;
+
+    if (db.customerPayment) {
+      payment = await db.customerPayment.findFirst({
+        where: { id: paymentId, companyId },
+      });
+    }
+
+    if (!payment) {
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT * FROM customer_payments WHERE id = $1 AND "companyId" = $2 LIMIT 1`,
+        paymentId, companyId
+      );
+      if (!rows.length) {
+        const rowsAlt: any[] = await prisma.$queryRawUnsafe(
+          `SELECT * FROM customer_payments WHERE id = $1 AND companyid = $2 LIMIT 1`,
+          paymentId, companyId
+        );
+        if (!rowsAlt.length) throw new BadRequestError('Customer payment receipt not found');
+        payment = rowsAlt[0];
+      } else {
+        payment = rows[0];
+      }
+    }
+
+    const amount = Number(payment.amount || 0);
+    const saleId = payment.saleId || payment.saleid;
+    const accountId = payment.paymentAccountId || payment.paymentaccountid;
+
+    // 1. Revert Sale if attached
+    if (saleId) {
+      const sale = await db.sale.findFirst({
+        where: { id: saleId, companyId },
+      });
+
+      if (sale) {
+        const currentPaid = Number(sale.paidAmount || 0);
+        const newPaidAmount = Math.max(0, currentPaid - amount);
+        const totalAmount = Number(sale.totalAmount || 0);
+        const newDueAmount = Math.max(0, totalAmount - newPaidAmount);
+
+        let newPaymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' = 'PARTIALLY_PAID';
+        if (newPaidAmount <= 0) {
+          newPaymentStatus = 'UNPAID';
+        } else if (newDueAmount <= 0.01) {
+          newPaymentStatus = 'PAID';
+        }
+
+        await db.sale.update({
+          where: { id: sale.id },
+          data: {
+            paidAmount: newPaidAmount,
+            dueAmount: newDueAmount,
+            paymentStatus: newPaymentStatus,
+          },
+        });
+      }
+    }
+
+    // 2. Revert Payment Account Balance
+    if (accountId) {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE payment_accounts SET "currentBalance" = GREATEST(0, "currentBalance" - $1), "updatedAt" = NOW() WHERE id = $2`,
+          amount, accountId
+        );
+      } catch {
+        await prisma.$executeRawUnsafe(
+          `UPDATE payment_accounts SET currentbalance = GREATEST(0, currentbalance - $1), updatedat = NOW() WHERE id = $2`,
+          amount, accountId
+        );
+      }
+    }
+
+    // 3. Create Reversal Financial Transaction
+    const txId = 'tx_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    try {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO financial_transactions (id, "companyId", "accountId", type, direction, amount, "referenceType", "referenceId", description, "transactionDate", "createdBy", "createdAt")
+         VALUES ($1, $2, $3, 'CUSTOMER_PAYMENT_REVERSAL', 'DEBIT', $4, 'CUSTOMER_PAYMENT_REVERSAL', $5, $6, NOW(), $7, NOW())`,
+        txId, companyId, accountId, amount, paymentId, `Reversal of Customer Payment Receipt ${paymentId}`, userId
+      );
+    } catch {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO financial_transactions (id, companyid, accountid, type, direction, amount, referencetype, referenceid, description, transactiondate, createdby, createdat)
+         VALUES ($1, $2, $3, 'CUSTOMER_PAYMENT_REVERSAL', 'DEBIT', $4, 'CUSTOMER_PAYMENT_REVERSAL', $5, $6, NOW(), $7, NOW())`,
+        txId, companyId, accountId, amount, paymentId, `Reversal of Customer Payment Receipt ${paymentId}`, userId
+      );
+    }
+
+    // 4. Delete Customer Payment Record
+    if (db.customerPayment) {
+      try {
+        await db.customerPayment.delete({ where: { id: paymentId } });
+      } catch {
+        await prisma.$executeRawUnsafe(
+          `DELETE FROM customer_payments WHERE id = $1`, paymentId
+        );
+      }
+    } else {
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM customer_payments WHERE id = $1`, paymentId
+      );
+    }
+
+    // 5. Audit Log
+    await createAuditLog({
+      companyId,
+      userId,
+      action: 'CUSTOMER_PAYMENT_DELETED',
+      entity: 'CustomerPayment',
+      entityId: paymentId,
+      metadata: { amount, saleId, accountId },
+    });
+
+    return { id: paymentId, success: true, message: 'Payment receipt deleted and balances reverted successfully' };
+  }
+
+  async updateCustomerPayment(
+    companyId: string,
+    userId: string,
+    paymentId: string,
+    input: {
+      amount?: number;
+      paymentAccountId?: string;
+      paymentMethod?: string;
+      referenceNumber?: string;
+      notes?: string;
+      paymentDate?: string;
+      customerId?: string;
+      saleId?: string;
+    }
+  ) {
+    await ensureFinanceTablesExist();
+    const db = prisma as any;
+
+    let existing: any = null;
+    if (db.customerPayment) {
+      existing = await db.customerPayment.findFirst({
+        where: { id: paymentId, companyId },
+      });
+    }
+
+    if (!existing) {
+      const rows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT * FROM customer_payments WHERE id = $1 AND "companyId" = $2 LIMIT 1`,
+        paymentId, companyId
+      );
+      if (!rows.length) {
+        const rowsAlt: any[] = await prisma.$queryRawUnsafe(
+          `SELECT * FROM customer_payments WHERE id = $1 AND companyid = $2 LIMIT 1`,
+          paymentId, companyId
+        );
+        if (!rowsAlt.length) throw new BadRequestError('Customer payment receipt not found');
+        existing = rowsAlt[0];
+      } else {
+        existing = rows[0];
+      }
+    }
+
+    const oldAmount = Number(existing.amount || 0);
+    const oldAccountId = existing.paymentAccountId || existing.paymentaccountid;
+    const oldSaleId = existing.saleId || existing.saleid;
+    const oldCustomerId = existing.customerId || existing.customerid;
+
+    const newAmount = input.amount !== undefined ? Number(input.amount) : oldAmount;
+    const newAccountId = input.paymentAccountId || oldAccountId;
+    const newSaleId = input.saleId !== undefined ? input.saleId : oldSaleId;
+    const newCustomerId = input.customerId || oldCustomerId;
+    const newMethod = input.paymentMethod || existing.paymentMethod || existing.paymentmethod || 'CASH';
+    const newRef = input.referenceNumber !== undefined ? input.referenceNumber : (existing.referenceNumber || existing.referencenumber || null);
+    const newNotes = input.notes !== undefined ? input.notes : (existing.notes || null);
+    const newDate = input.paymentDate ? new Date(input.paymentDate) : (existing.paymentDate || existing.paymentdate || new Date());
+
+    if (newAmount <= 0) throw new BadRequestError('Payment amount must be greater than ₹0');
+
+    // 1. Sale Order balance update
+    if (oldSaleId && oldSaleId === newSaleId) {
+      const sale = await db.sale.findFirst({ where: { id: oldSaleId, companyId } });
+      if (sale) {
+        const currentPaid = Number(sale.paidAmount || 0);
+        const currentPaidWithoutThis = Math.max(0, currentPaid - oldAmount);
+        const totalAmount = Number(sale.totalAmount || 0);
+        const outstanding = Math.max(0, totalAmount - currentPaidWithoutThis);
+
+        if (newAmount > outstanding + 0.01) {
+          throw new BadRequestError(`New payment amount (₹${newAmount}) exceeds sales order remaining due (₹${outstanding.toFixed(2)})`);
+        }
+
+        const newPaidAmount = currentPaidWithoutThis + newAmount;
+        const newDueAmount = Math.max(0, totalAmount - newPaidAmount);
+        let newPaymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' = 'PARTIALLY_PAID';
+        if (newDueAmount <= 0.01) newPaymentStatus = 'PAID';
+        else if (newPaidAmount <= 0) newPaymentStatus = 'UNPAID';
+
+        await db.sale.update({
+          where: { id: sale.id },
+          data: {
+            paidAmount: newPaidAmount,
+            dueAmount: newDueAmount,
+            paymentStatus: newPaymentStatus,
+          },
+        });
+      }
+    } else {
+      if (oldSaleId) {
+        const oldSale = await db.sale.findFirst({ where: { id: oldSaleId, companyId } });
+        if (oldSale) {
+          const currentPaid = Number(oldSale.paidAmount || 0);
+          const newPaidAmount = Math.max(0, currentPaid - oldAmount);
+          const totalAmount = Number(oldSale.totalAmount || 0);
+          const newDueAmount = Math.max(0, totalAmount - newPaidAmount);
+          let newPaymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' = 'PARTIALLY_PAID';
+          if (newPaidAmount <= 0) newPaymentStatus = 'UNPAID';
+          else if (newDueAmount <= 0.01) newPaymentStatus = 'PAID';
+
+          await db.sale.update({
+            where: { id: oldSale.id },
+            data: { paidAmount: newPaidAmount, dueAmount: newDueAmount, paymentStatus: newPaymentStatus },
+          });
+        }
+      }
+      if (newSaleId) {
+        const newSale = await db.sale.findFirst({ where: { id: newSaleId, companyId } });
+        if (newSale) {
+          const currentPaid = Number(newSale.paidAmount || 0);
+          const totalAmount = Number(newSale.totalAmount || 0);
+          const outstanding = Math.max(0, totalAmount - currentPaid);
+          if (newAmount > outstanding + 0.01) {
+            throw new BadRequestError(`Payment amount (₹${newAmount}) exceeds sales order remaining due (₹${outstanding.toFixed(2)})`);
+          }
+          const newPaidAmount = currentPaid + newAmount;
+          const newDueAmount = Math.max(0, totalAmount - newPaidAmount);
+          let newPaymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' = 'PARTIALLY_PAID';
+          if (newDueAmount <= 0.01) newPaymentStatus = 'PAID';
+          else if (newPaidAmount <= 0) newPaymentStatus = 'UNPAID';
+
+          await db.sale.update({
+            where: { id: newSale.id },
+            data: { paidAmount: newPaidAmount, dueAmount: newDueAmount, paymentStatus: newPaymentStatus },
+          });
+        }
+      }
+    }
+
+    // 2. Adjust Payment Account balance
+    if (oldAccountId === newAccountId) {
+      const diff = newAmount - oldAmount;
+      if (diff !== 0) {
+        try {
+          await prisma.$executeRawUnsafe(
+            `UPDATE payment_accounts SET "currentBalance" = "currentBalance" + $1, "updatedAt" = NOW() WHERE id = $2`,
+            diff, newAccountId
+          );
+        } catch {
+          await prisma.$executeRawUnsafe(
+            `UPDATE payment_accounts SET currentbalance = currentbalance + $1, updatedat = NOW() WHERE id = $2`,
+            diff, newAccountId
+          );
+        }
+      }
+    } else {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE payment_accounts SET "currentBalance" = GREATEST(0, "currentBalance" - $1), "updatedAt" = NOW() WHERE id = $2`,
+          oldAmount, oldAccountId
+        );
+      } catch {
+        await prisma.$executeRawUnsafe(
+          `UPDATE payment_accounts SET currentbalance = GREATEST(0, currentbalance - $1), updatedat = NOW() WHERE id = $2`,
+          oldAmount, oldAccountId
+        );
+      }
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE payment_accounts SET "currentBalance" = "currentBalance" + $1, "updatedAt" = NOW() WHERE id = $2`,
+          newAmount, newAccountId
+        );
+      } catch {
+        await prisma.$executeRawUnsafe(
+          `UPDATE payment_accounts SET currentbalance = currentbalance + $1, updatedat = NOW() WHERE id = $2`,
+          newAmount, newAccountId
+        );
+      }
+    }
+
+    // 3. Update Customer Payment Record
+    if (db.customerPayment) {
+      try {
+        await db.customerPayment.update({
+          where: { id: paymentId },
+          data: {
+            customerId: newCustomerId || null,
+            saleId: newSaleId || null,
+            paymentAccountId: newAccountId,
+            amount: newAmount,
+            paymentMethod: newMethod,
+            referenceNumber: newRef || null,
+            notes: newNotes || null,
+            paymentDate: newDate,
+          },
+        });
+      } catch {
+        await prisma.$executeRawUnsafe(
+          `UPDATE customer_payments SET "customerId" = $1, "saleId" = $2, "paymentAccountId" = $3, amount = $4, "paymentMethod" = $5, "referenceNumber" = $6, notes = $7, "paymentDate" = $8 WHERE id = $9`,
+          newCustomerId || null, newSaleId || null, newAccountId, newAmount, newMethod, newRef || null, newNotes || null, newDate, paymentId
+        );
+      }
+    } else {
+      await prisma.$executeRawUnsafe(
+        `UPDATE customer_payments SET "customerId" = $1, "saleId" = $2, "paymentAccountId" = $3, amount = $4, "paymentMethod" = $5, "referenceNumber" = $6, notes = $7, "paymentDate" = $8 WHERE id = $9`,
+        newCustomerId || null, newSaleId || null, newAccountId, newAmount, newMethod, newRef || null, newNotes || null, newDate, paymentId
+      );
+    }
+
+    // 4. Audit Log
+    await createAuditLog({
+      companyId,
+      userId,
+      action: 'CUSTOMER_PAYMENT_UPDATED',
+      entity: 'CustomerPayment',
+      entityId: paymentId,
+      metadata: { oldAmount, newAmount, newAccountId, newSaleId },
+    });
+
+    return { id: paymentId, success: true, message: 'Payment receipt updated successfully' };
+  }
+
 
   async listCustomerPayments(companyId: string, options?: { page?: number; limit?: number; customerId?: string; saleId?: string }) {
     await ensureFinanceTablesExist();

@@ -104,6 +104,71 @@ export async function getInvoiceDetails(companyId: string, invoiceId: string) {
   return invoice;
 }
 
+export async function getPublicInvoiceDetailsByToken(token: string) {
+  if (!token || typeof token !== 'string') {
+    throw new NotFoundError('Invalid public invoice link');
+  }
+
+  const db = prisma as any;
+  const invoice = await db.invoice.findUnique({
+    where: { publicToken: token },
+    select: {
+      invoiceNumber: true,
+      invoiceDate: true,
+      customerNameSnapshot: true,
+      customerPhoneSnapshot: true,
+      customerEmailSnapshot: true,
+      billingAddress: true,
+      subtotal: true,
+      discountAmount: true,
+      taxAmount: true,
+      totalAmount: true,
+      status: true,
+      createdAt: true,
+      company: {
+        select: {
+          name: true,
+          logo: true,
+          email: true,
+          phone: true,
+          address: true,
+          city: true,
+          state: true,
+          postalCode: true,
+          gstNumber: true,
+        },
+      },
+      sale: {
+        select: {
+          saleNumber: true,
+          paymentStatus: true,
+          paidAmount: true,
+          dueAmount: true,
+          items: {
+            select: {
+              productNameSnapshot: true,
+              skuSnapshot: true,
+              quantity: true,
+              unitPrice: true,
+              discountAmount: true,
+              taxRate: true,
+              taxAmount: true,
+              totalAmount: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!invoice) {
+    throw new NotFoundError('Invoice not found or link has expired');
+  }
+
+  return invoice;
+}
+
+
 export async function exportInvoices(
   companyId: string,
   options: {

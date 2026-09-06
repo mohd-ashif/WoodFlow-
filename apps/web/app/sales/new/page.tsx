@@ -26,6 +26,8 @@ import {
   Calculator,
 } from 'lucide-react';
 
+import { queryKeys } from '../../../lib/queryKeys';
+
 export default function CreateSalePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -67,8 +69,10 @@ export default function CreateSalePage() {
   });
 
   const { data: productsData } = useQuery({
-    queryKey: ['products-search', productSearch],
+    queryKey: queryKeys.products.list(undefined, { search: productSearch, limit: 20 }),
     queryFn: () => fetchApi<any[]>(`/products?search=${productSearch}&limit=20`),
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const rawCustomers = (customersData as any)?.data || (Array.isArray(customersData) ? customersData : []);

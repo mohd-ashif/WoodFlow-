@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  MessageCircle,
 } from 'lucide-react';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -25,6 +26,7 @@ import { SearchInput } from '../../components/ui/SearchInput';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { Tooltip } from '../../components/ui/Tooltip';
 import { InvoiceExportModal } from '../../components/invoices/InvoiceExportModal';
+import { ShareInvoiceModal } from '../../components/invoices/ShareInvoiceModal';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { useInvoices } from '../../hooks/useInvoices';
@@ -35,6 +37,7 @@ export default function InvoicesListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [selectedShareInvoice, setSelectedShareInvoice] = useState<any>(null);
 
   const { data: responseData, isLoading, refetch } = useInvoices({
     page,
@@ -164,6 +167,17 @@ export default function InvoicesListPage() {
                         </td>
                         <td className="py-3.5 px-4 text-right min-w-[120px] pr-4">
                           <div className="flex items-center justify-end gap-1.5">
+                            <Tooltip content="Share via WhatsApp">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setSelectedShareInvoice(inv)}
+                                className="text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
+                                aria-label={`Share invoice ${inv.invoiceNumber} via WhatsApp`}
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            </Tooltip>
                             <Tooltip content="Print Invoice">
                               <Link href={`/invoices/${inv.id}`}>
                                 <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`Print invoice ${inv.invoiceNumber}`}>
@@ -204,6 +218,18 @@ export default function InvoicesListPage() {
         onClose={() => setIsExportOpen(false)}
         initialFilters={{ search: searchTerm }}
       />
+
+      {selectedShareInvoice && (
+        <ShareInvoiceModal
+          isOpen={Boolean(selectedShareInvoice)}
+          onClose={() => setSelectedShareInvoice(null)}
+          invoiceId={selectedShareInvoice.id}
+          invoiceNumber={selectedShareInvoice.invoiceNumber}
+          customerName={selectedShareInvoice.customerNameSnapshot}
+          totalAmount={selectedShareInvoice.totalAmount}
+          customerId={selectedShareInvoice.customerId}
+        />
+      )}
     </AppShell>
   );
 }

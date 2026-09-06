@@ -235,9 +235,26 @@ export class ImportTransactionService {
           case 'CUSTOMERS': {
             for (const row of rows) {
               try {
-                const existing = await tx.customer.findFirst({
-                  where: { companyId, phone: row.phone.trim() }
+                const phoneStr = String(row.phone || '').trim();
+                const isDummyPhone = phoneStr.startsWith('9000');
+
+                let existing = !isDummyPhone
+                  ? await tx.customer.findFirst({
+                      where: { companyId, phone: phoneStr }
+                    })
+                  : null;
+
+                let custCode = row.customerCode
+                  ? String(row.customerCode).trim()
+                  : `CUST-${Math.floor(100000 + Math.random() * 900000)}`;
+
+                const existingByCode = await tx.customer.findUnique({
+                  where: { companyId_customerCode: { companyId, customerCode: custCode } }
                 });
+
+                if (existingByCode) {
+                  existing = existingByCode;
+                }
 
                 if (existing) {
                   if (duplicateStrategy === 'SKIP') continue;
@@ -254,15 +271,15 @@ export class ImportTransactionService {
                     successfulCount++;
                     continue;
                   }
+                  // CREATE_NEW: generate fresh unique customerCode if code collided
+                  custCode = `${custCode}-${Math.floor(1000 + Math.random() * 9000)}`;
                 }
-
-                const custCode = row.customerCode || `CUST-${Math.floor(100000 + Math.random() * 900000)}`;
 
                 const customer = await tx.customer.create({
                   data: {
                     companyId,
                     name: row.name.trim(),
-                    phone: row.phone.trim(),
+                    phone: phoneStr,
                     email: row.email ? row.email.trim() : null,
                     customerCode: custCode,
                     gstNumber: row.gstNumber ? row.gstNumber.trim() : null,
@@ -297,9 +314,26 @@ export class ImportTransactionService {
           case 'SUPPLIERS': {
             for (const row of rows) {
               try {
-                const existing = await tx.supplier.findFirst({
-                  where: { companyId, phone: row.phone.trim() }
+                const phoneStr = String(row.phone || '').trim();
+                const isDummyPhone = phoneStr.startsWith('9000');
+
+                let existing = !isDummyPhone
+                  ? await tx.supplier.findFirst({
+                      where: { companyId, phone: phoneStr }
+                    })
+                  : null;
+
+                let suppCode = row.supplierCode
+                  ? String(row.supplierCode).trim()
+                  : `SUPP-${Math.floor(100000 + Math.random() * 900000)}`;
+
+                const existingByCode = await tx.supplier.findUnique({
+                  where: { companyId_supplierCode: { companyId, supplierCode: suppCode } }
                 });
+
+                if (existingByCode) {
+                  existing = existingByCode;
+                }
 
                 if (existing) {
                   if (duplicateStrategy === 'SKIP') continue;
@@ -316,15 +350,15 @@ export class ImportTransactionService {
                     successfulCount++;
                     continue;
                   }
+                  // CREATE_NEW: generate fresh unique supplierCode if code collided
+                  suppCode = `${suppCode}-${Math.floor(1000 + Math.random() * 9000)}`;
                 }
-
-                const suppCode = row.supplierCode || `SUPP-${Math.floor(100000 + Math.random() * 900000)}`;
 
                 const supplier = await tx.supplier.create({
                   data: {
                     companyId,
                     name: row.name.trim(),
-                    phone: row.phone.trim(),
+                    phone: phoneStr,
                     email: row.email ? row.email.trim() : null,
                     supplierCode: suppCode,
                     gstNumber: row.gstNumber ? row.gstNumber.trim() : null,

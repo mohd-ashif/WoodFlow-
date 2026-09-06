@@ -21,7 +21,9 @@ import {
   User,
   Calendar,
   AlertTriangle,
+  DollarSign,
 } from 'lucide-react';
+import { RecordPaymentModal } from '../../../components/sales/RecordPaymentModal';
 
 export default function SaleDetailsPage() {
   const params = useParams();
@@ -30,6 +32,7 @@ export default function SaleDetailsPage() {
   const saleId = params.id as string;
 
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -113,6 +116,16 @@ export default function SaleDetailsPage() {
             </Link>
 
             <div className="flex items-center gap-3">
+              {sale.paymentStatus !== 'PAID' && sale.status !== 'CANCELLED' && (
+                <Button
+                  size="sm"
+                  onClick={() => setIsRecordPaymentOpen(true)}
+                  className="gap-2 font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
+                >
+                  <DollarSign className="h-4 w-4" /> Record Payment / Mark Paid
+                </Button>
+              )}
+
               {invoice && (
                 <Link href={`/invoices/${invoice.id}`}>
                   <Button size="sm" variant="outline" className="gap-2 border-primary/30 text-primary">
@@ -388,6 +401,13 @@ export default function SaleDetailsPage() {
               </Card>
             </div>
           )}
+
+          {/* Record Customer Payment Modal */}
+          <RecordPaymentModal
+            isOpen={isRecordPaymentOpen}
+            sale={sale}
+            onClose={() => setIsRecordPaymentOpen(false)}
+          />
         </main>
       </div>
     </div>

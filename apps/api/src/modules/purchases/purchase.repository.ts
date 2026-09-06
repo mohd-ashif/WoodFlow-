@@ -169,3 +169,6 @@ export async function listPurchases(
     },
   };
 }
+
+export { listPurchases as findAll };
+

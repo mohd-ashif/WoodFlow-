@@ -22,6 +22,10 @@ router.get('/accounts/:id/transactions', requirePermission('finance.view'), fina
 // Customer Payments
 router.get('/customer-payments', requirePermission('finance.view'), financeController.getCustomerPayments);
 router.post('/customer-payments', requirePermission('finance.manage'), financeController.recordCustomerPayment);
+router.patch('/customer-payments/:id', requirePermission('finance.manage'), financeController.updateCustomerPayment);
+router.put('/customer-payments/:id', requirePermission('finance.manage'), financeController.updateCustomerPayment);
+router.delete('/customer-payments/:id', requirePermission('finance.manage'), financeController.deleteCustomerPayment);
+
 
 // Supplier Payments
 router.get('/supplier-payments', requirePermission('finance.view'), financeController.getSupplierPayments);

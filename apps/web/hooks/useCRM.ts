@@ -34,6 +34,9 @@ export function useUpdateCustomer() {
     mutationFn: ({ id, data }: { id: string; data: any }) => crmService.updateCustomer(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['crm'] });
+      queryClient.invalidateQueries({ queryKey: ['customers-all'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.crm.customerDetail(undefined, variables.id) });
     },
   });

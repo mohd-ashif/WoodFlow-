@@ -24,8 +24,8 @@ export async function runVerification() {
   const { getInventoryDashboard, getLowStock, getStockMovements } = await import('../apps/api/src/modules/inventory/inventory.service.js');
   const { listCustomers } = await import('../apps/api/src/modules/customers/customer.repository.js');
   const { listSuppliers } = await import('../apps/api/src/modules/suppliers/supplier.repository.js');
-  const { findAll: findAllSales } = await import('../apps/api/src/modules/sales/sale.repository.js');
-  const { findAll: findAllPurchases } = await import('../apps/api/src/modules/purchases/purchase.repository.js');
+  const { listSales: findAllSales } = await import('../apps/api/src/modules/sales/sale.repository.js');
+  const { listPurchases: findAllPurchases } = await import('../apps/api/src/modules/purchases/purchase.repository.js');
   const { getInvoicesList } = await import('../apps/api/src/modules/invoices/invoice.service.js');
   const { listWorkOrders } = await import('../apps/api/src/modules/workOrders/workOrder.service.js');
   const { listWorkers } = await import('../apps/api/src/modules/workers/worker.service.js');

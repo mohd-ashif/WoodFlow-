@@ -20,64 +20,39 @@ import {
   CheckCircle2,
   FileText,
   X,
+  Trash2,
+  Pencil,
 } from 'lucide-react';
+import { RecordPaymentModal } from '../../../components/sales/RecordPaymentModal';
 
 export default function SalesPaymentsPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-
-  // Form state
-  const [selectedCustomerId, setSelectedCustomerId] = useState('');
-  const [selectedSaleId, setSelectedSaleId] = useState('');
-  const [selectedAccountId, setSelectedAccountId] = useState('');
-  const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [referenceNumber, setReferenceNumber] = useState('');
-  const [notes, setNotes] = useState('');
+  const [paymentToEdit, setPaymentToEdit] = useState<any | null>(null);
+  const [deleteConfirmPayment, setDeleteConfirmPayment] = useState<any | null>(null);
 
   const { data: paymentsData, isLoading } = useQuery({
     queryKey: ['customer-payments-sales'],
     queryFn: async () => {
       const res = await financeService.getCustomerPayments();
-      return (res as any)?.data || [];
+      return Array.isArray(res) ? res : (res as any)?.data || [];
     },
   });
 
-  const { data: accountsData } = useQuery({
-    queryKey: ['payment-accounts'],
-    queryFn: async () => {
-      const res = await financeService.getAccounts();
-      return (res as any)?.data || [];
-    },
-  });
-
-  const { data: customersData } = useQuery({
-    queryKey: ['customers-list'],
-    queryFn: () => crmService.getCustomers({ limit: 100 }),
-  });
-
-  const { data: salesData } = useQuery({
-    queryKey: ['sales-list-unpaid'],
-    queryFn: () => salesService.getSales({ limit: 100 }),
-  });
-
-  const recordPaymentMutation = useMutation({
-    mutationFn: (data: any) => financeService.recordCustomerPayment(data),
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => financeService.deleteCustomerPayment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-payments-sales'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-list'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-receivables-list'] });
       queryClient.invalidateQueries({ queryKey: ['payment-accounts'] });
-      setIsRecordModalOpen(false);
-      // Reset form
-      setAmount('');
-      setReferenceNumber('');
-      setNotes('');
-      alert('Payment recorded successfully!');
+      queryClient.invalidateQueries({ queryKey: ['finance-dashboard'] });
+      setDeleteConfirmPayment(null);
     },
     onError: (err: any) => {
-      alert(err?.message || 'Failed to record payment');
+      alert(err?.message || 'Failed to delete payment receipt');
     },
   });
 
@@ -91,27 +66,6 @@ export default function SalesPaymentsPage() {
     );
   });
 
-  const customersList = Array.isArray(customersData) ? customersData : (customersData as any)?.items || [];
-  const accountsList = accountsData || [];
-  const salesList = Array.isArray(salesData) ? salesData : (salesData as any)?.items || [];
-
-  const handleRecordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAccountId || !amount || parseFloat(amount) <= 0) {
-      alert('Please select a payment account and enter a valid amount.');
-      return;
-    }
-    recordPaymentMutation.mutate({
-      customerId: selectedCustomerId || undefined,
-      saleId: selectedSaleId || undefined,
-      paymentAccountId: selectedAccountId,
-      amount: parseFloat(amount),
-      paymentMethod,
-      referenceNumber: referenceNumber || undefined,
-      notes: notes || undefined,
-    });
-  };
-
   return (
     <AppShell>
       <div className="h-full flex flex-col space-y-4 min-h-0">
@@ -124,7 +78,10 @@ export default function SalesPaymentsPage() {
           actions={
             <Button
               size="md"
-              onClick={() => setIsRecordModalOpen(true)}
+              onClick={() => {
+                setPaymentToEdit(null);
+                setIsRecordModalOpen(true);
+              }}
               className="gap-2 shadow-lg shadow-primary/20 font-bold"
             >
               <Plus className="h-4 w-4" />
@@ -157,7 +114,14 @@ export default function SalesPaymentsPage() {
               <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4">
                 Record payments received from customers via Cash, UPI, Cheque, or Bank Transfer.
               </p>
-              <Button size="sm" onClick={() => setIsRecordModalOpen(true)} className="gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setPaymentToEdit(null);
+                  setIsRecordModalOpen(true);
+                }}
+                className="gap-2"
+              >
                 <Plus className="h-4 w-4" />
                 <span>Record First Payment</span>
               </Button>
@@ -175,6 +139,7 @@ export default function SalesPaymentsPage() {
                       <th className="p-3">Payment Account</th>
                       <th className="p-3">Method / Ref #</th>
                       <th className="p-3 text-right">Amount Paid</th>
+                      <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
@@ -187,7 +152,7 @@ export default function SalesPaymentsPage() {
                           {p.customer?.name || 'Walk-in Customer'}
                         </td>
                         <td className="p-3 font-mono font-medium text-primary">
-                          {p.sale?.saleNumber || '—'}
+                          {p.sale?.saleNumber ? `#${p.sale.saleNumber}` : '—'}
                         </td>
                         <td className="p-3 text-foreground">
                           {p.paymentAccount?.name || 'Cash Drawer'}
@@ -195,8 +160,33 @@ export default function SalesPaymentsPage() {
                         <td className="p-3 font-mono text-muted-foreground">
                           {p.paymentMethod} {p.referenceNumber ? `(${p.referenceNumber})` : ''}
                         </td>
-                        <td className="p-3 text-right font-bold text-emerald-500">
+                        <td className="p-3 text-right font-bold text-emerald-500 font-mono">
                           + ₹{(p.amount || 0).toLocaleString('en-IN')}
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
+                              onClick={() => {
+                                setPaymentToEdit(p);
+                                setIsRecordModalOpen(true);
+                              }}
+                              title="Edit Payment Receipt"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive hover:bg-destructive/15 transition-colors"
+                              onClick={() => setDeleteConfirmPayment(p)}
+                              title="Delete Payment Receipt"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -205,18 +195,39 @@ export default function SalesPaymentsPage() {
               </div>
 
               {/* Mobile Cards */}
-              <div className="block md:hidden space-y-3">
+              <div className="block md:hidden space-y-2.5">
                 {paymentsList.map((p: any) => (
-                  <Card key={p.id} className="p-3.5 space-y-2.5 border-border">
+                  <Card key={p.id} className="p-3.5 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-foreground">
-                        {p.customer?.name || 'Walk-in Customer'}
-                      </span>
-                      <span className="font-bold text-sm text-emerald-500">
-                        + ₹{(p.amount || 0).toLocaleString('en-IN')}
-                      </span>
+                      <span className="font-semibold text-foreground">{p.customer?.name || 'Walk-in Customer'}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-emerald-500 font-mono">+ ₹{(p.amount || 0).toLocaleString('en-IN')}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                          onClick={() => {
+                            setPaymentToEdit(p);
+                            setIsRecordModalOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/15"
+                          onClick={() => setDeleteConfirmPayment(p)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="text-[11px] text-muted-foreground flex justify-between">
+                    <div className="flex items-center justify-between text-muted-foreground text-[11px]">
+                      <span>Order {p.sale?.saleNumber ? `#${p.sale.saleNumber}` : '—'}</span>
+                      <span>{p.paymentAccount?.name || 'Cash'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-muted-foreground text-[11px] pt-1 border-t border-border/40">
                       <span>{new Date(p.paymentDate || p.createdAt).toLocaleDateString('en-IN')}</span>
                       <span>{p.paymentMethod} {p.referenceNumber ? `(${p.referenceNumber})` : ''}</span>
                     </div>
@@ -227,128 +238,46 @@ export default function SalesPaymentsPage() {
           )}
         </div>
 
-        {/* Record Payment Modal */}
-        {isRecordModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="fixed inset-0 bg-background/80 backdrop-blur-xs"
-              onClick={() => setIsRecordModalOpen(false)}
-            />
-            <div className="relative w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl p-5 z-10 space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-emerald-500" />
-                  <h3 className="font-bold text-sm text-foreground">Record Customer Payment</h3>
+        {/* Record/Edit Payment Modal */}
+        <RecordPaymentModal
+          isOpen={isRecordModalOpen}
+          paymentToEdit={paymentToEdit}
+          onClose={() => {
+            setIsRecordModalOpen(false);
+            setPaymentToEdit(null);
+          }}
+        />
+
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmPayment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4">
+            <Card className="w-full max-w-md border-destructive/30 shadow-2xl space-y-4 p-5">
+              <div className="flex items-center gap-3 text-destructive">
+                <div className="p-2 rounded-xl bg-destructive/10">
+                  <Trash2 className="h-5 w-5" />
                 </div>
-                <Button variant="ghost" size="icon-sm" onClick={() => setIsRecordModalOpen(false)}>
-                  <X className="h-4 w-4" />
+                <h3 className="font-bold text-base">Delete Payment Receipt?</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Deleting this payment receipt of <strong className="text-foreground">₹{(deleteConfirmPayment.amount || 0).toLocaleString('en-IN')}</strong> will revert the deposited balance from <strong className="text-foreground">{deleteConfirmPayment.paymentAccount?.name || 'Payment Account'}</strong>
+                {deleteConfirmPayment.sale?.saleNumber ? ` and update Sales Order #${deleteConfirmPayment.sale.saleNumber} balance.` : '.'}
+              </p>
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border">
+                <Button variant="outline" size="sm" onClick={() => setDeleteConfirmPayment(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(deleteConfirmPayment.id)}
+                  className="font-bold"
+                >
+                  {deleteMutation.isPending ? 'Deleting...' : 'Delete & Revert Balance'}
                 </Button>
               </div>
-
-              <form onSubmit={handleRecordSubmit} className="space-y-3.5 text-xs">
-                <div>
-                  <label className="font-semibold block mb-1">Customer</label>
-                  <select
-                    value={selectedCustomerId}
-                    onChange={(e) => setSelectedCustomerId(e.target.value)}
-                    className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="">Select Customer (Optional)</option>
-                    {customersList.map((c: any) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.phone})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-semibold block mb-1">Sales Order / Invoice</label>
-                  <select
-                    value={selectedSaleId}
-                    onChange={(e) => setSelectedSaleId(e.target.value)}
-                    className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="">Select Sales Order (Optional)</option>
-                    {salesList.map((s: any) => (
-                      <option key={s.id} value={s.id}>
-                        {s.saleNumber} — ₹{s.totalAmount?.toLocaleString('en-IN')} ({s.paymentStatus})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-semibold block mb-1">Deposit To Payment Account *</label>
-                  <select
-                    required
-                    value={selectedAccountId}
-                    onChange={(e) => setSelectedAccountId(e.target.value)}
-                    className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="">Select Payment Account</option>
-                    {accountsList.map((acc: any) => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.name} ({acc.type}) — Balance: ₹{acc.currentBalance?.toLocaleString('en-IN')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="font-semibold block mb-1">Payment Method</label>
-                    <select
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs focus:ring-2 focus:ring-primary focus:outline-none"
-                    >
-                      <option value="CASH">Cash</option>
-                      <option value="UPI">UPI / GPay / PhonePe</option>
-                      <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS)</option>
-                      <option value="CHEQUE">Cheque</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="font-semibold block mb-1">Amount (₹) *</label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-semibold block mb-1">Reference Number / Transaction ID</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. UPI Ref 304918239"
-                    value={referenceNumber}
-                    onChange={(e) => setReferenceNumber(e.target.value)}
-                    className="w-full h-9 rounded-lg border border-border bg-background px-3 text-xs text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-                  />
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2 border-t border-border">
-                  <Button variant="outline" size="sm" onClick={() => setIsRecordModalOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    type="submit"
-                    disabled={recordPaymentMutation.isPending}
-                    className="gap-1 font-bold shadow-md shadow-primary/20"
-                  >
-                    <span>Save Payment Receipt</span>
-                  </Button>
-                </div>
-              </form>
-            </div>
+            </Card>
           </div>
         )}
       </div>

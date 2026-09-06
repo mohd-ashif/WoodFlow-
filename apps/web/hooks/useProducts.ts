@@ -37,6 +37,7 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: (data: any) => inventoryService.createProduct(data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all(undefined) });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all(undefined) });
     },
@@ -48,6 +49,7 @@ export function useUpdateProduct() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => inventoryService.updateProduct(id, data),
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all(undefined) });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(undefined, variables.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all(undefined) });
@@ -60,6 +62,7 @@ export function useDeactivateProduct() {
   return useMutation({
     mutationFn: (id: string) => inventoryService.deactivateProduct(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all(undefined) });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all(undefined) });
     },
@@ -71,6 +74,7 @@ export function useActivateProduct() {
   return useMutation({
     mutationFn: (id: string) => inventoryService.activateProduct(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all(undefined) });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all(undefined) });
     },

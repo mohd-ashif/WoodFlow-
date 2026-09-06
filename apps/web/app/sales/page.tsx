@@ -33,6 +33,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { Tooltip } from '../../components/ui/Tooltip';
+import { RecordPaymentModal } from '../../components/sales/RecordPaymentModal';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { useSales } from '../../hooks/useSales';
@@ -48,6 +49,7 @@ export default function SalesListPage() {
 
   const [cancelModalSale, setCancelModalSale] = useState<any | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [paymentModalSale, setPaymentModalSale] = useState<any | null>(null);
 
   const { data: responseData, isLoading, error, refetch } = useSales({
     page,
@@ -236,6 +238,16 @@ export default function SalesListPage() {
                           <Eye className="h-3.5 w-3.5" /> View
                         </Button>
                       </Link>
+                      {sale.paymentStatus !== 'PAID' && sale.status !== 'CANCELLED' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-xs gap-1 font-bold text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10"
+                          onClick={() => setPaymentModalSale(sale)}
+                        >
+                          <DollarSign className="h-3.5 w-3.5" /> Pay
+                        </Button>
+                      )}
                       {sale.invoices?.[0] && (
                         <Link href={`/invoices/${sale.invoices[0].id}`} className="flex-1">
                           <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1">
@@ -319,6 +331,19 @@ export default function SalesListPage() {
                         </td>
                         <td className="py-3 px-4 text-right min-w-[120px] pr-4">
                           <div className="flex items-center justify-end gap-1.5">
+                            {sale.paymentStatus !== 'PAID' && sale.status !== 'CANCELLED' && (
+                              <Tooltip content="Record Payment / Mark Paid">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-emerald-500 hover:bg-emerald-500/15 transition-colors"
+                                  aria-label={`Record payment for sale ${sale.saleNumber}`}
+                                  onClick={() => setPaymentModalSale(sale)}
+                                >
+                                  <DollarSign className="h-4 w-4" />
+                                </Button>
+                              </Tooltip>
+                            )}
                             <Tooltip content="View Sale">
                               <Link href={`/sales/${sale.id}`}>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View sale ${sale.saleNumber}`}>
@@ -374,6 +399,13 @@ export default function SalesListPage() {
           </>
         )}
       </TableCard>
+
+      {/* Record Payment Modal */}
+      <RecordPaymentModal
+        isOpen={Boolean(paymentModalSale)}
+        sale={paymentModalSale}
+        onClose={() => setPaymentModalSale(null)}
+      />
 
       {/* Cancellation Confirmation Modal */}
       {cancelModalSale && (
