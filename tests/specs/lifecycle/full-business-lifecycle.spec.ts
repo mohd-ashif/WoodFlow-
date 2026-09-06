@@ -8,12 +8,11 @@ import {
   getOrCreateTestCategoryAndUnit,
 } from '../../factories/dataFactory';
 import { calculateExpectedWeightedAverageCost } from '../../helpers/calculations';
-import { APIRequestContext } from '@playwright/test';
 
 test.describe('Master End-to-End Business Lifecycle Scenario @smoke @critical @p0', () => {
+  test.describe.configure({ timeout: 90000 });
 
-  test('Full Lifecycle: Supplier -> Product -> Purchase PO -> Receive Stock -> Sale Order -> Deduct Stock -> Ledger Settlement', async ({ apiClientA }: { apiClientA: APIRequestContext }) => {
-    test.setTimeout(90000);
+  test('Full Lifecycle: Supplier -> Product -> Purchase PO -> Receive Stock -> Sale Order -> Deduct Stock -> Ledger Settlement', async ({ apiClientA }) => {
 
     // Step 1: Register Supplier
     const supplierPayload = buildTestSupplier();

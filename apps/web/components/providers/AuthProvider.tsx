@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (data: Parameters<typeof authService.login>[0]) => {
     const res = await authService.login(data);
     setUser(res.user);
+    setIsLoading(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('cached_user', JSON.stringify(res.user));
       if (res.tokens?.accessToken) {

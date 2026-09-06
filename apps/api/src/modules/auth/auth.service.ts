@@ -4,6 +4,7 @@ import { ConflictError, UnauthorizedError, BadRequestError } from '../../utils/e
 import { RegisterInput, LoginInput } from '@furniture-os/shared';
 import { UserStatus, MemberStatus, CompanyRole, SystemRole } from '@prisma/client';
 import { createAuditLog } from '../audit/audit.service.js';
+import { primeUserSessionCache } from '../../middleware/auth.js';
 
 export async function registerUser(input: RegisterInput, ipAddress?: string, userAgent?: string) {
   const existingUser = await prisma.user.findUnique({
@@ -26,14 +27,14 @@ export async function registerUser(input: RegisterInput, ipAddress?: string, use
     },
   });
 
-  await createAuditLog({
+  void createAuditLog({
     userId: user.id,
     action: 'USER_REGISTERED',
     entity: 'User',
     entityId: user.id,
     ipAddress,
     userAgent,
-  });
+  }).catch(() => {});
 
   const tokens = generateTokens({ userId: user.id, email: user.email });
 
@@ -77,29 +78,33 @@ export async function loginUser(input: LoginInput, ipAddress?: string, userAgent
     throw new UnauthorizedError('Invalid email or password', 'INVALID_CREDENTIALS');
   }
 
-  // Update last login
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLoginAt: new Date() },
-  });
-
   const isPlatformAdmin = user.systemRole === SystemRole.PLATFORM_ADMIN;
   const activeMembership = user.memberships[0] || null;
+
+  // Non-blocking background side effects (lastLoginAt update & audit log)
+  void Promise.allSettled([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    }),
+    createAuditLog({
+      userId: user.id,
+      companyId: activeMembership?.companyId,
+      action: 'USER_LOGGED_IN',
+      entity: 'User',
+      entityId: user.id,
+      ipAddress,
+      userAgent,
+    }),
+  ]).catch(() => {});
+
+  // Prime in-memory user session cache to accelerate immediate subsequent requests (/auth/me)
+  primeUserSessionCache(user.id, user);
 
   const tokens = generateTokens({
     userId: user.id,
     email: user.email,
     isPlatformAdmin,
-  });
-
-  await createAuditLog({
-    userId: user.id,
-    companyId: activeMembership?.companyId,
-    action: 'USER_LOGGED_IN',
-    entity: 'User',
-    entityId: user.id,
-    ipAddress,
-    userAgent,
   });
 
   return {

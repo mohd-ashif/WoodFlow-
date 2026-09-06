@@ -89,151 +89,128 @@ export class AnalyticsService {
   async getExecutiveOverview(companyId: string, options: DateFilterOptions = {}) {
     const { currentStart, currentEnd, previousStart, previousEnd } = resolveDateRange(options);
 
-    // Current Period Sales
-    const currentSalesRes = await prisma.sale.aggregate({
-      where: { companyId, status: { not: 'CANCELLED' }, saleDate: { gte: currentStart, lte: currentEnd } },
-      _sum: { totalAmount: true },
-    });
-    const previousSalesRes = await prisma.sale.aggregate({
-      where: { companyId, status: { not: 'CANCELLED' }, saleDate: { gte: previousStart, lte: previousEnd } },
-      _sum: { totalAmount: true },
-    });
+    // Parallel execution of all 14 independent aggregation queries
+    const [
+      currentSalesRes,
+      previousSalesRes,
+      currentPurchasesRes,
+      previousPurchasesRes,
+      curExpRes,
+      prevExpRes,
+      custPaymentRes,
+      suppPaymentRes,
+      salesDuesRes,
+      purchaseDuesRes,
+      inventoryValuationRaw,
+      liquidCashRaw,
+      topProducts,
+      lowStockCount,
+    ] = await Promise.all([
+      prisma.sale.aggregate({
+        where: { companyId, status: { not: 'CANCELLED' }, saleDate: { gte: currentStart, lte: currentEnd } },
+        _sum: { totalAmount: true },
+      }),
+      prisma.sale.aggregate({
+        where: { companyId, status: { not: 'CANCELLED' }, saleDate: { gte: previousStart, lte: previousEnd } },
+        _sum: { totalAmount: true },
+      }),
+      prisma.purchase.aggregate({
+        where: { companyId, status: { not: 'CANCELLED' }, purchaseDate: { gte: currentStart, lte: currentEnd } },
+        _sum: { totalAmount: true },
+      }),
+      prisma.purchase.aggregate({
+        where: { companyId, status: { not: 'CANCELLED' }, purchaseDate: { gte: previousStart, lte: previousEnd } },
+        _sum: { totalAmount: true },
+      }),
+      db.expense?.aggregate
+        ? db.expense.aggregate({
+            where: { companyId, status: 'PAID', expenseDate: { gte: currentStart, lte: currentEnd } },
+            _sum: { amount: true },
+          })
+        : prisma.$queryRawUnsafe<any[]>(
+            `SELECT SUM(amount) as sum FROM expenses WHERE "companyId" = $1 AND status = 'PAID' AND "expenseDate" >= $2 AND "expenseDate" <= $3`,
+            companyId, currentStart, currentEnd
+          ).catch(() => [{ sum: 0 }]),
+      db.expense?.aggregate
+        ? db.expense.aggregate({
+            where: { companyId, status: 'PAID', expenseDate: { gte: previousStart, lte: previousEnd } },
+            _sum: { amount: true },
+          })
+        : Promise.resolve({ _sum: { amount: 0 } }),
+      db.customerPayment?.aggregate
+        ? db.customerPayment.aggregate({
+            where: { companyId, paymentDate: { gte: currentStart, lte: currentEnd } },
+            _sum: { amount: true },
+          })
+        : prisma.$queryRawUnsafe<any[]>(
+            `SELECT SUM(amount) as sum FROM customer_payments WHERE "companyId" = $1 AND "paymentDate" >= $2 AND "paymentDate" <= $3`,
+            companyId, currentStart, currentEnd
+          ).catch(() => [{ sum: 0 }]),
+      db.supplierPayment?.aggregate
+        ? db.supplierPayment.aggregate({
+            where: { companyId, paymentDate: { gte: currentStart, lte: currentEnd } },
+            _sum: { amount: true },
+          })
+        : prisma.$queryRawUnsafe<any[]>(
+            `SELECT SUM(amount) as sum FROM supplier_payments WHERE "companyId" = $1 AND "paymentDate" >= $2 AND "paymentDate" <= $3`,
+            companyId, currentStart, currentEnd
+          ).catch(() => [{ sum: 0 }]),
+      prisma.sale.aggregate({
+        where: { companyId, status: { not: 'CANCELLED' }, dueAmount: { gt: 0 } },
+        _sum: { dueAmount: true },
+      }),
+      prisma.purchase.aggregate({
+        where: { companyId, status: { not: 'CANCELLED' }, dueAmount: { gt: 0 } },
+        _sum: { dueAmount: true },
+      }),
+      prisma.$queryRawUnsafe<Array<{ total: number }>>(
+        `SELECT COALESCE(SUM("currentStock" * "purchasePrice"), 0) as total FROM products WHERE "companyId" = $1 AND "isActive" = true`,
+        companyId
+      ).catch(() => [{ total: 0 }]),
+      db.paymentAccount?.aggregate
+        ? db.paymentAccount.aggregate({
+            where: { companyId, isActive: true },
+            _sum: { currentBalance: true },
+          })
+        : prisma.$queryRawUnsafe<any[]>(
+            `SELECT SUM("currentBalance") as sum FROM payment_accounts WHERE "companyId" = $1 AND ("isActive" = true OR "isActive" IS NULL)`,
+            companyId
+          ).catch(() => [{ sum: 0 }]),
+      prisma.saleItem.groupBy({
+        by: ['productId', 'productNameSnapshot'],
+        where: { sale: { companyId, status: { not: 'CANCELLED' }, saleDate: { gte: currentStart, lte: currentEnd } } },
+        _sum: { quantity: true, totalAmount: true },
+        orderBy: { _sum: { totalAmount: 'desc' } },
+        take: 5,
+      }),
+      prisma.product.count({
+        where: { companyId, isActive: true, currentStock: { lte: prisma.product.fields.minimumStock } },
+      }).catch(() => 0),
+    ]);
 
-    const currentSales = currentSalesRes._sum.totalAmount || 0;
-    const previousSales = previousSalesRes._sum.totalAmount || 0;
+    const currentSales = (currentSalesRes as any)?._sum?.totalAmount || 0;
+    const previousSales = (previousSalesRes as any)?._sum?.totalAmount || 0;
     const salesComparison = calculateComparison(currentSales, previousSales);
 
-    // Current Period Purchases
-    const currentPurchasesRes = await prisma.purchase.aggregate({
-      where: { companyId, status: { not: 'CANCELLED' }, purchaseDate: { gte: currentStart, lte: currentEnd } },
-      _sum: { totalAmount: true },
-    });
-    const previousPurchasesRes = await prisma.purchase.aggregate({
-      where: { companyId, status: { not: 'CANCELLED' }, purchaseDate: { gte: previousStart, lte: previousEnd } },
-      _sum: { totalAmount: true },
-    });
-    const currentPurchases = currentPurchasesRes._sum.totalAmount || 0;
-    const previousPurchases = previousPurchasesRes._sum.totalAmount || 0;
+    const currentPurchases = (currentPurchasesRes as any)?._sum?.totalAmount || 0;
+    const previousPurchases = (previousPurchasesRes as any)?._sum?.totalAmount || 0;
     const purchasesComparison = calculateComparison(currentPurchases, previousPurchases);
 
-    // Current Period Expenses
-    let currentExpenses = 0;
-    let previousExpenses = 0;
-    try {
-      if (db.expense?.aggregate) {
-        const curExpRes = await db.expense.aggregate({
-          where: { companyId, status: 'PAID', expenseDate: { gte: currentStart, lte: currentEnd } },
-          _sum: { amount: true },
-        });
-        const prevExpRes = await db.expense.aggregate({
-          where: { companyId, status: 'PAID', expenseDate: { gte: previousStart, lte: previousEnd } },
-          _sum: { amount: true },
-        });
-        currentExpenses = curExpRes._sum.amount || 0;
-        previousExpenses = prevExpRes._sum.amount || 0;
-      } else {
-        const curRows: any[] = await prisma.$queryRawUnsafe(
-          `SELECT SUM(amount) as sum FROM expenses WHERE "companyId" = $1 AND status = 'PAID' AND "expenseDate" >= $2 AND "expenseDate" <= $3`,
-          companyId, currentStart, currentEnd
-        );
-        currentExpenses = Number(curRows[0]?.sum || 0);
-      }
-    } catch {
-      currentExpenses = 0;
-    }
+    const currentExpenses = (curExpRes as any)?._sum?.amount ?? Number((curExpRes as any)?.[0]?.sum || 0);
+    const previousExpenses = (prevExpRes as any)?._sum?.amount || 0;
     const expensesComparison = calculateComparison(currentExpenses, previousExpenses);
 
-    // Money In (Customer Payments)
-    let totalMoneyReceived = 0;
-    try {
-      if (db.customerPayment?.aggregate) {
-        const res = await db.customerPayment.aggregate({
-          where: { companyId, paymentDate: { gte: currentStart, lte: currentEnd } },
-          _sum: { amount: true },
-        });
-        totalMoneyReceived = res._sum.amount || 0;
-      } else {
-        const rows: any[] = await prisma.$queryRawUnsafe(
-          `SELECT SUM(amount) as sum FROM customer_payments WHERE "companyId" = $1 AND "paymentDate" >= $2 AND "paymentDate" <= $3`,
-          companyId, currentStart, currentEnd
-        );
-        totalMoneyReceived = Number(rows[0]?.sum || 0);
-      }
-    } catch {
-      totalMoneyReceived = 0;
-    }
-
-    // Money Out (Supplier Payments + Expenses)
-    let totalSupplierPayments = 0;
-    try {
-      if (db.supplierPayment?.aggregate) {
-        const res = await db.supplierPayment.aggregate({
-          where: { companyId, paymentDate: { gte: currentStart, lte: currentEnd } },
-          _sum: { amount: true },
-        });
-        totalSupplierPayments = res._sum.amount || 0;
-      } else {
-        const rows: any[] = await prisma.$queryRawUnsafe(
-          `SELECT SUM(amount) as sum FROM supplier_payments WHERE "companyId" = $1 AND "paymentDate" >= $2 AND "paymentDate" <= $3`,
-          companyId, currentStart, currentEnd
-        );
-        totalSupplierPayments = Number(rows[0]?.sum || 0);
-      }
-    } catch {
-      totalSupplierPayments = 0;
-    }
+    const totalMoneyReceived = (custPaymentRes as any)?._sum?.amount ?? Number((custPaymentRes as any)?.[0]?.sum || 0);
+    const totalSupplierPayments = (suppPaymentRes as any)?._sum?.amount ?? Number((suppPaymentRes as any)?.[0]?.sum || 0);
     const totalMoneyPaid = totalSupplierPayments + currentExpenses;
 
-    // Outstanding Receivables & Payables
-    const salesDuesRes = await prisma.sale.aggregate({
-      where: { companyId, status: { not: 'CANCELLED' }, dueAmount: { gt: 0 } },
-      _sum: { dueAmount: true },
-    });
-    const outstandingReceivables = salesDuesRes._sum.dueAmount || 0;
+    const outstandingReceivables = (salesDuesRes as any)?._sum?.dueAmount || 0;
+    const outstandingPayables = (purchaseDuesRes as any)?._sum?.dueAmount || 0;
 
-    const purchaseDuesRes = await prisma.purchase.aggregate({
-      where: { companyId, status: { not: 'CANCELLED' }, dueAmount: { gt: 0 } },
-      _sum: { dueAmount: true },
-    });
-    const outstandingPayables = purchaseDuesRes._sum.dueAmount || 0;
+    const inventoryValuation = Number((inventoryValuationRaw as any)?.[0]?.total || 0);
+    const totalLiquidCash = (liquidCashRaw as any)?._sum?.currentBalance ?? Number((liquidCashRaw as any)?.[0]?.sum || 0);
 
-    // Current Inventory Valuation (purchasePrice × currentStock)
-    const products = await prisma.product.findMany({
-      where: { companyId, isActive: true },
-      select: { currentStock: true, purchasePrice: true },
-    });
-    const inventoryValuation = products.reduce((acc: number, p: any) => acc + (p.currentStock || 0) * (p.purchasePrice || 0), 0);
-
-    // Available Liquid Cash across Accounts
-    let totalLiquidCash = 0;
-    try {
-      if (db.paymentAccount?.findMany) {
-        const accounts = await db.paymentAccount.findMany({
-          where: { companyId, isActive: true },
-          select: { currentBalance: true },
-        });
-        totalLiquidCash = accounts.reduce((acc: number, a: any) => acc + (a.currentBalance || 0), 0);
-      } else {
-        const rows: any[] = await prisma.$queryRawUnsafe(
-          `SELECT SUM("currentBalance") as sum FROM payment_accounts WHERE "companyId" = $1 AND ("isActive" = true OR "isActive" IS NULL)`,
-          companyId
-        );
-        totalLiquidCash = Number(rows[0]?.sum || 0);
-      }
-    } catch {
-      totalLiquidCash = 0;
-    }
-
-    // Top Selling Products (Top 5)
-    const topProducts = await prisma.saleItem.groupBy({
-      by: ['productId', 'productNameSnapshot'],
-      where: { sale: { companyId, status: { not: 'CANCELLED' }, saleDate: { gte: currentStart, lte: currentEnd } } },
-      _sum: { quantity: true, totalAmount: true },
-      orderBy: { _sum: { totalAmount: 'desc' } },
-      take: 5,
-    });
-
-    const topProductsFormatted = topProducts.map((p: any) => ({
+    const topProductsFormatted = (topProducts as any[]).map((p: any) => ({
       productId: p.productId || '',
       name: p.productNameSnapshot || 'Furniture Item',
       quantitySold: p._sum?.quantity || 0,
@@ -243,13 +220,7 @@ export class AnalyticsService {
     // Automated Rule-Based Insights Engine
     const insights: BusinessInsight[] = [];
 
-    // Out of Stock / Low Stock Check
-    const lowStockProducts = await prisma.product.findMany({
-      where: { companyId, isActive: true },
-      select: { currentStock: true, minimumStock: true },
-    });
-    const lowStockCount = lowStockProducts.filter((p) => p.minimumStock > 0 && p.currentStock <= p.minimumStock).length;
-    if (lowStockCount > 0) {
+    if ((lowStockCount as number) > 0) {
       insights.push({
         id: 'low-stock-alert',
         priority: 'ACTION_REQUIRED',

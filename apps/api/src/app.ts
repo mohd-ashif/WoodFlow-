@@ -7,6 +7,7 @@ import { env } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { apiRateLimiter } from './middleware/rateLimiter.js';
 import { httpCompression } from './middleware/compression.js';
+import { apiTimingMiddleware } from './middleware/apiTiming.js';
 import routes from './routes/index.js';
 import { prisma } from './config/prisma.js';
 
@@ -49,6 +50,7 @@ app.use(
 );
 
 app.use(httpCompression);
+app.use(apiTimingMiddleware);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());

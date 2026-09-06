@@ -19,6 +19,13 @@ export function clearUserSessionCache(userId?: string) {
   }
 }
 
+export function primeUserSessionCache(userId: string, user: any) {
+  userSessionCache.set(userId, {
+    user,
+    expiresAt: Date.now() + USER_CACHE_TTL_MS,
+  });
+}
+
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
   try {
     let token: string | undefined;
