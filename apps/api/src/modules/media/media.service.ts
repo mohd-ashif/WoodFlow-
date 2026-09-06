@@ -67,7 +67,7 @@ export class MediaService {
     }
 
     // Check for existing identical asset to avoid duplicate uploads
-    const existing = await prisma.mediaAsset.findFirst({
+    const existing = await (prisma as any).mediaAsset.findFirst({
       where: {
         companyId,
         publicId,
@@ -82,7 +82,7 @@ export class MediaService {
     // Determine primary status if no existing images exist for entity
     let shouldBePrimary = isPrimary;
     if (entityId) {
-      const count = await prisma.mediaAsset.count({
+      const count = await (prisma as any).mediaAsset.count({
         where: {
           companyId,
           entityType: normalizedEntityType,
@@ -96,7 +96,7 @@ export class MediaService {
     }
 
     // Create asset
-    const mediaAsset = await prisma.mediaAsset.create({
+    const mediaAsset = await (prisma as any).mediaAsset.create({
       data: {
         companyId,
         entityType: normalizedEntityType,
@@ -146,7 +146,7 @@ export class MediaService {
 
     // Check idempotency (duplicate check within same tenant)
     if (entityId) {
-      const duplicate = await prisma.mediaAsset.findFirst({
+      const duplicate = await (prisma as any).mediaAsset.findFirst({
         where: {
           companyId,
           checksum,
@@ -166,7 +166,7 @@ export class MediaService {
     // Determine primary state
     let shouldBePrimary = isPrimary === true;
     if (entityId && !shouldBePrimary) {
-      const activeCount = await prisma.mediaAsset.count({
+      const activeCount = await (prisma as any).mediaAsset.count({
         where: {
           companyId,
           entityType: normalizedEntityType,
@@ -178,7 +178,7 @@ export class MediaService {
     }
 
     // Save to database
-    const mediaAsset = await prisma.mediaAsset.create({
+    const mediaAsset = await (prisma as any).mediaAsset.create({
       data: {
         companyId,
         entityType: normalizedEntityType,
@@ -207,7 +207,7 @@ export class MediaService {
    * Set primary image transactionally and update derived Product.imageUrl
    */
   async setPrimaryImage(companyId: string, imageId: string): Promise<MediaAssetDTO> {
-    const asset = await prisma.mediaAsset.findUnique({ where: { id: imageId } });
+    const asset = await (prisma as any).mediaAsset.findUnique({ where: { id: imageId } });
 
     if (!asset) {
       throw new NotFoundError('Media asset not found');
@@ -223,7 +223,7 @@ export class MediaService {
     // Atomic transaction for primary flag switch & legacy Product.imageUrl update
     const updatedAsset = await prisma.$transaction(async (tx) => {
       // 1. Reset all other entity assets to non-primary
-      await tx.mediaAsset.updateMany({
+      await (tx as any).mediaAsset.updateMany({
         where: {
           companyId,
           entityType: asset.entityType,
@@ -233,7 +233,7 @@ export class MediaService {
       });
 
       // 2. Mark selected asset as primary & active
-      const primary = await tx.mediaAsset.update({
+      const primary = await (tx as any).mediaAsset.update({
         where: { id: asset.id },
         data: { isPrimary: true, status: 'ACTIVE' },
       });
@@ -256,7 +256,7 @@ export class MediaService {
    * Delete image with reliable multi-phase lifecycle (ACTIVE -> DELETE_PENDING -> Delete Storage -> Delete DB)
    */
   async deleteImage(companyId: string, imageId: string): Promise<{ success: boolean }> {
-    const asset = await prisma.mediaAsset.findUnique({ where: { id: imageId } });
+    const asset = await (prisma as any).mediaAsset.findUnique({ where: { id: imageId } });
 
     if (!asset) {
       return { success: true };
@@ -267,7 +267,7 @@ export class MediaService {
     }
 
     // Phase 1: Mark as DELETE_PENDING in DB
-    await prisma.mediaAsset.update({
+    await (prisma as any).mediaAsset.update({
       where: { id: asset.id },
       data: { status: 'DELETE_PENDING', deletedAt: new Date() },
     });
@@ -279,11 +279,11 @@ export class MediaService {
 
     // Phase 3: Finalize DB deletion
     await prisma.$transaction(async (tx) => {
-      await tx.mediaAsset.delete({ where: { id: asset.id } });
+      await (tx as any).mediaAsset.delete({ where: { id: asset.id } });
 
       // If deleted asset was primary for a product, switch primary to next remaining image
       if (asset.isPrimary && asset.entityId && asset.entityType === 'PRODUCT') {
-        const nextAsset = await tx.mediaAsset.findFirst({
+        const nextAsset = await (tx as any).mediaAsset.findFirst({
           where: {
             companyId,
             entityType: 'PRODUCT',
@@ -294,7 +294,7 @@ export class MediaService {
         });
 
         if (nextAsset) {
-          await tx.mediaAsset.update({
+          await (tx as any).mediaAsset.update({
             where: { id: nextAsset.id },
             data: { isPrimary: true },
           });
@@ -325,7 +325,7 @@ export class MediaService {
   ): Promise<MediaAssetDTO[]> {
     const normalizedEntityType = entityType.toUpperCase() as any;
 
-    const assets = await prisma.mediaAsset.findMany({
+    const assets = await (prisma as any).mediaAsset.findMany({
       where: {
         companyId,
         entityType: normalizedEntityType,
@@ -335,7 +335,7 @@ export class MediaService {
       orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
     });
 
-    return assets.map((a) => this.formatMediaDTO(a));
+    return assets.map((a: any) => this.formatMediaDTO(a));
   }
 
   /**
@@ -352,7 +352,7 @@ export class MediaService {
     const normalizedEntityType = entityType.toUpperCase() as any;
 
     await prisma.$transaction(async (tx) => {
-      await tx.mediaAsset.updateMany({
+      await (tx as any).mediaAsset.updateMany({
         where: {
           id: { in: assetIds },
           companyId,
@@ -365,7 +365,7 @@ export class MediaService {
       });
 
       // Ensure at least one image is primary
-      const primaryCount = await tx.mediaAsset.count({
+      const primaryCount = await (tx as any).mediaAsset.count({
         where: {
           companyId,
           entityType: normalizedEntityType,
@@ -376,7 +376,7 @@ export class MediaService {
       });
 
       if (primaryCount === 0) {
-        const first = await tx.mediaAsset.findFirst({
+        const first = await (tx as any).mediaAsset.findFirst({
           where: {
             companyId,
             entityType: normalizedEntityType,
@@ -387,7 +387,7 @@ export class MediaService {
         });
 
         if (first) {
-          await tx.mediaAsset.update({
+          await (tx as any).mediaAsset.update({
             where: { id: first.id },
             data: { isPrimary: true },
           });
@@ -409,7 +409,7 @@ export class MediaService {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
-    const orphans = await prisma.mediaAsset.findMany({
+    const orphans = await (prisma as any).mediaAsset.findMany({
       where: {
         OR: [
           { status: 'TEMP', createdAt: { lt: twentyFourHoursAgo } },
@@ -426,7 +426,7 @@ export class MediaService {
         if (orphan.publicId) {
           await storageService.deleteFile(orphan.publicId);
         }
-        await prisma.mediaAsset.delete({ where: { id: orphan.id } });
+        await (prisma as any).mediaAsset.delete({ where: { id: orphan.id } });
         cleanedCount++;
       } catch {
         // Continue cleaning remaining orphans
