@@ -81,6 +81,7 @@ export default function SalesListPage() {
         icon={ShoppingCart}
         title="Sales & Orders"
         description="Manage sales orders, issue invoices, and track revenue."
+        helpTopic="sales"
         actions={
           <>
             <ImportButton

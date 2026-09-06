@@ -63,9 +63,16 @@ export default function InvoicePrintPage() {
           </Button>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {sale.id && (
+            <Link href={`/sales/${sale.id}`}>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs text-primary border-primary/30">
+                <span>View Sales Order ({sale.saleNumber})</span>
+              </Button>
+            </Link>
+          )}
           <Button size="sm" onClick={handlePrint} className="gap-2 font-semibold shadow-lg">
-            <Printer className="h-4 w-4" /> Print / Save as PDF
+            <Printer className="h-4 w-4" /> Print / Save PDF
           </Button>
         </div>
       </div>
@@ -88,9 +95,16 @@ export default function InvoicePrintPage() {
             )}
             <div className="flex items-center gap-4 text-xs text-muted-foreground print:text-neutral-700 mt-2">
               {company.phone && <span>Phone: {company.phone}</span>}
-              {company.email && <span>Email: {company.email}</span>}
-              {company.gstNumber && <span className="font-mono font-semibold">GSTIN: {company.gstNumber}</span>}
+              {company.gstNumber && <span className="font-mono">GSTIN: {company.gstNumber}</span>}
             </div>
+            {sale.saleNumber && (
+              <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/50 border border-border/60 text-xs text-muted-foreground print:border-none">
+                <span>Related Order:</span>
+                <Link href={`/sales/${sale.id}`} className="font-mono font-bold text-primary hover:underline">
+                  {sale.saleNumber}
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="sm:text-right space-y-1">
@@ -156,28 +170,40 @@ export default function InvoicePrintPage() {
                 <th className="py-2.5 px-2 text-right">Unit Price</th>
                 <th className="py-2.5 px-2 text-right">Discount</th>
                 <th className="py-2.5 px-2 text-right">GST %</th>
+                <th className="py-2.5 px-2 text-right">GST Amt</th>
                 <th className="py-2.5 px-2 text-right">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40 print:divide-neutral-300 text-foreground print:text-black">
-              {items.map((item: any, idx: number) => (
-                <tr key={item.id || idx}>
-                  <td className="py-3 px-2 font-mono text-muted-foreground print:text-neutral-600">{idx + 1}</td>
-                  <td className="py-3 px-2 font-semibold">{item.productNameSnapshot}</td>
-                  <td className="py-3 px-2 font-mono text-muted-foreground print:text-neutral-600">{item.skuSnapshot}</td>
-                  <td className="py-3 px-2 text-center font-mono font-semibold">{item.quantity}</td>
-                  <td className="py-3 px-2 text-right font-mono">₹{item.unitPrice.toLocaleString('en-IN')}</td>
-                  <td className="py-3 px-2 text-right font-mono text-muted-foreground print:text-neutral-600">
-                    ₹{(item.discountAmount || 0).toLocaleString('en-IN')}
-                  </td>
-                  <td className="py-3 px-2 text-right font-mono text-muted-foreground print:text-neutral-600">
-                    {item.taxRate || 0}%
-                  </td>
-                  <td className="py-3 px-2 text-right font-mono font-bold">
-                    ₹{item.totalAmount.toLocaleString('en-IN')}
-                  </td>
-                </tr>
-              ))}
+              {items.map((item: any, idx: number) => {
+                const taxRate = item.taxRate || sale.taxRate || 18;
+                const taxableLine = Math.max(0, (item.unitPrice * item.quantity) - (item.discountAmount || 0));
+                const lineTaxAmount = item.taxAmount !== undefined && item.taxAmount > 0 
+                  ? item.taxAmount 
+                  : Math.round(((taxableLine * taxRate) / 100) * 100) / 100;
+
+                return (
+                  <tr key={item.id || idx}>
+                    <td className="py-3 px-2 font-mono text-muted-foreground print:text-neutral-600">{idx + 1}</td>
+                    <td className="py-3 px-2 font-semibold">{item.productNameSnapshot}</td>
+                    <td className="py-3 px-2 font-mono text-muted-foreground print:text-neutral-600">{item.skuSnapshot}</td>
+                    <td className="py-3 px-2 text-center font-mono font-semibold">{item.quantity}</td>
+                    <td className="py-3 px-2 text-right font-mono">₹{item.unitPrice.toLocaleString('en-IN')}</td>
+                    <td className="py-3 px-2 text-right font-mono text-muted-foreground print:text-neutral-600">
+                      ₹{(item.discountAmount || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3 px-2 text-right font-mono text-muted-foreground print:text-neutral-600 font-semibold">
+                      {taxRate}%
+                    </td>
+                    <td className="py-3 px-2 text-right font-mono text-muted-foreground print:text-neutral-600">
+                      ₹{lineTaxAmount.toLocaleString('en-IN')}
+                    </td>
+                    <td className="py-3 px-2 text-right font-mono font-bold">
+                      ₹{item.totalAmount.toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -186,21 +212,40 @@ export default function InvoicePrintPage() {
         <div className="flex justify-end my-6">
           <div className="w-full max-w-xs space-y-2 text-xs font-mono text-foreground print:text-black border-t border-border/80 print:border-black pt-4">
             <div className="flex justify-between text-muted-foreground print:text-neutral-700">
-              <span>Subtotal:</span>
+              <span>Taxable Subtotal:</span>
               <span>₹{invoice.subtotal.toLocaleString('en-IN')}</span>
             </div>
+
             {invoice.discountAmount > 0 && (
               <div className="flex justify-between text-muted-foreground print:text-neutral-700">
                 <span>Discount:</span>
                 <span>- ₹{invoice.discountAmount.toLocaleString('en-IN')}</span>
               </div>
             )}
-            <div className="flex justify-between text-muted-foreground print:text-neutral-700">
-              <span>GST Tax Amount:</span>
-              <span>+ ₹{invoice.taxAmount.toLocaleString('en-IN')}</span>
-            </div>
+
+            {(() => {
+              const totalTax = invoice.taxAmount || 0;
+              const halfTax = Math.round((totalTax / 2) * 100) / 100;
+              return (
+                <>
+                  <div className="flex justify-between text-muted-foreground print:text-neutral-700">
+                    <span>CGST (Central Tax):</span>
+                    <span>+ ₹{halfTax.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground print:text-neutral-700">
+                    <span>SGST (State Tax):</span>
+                    <span>+ ₹{halfTax.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground print:text-neutral-700 font-semibold">
+                    <span>Total GST Amount:</span>
+                    <span>+ ₹{totalTax.toLocaleString('en-IN')}</span>
+                  </div>
+                </>
+              );
+            })()}
+
             <div className="border-t border-border/80 print:border-black pt-2 flex justify-between text-base font-bold font-sans">
-              <span>Grand Total:</span>
+              <span>Grand Total (Inc. GST):</span>
               <span className="font-mono text-primary print:text-black">
                 ₹{invoice.totalAmount.toLocaleString('en-IN')}
               </span>

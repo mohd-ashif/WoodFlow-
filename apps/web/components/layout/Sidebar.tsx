@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Building2,
   FileCheck,
+  FileText,
   Users,
   Settings,
   Package,
@@ -245,14 +246,19 @@ export function Sidebar() {
 
             <div>
               <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Sales & Invoicing
+                Sales
               </h2>
               <nav className="space-y-1">
                 {[
-                  { name: 'Sales Orders', href: '/sales', icon: ShoppingCart, exact: false },
+                  { name: 'Quotations / Estimates', href: '/sales/estimates', icon: FileText, exact: false },
+                  { name: 'Sales Orders', href: '/sales', icon: ShoppingCart, exact: true },
                   { name: 'Invoices', href: '/invoices', icon: FileCheck, exact: false },
+                  { name: 'Payments', href: '/sales/payments', icon: DollarSign, exact: false },
+                  { name: 'Receivables', href: '/sales/receivables', icon: ArrowDownRight, exact: false },
                 ].map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const isActive = item.exact
+                    ? pathname === item.href
+                    : (pathname === item.href || (pathname.startsWith(`${item.href}/`) && item.href !== '/sales'));
                   const Icon = item.icon;
                   return (
                     <Link
@@ -275,14 +281,17 @@ export function Sidebar() {
 
             <div>
               <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Purchases & Suppliers
+                Purchases
               </h2>
               <nav className="space-y-1">
                 {[
+                  { name: 'Purchase Orders', href: '/purchases', icon: ShoppingBag, exact: true },
                   { name: 'Purchases Overview', href: '/purchases/overview', icon: LayoutDashboard, exact: true },
-                  { name: 'Purchase Orders', href: '/purchases', icon: ShoppingBag, exact: false },
+                  { name: 'Payables', href: '/purchases/payables', icon: ArrowUpRight, exact: false },
                 ].map((item) => {
-                  const isActive = item.exact ? pathname === item.href : (pathname === item.href || (pathname.startsWith(`${item.href}/`) && !pathname.startsWith('/purchases/overview')));
+                  const isActive = item.exact
+                    ? pathname === item.href
+                    : (pathname === item.href || pathname.startsWith(`${item.href}/`));
                   const Icon = item.icon;
                   return (
                     <Link
@@ -403,6 +412,26 @@ export function Sidebar() {
                     </Link>
                   );
                 })}
+              </nav>
+            </div>
+
+            <div>
+              <h2 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Help & Resources
+              </h2>
+              <nav className="space-y-1">
+                <Link
+                  href="/help"
+                  className={clsx(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    pathname === '/help' || pathname.startsWith('/help/')
+                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 sidebar-active-item'
+                      : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
+                  )}
+                >
+                  <HelpCircle className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  <span className="font-semibold">Help & Documentation</span>
+                </Link>
               </nav>
             </div>
 

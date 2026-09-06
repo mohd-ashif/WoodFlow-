@@ -261,6 +261,7 @@ export default function ProductsListPage() {
         icon={Package}
         title="Products Database"
         description="View and manage cataloged furniture items and raw materials."
+        helpTopic="products"
         actions={
           <>
             <ImportButton

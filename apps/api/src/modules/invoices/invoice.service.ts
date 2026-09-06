@@ -103,3 +103,110 @@ export async function getInvoiceDetails(companyId: string, invoiceId: string) {
 
   return invoice;
 }
+
+export async function exportInvoices(
+  companyId: string,
+  options: {
+    search?: string;
+    status?: string;
+    customerId?: string;
+    fromDate?: string;
+    toDate?: string;
+    format?: string;
+  }
+) {
+  const db = prisma as any;
+  const where: any = { companyId };
+
+  if (options.status) {
+    where.status = options.status;
+  }
+
+  if (options.customerId) {
+    where.customerId = options.customerId;
+  }
+
+  if (options.fromDate || options.toDate) {
+    where.createdAt = {};
+    if (options.fromDate) where.createdAt.gte = new Date(options.fromDate);
+    if (options.toDate) where.createdAt.lte = new Date(`${options.toDate}T23:59:59.999Z`);
+  }
+
+  if (options.search) {
+    where.OR = [
+      { invoiceNumber: { contains: options.search, mode: 'insensitive' } },
+      { customerNameSnapshot: { contains: options.search, mode: 'insensitive' } },
+      { customerPhoneSnapshot: { contains: options.search, mode: 'insensitive' } },
+    ];
+  }
+
+  const invoices = await db.invoice.findMany({
+    where,
+    select: {
+      invoiceNumber: true,
+      invoiceDate: true,
+      customerNameSnapshot: true,
+      customerPhoneSnapshot: true,
+      customerEmailSnapshot: true,
+      subtotal: true,
+      discountAmount: true,
+      taxAmount: true,
+      totalAmount: true,
+      status: true,
+      createdAt: true,
+      sale: {
+        select: {
+          saleNumber: true,
+          paymentStatus: true,
+          paidAmount: true,
+          dueAmount: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 5000,
+  });
+
+  // Generate CSV rows
+  const headers = [
+    'Invoice Number',
+    'Date',
+    'Customer Name',
+    'Customer Phone',
+    'Customer Email',
+    'Subtotal (INR)',
+    'Discount (INR)',
+    'Tax (INR)',
+    'Total Amount (INR)',
+    'Paid Amount (INR)',
+    'Due Amount (INR)',
+    'Invoice Status',
+    'Payment Status',
+    'Related Sale Order',
+  ];
+
+  const csvRows = [headers.join(',')];
+
+  for (const inv of invoices) {
+    const row = [
+      `"${inv.invoiceNumber}"`,
+      `"${new Date(inv.invoiceDate || inv.createdAt).toISOString().split('T')[0]}"`,
+      `"${(inv.customerNameSnapshot || '').replace(/"/g, '""')}"`,
+      `"${inv.customerPhoneSnapshot || ''}"`,
+      `"${inv.customerEmailSnapshot || ''}"`,
+      inv.subtotal || 0,
+      inv.discountAmount || 0,
+      inv.taxAmount || 0,
+      inv.totalAmount || 0,
+      inv.sale?.paidAmount || 0,
+      inv.sale?.dueAmount || 0,
+      `"${inv.status}"`,
+      `"${inv.sale?.paymentStatus || 'UNPAID'}"`,
+      `"${inv.sale?.saleNumber || ''}"`,
+    ];
+    csvRows.push(row.join(','));
+  }
+
+  return csvRows.join('\n');
+}
+

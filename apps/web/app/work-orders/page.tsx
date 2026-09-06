@@ -46,6 +46,7 @@ export default function WorkOrdersListPage() {
           icon={Hammer}
           title="Work Orders Directory"
           description="View all manufacturing jobs, custom furniture specifications, progress, and material status."
+          helpTopic="work-orders"
           actions={
             <Link href="/work-orders/new">
               <Button size="md" className="gap-2 shadow-lg shadow-primary/20">

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getInvoicesList, getInvoiceDetails } from './invoice.service.js';
+import { getInvoicesList, getInvoiceDetails, exportInvoices } from './invoice.service.js';
 
 export async function listInvoicesController(req: Request, res: Response, next: NextFunction) {
   try {
@@ -39,3 +39,34 @@ export async function getInvoiceController(req: Request, res: Response, next: Ne
     next(error);
   }
 }
+
+export async function exportInvoicesController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const search = req.query.search as string;
+    const status = req.query.status as string;
+    const customerId = req.query.customerId as string;
+    const fromDate = req.query.fromDate as string;
+    const toDate = req.query.toDate as string;
+    const format = (req.query.format as string) || 'csv';
+
+    const csvContent = await exportInvoices(req.tenantId!, {
+      search,
+      status,
+      customerId,
+      fromDate,
+      toDate,
+      format,
+    });
+
+    const fileExt = format === 'excel' ? 'csv' : 'csv';
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="invoices_export_${new Date().toISOString().split('T')[0]}.${fileExt}"`
+    );
+    res.send(csvContent);
+  } catch (error) {
+    next(error);
+  }
+}
+

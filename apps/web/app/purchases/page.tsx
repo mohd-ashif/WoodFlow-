@@ -82,6 +82,7 @@ export default function PurchasesListPage() {
           icon={ShoppingBag}
           title="Purchase Orders"
           description="Manage supplier purchases, track stock acquisitions, and record Stock IN movements."
+          helpTopic="purchases"
           actions={
             <>
               <ImportButton

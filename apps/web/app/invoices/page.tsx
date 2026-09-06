@@ -17,12 +17,14 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from 'lucide-react';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { AppIcon } from '../../components/ui/AppIcon';
 import { Tooltip } from '../../components/ui/Tooltip';
+import { InvoiceExportModal } from '../../components/invoices/InvoiceExportModal';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { useInvoices } from '../../hooks/useInvoices';
@@ -32,6 +34,7 @@ export default function InvoicesListPage() {
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const { data: responseData, isLoading, refetch } = useInvoices({
     page,
@@ -51,6 +54,18 @@ export default function InvoicesListPage() {
           icon={FileText}
           title="Tax Invoices"
           description="Issued customer invoices, printable receipts, and tax records."
+          helpTopic="finance"
+          actions={
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setIsExportOpen(true)}
+              className="gap-2 shadow-sm"
+            >
+              <Download className="h-4 w-4 text-primary" />
+              <span>Export Invoices</span>
+            </Button>
+          }
         />
 
         {/* Search Bar */}
@@ -183,6 +198,12 @@ export default function InvoicesListPage() {
           )}
         </TableCard>
       </div>
+
+      <InvoiceExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        initialFilters={{ search: searchTerm }}
+      />
     </AppShell>
   );
 }

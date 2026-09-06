@@ -20,6 +20,7 @@ import {
   Calendar,
   AlertTriangle,
   Package,
+  Printer,
 } from 'lucide-react';
 
 export default function PurchaseDetailsPage() {
@@ -114,7 +115,11 @@ export default function PurchaseDetailsPage() {
               </Button>
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 print:hidden">
+              <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2 font-semibold">
+                <Printer className="h-4 w-4" /> Print Purchase Order
+              </Button>
+
               {purchase.status === 'DRAFT' && (
                 <Button
                   size="sm"
@@ -265,42 +270,74 @@ export default function PurchaseDetailsPage() {
                     <th className="py-3 px-4 text-right">Unit Cost</th>
                     <th className="py-3 px-4 text-right">Discount</th>
                     <th className="py-3 px-4 text-right">GST Rate</th>
+                    <th className="py-3 px-4 text-right">GST Amt</th>
                     <th className="py-3 px-4 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {purchase.items?.map((item: any) => (
-                    <tr key={item.id} className="hover:bg-secondary/20 transition-colors">
-                      <td className="py-3.5 px-4 font-semibold text-foreground">{item.productNameSnapshot}</td>
-                      <td className="py-3.5 px-4 font-mono text-muted-foreground">{item.skuSnapshot}</td>
-                      <td className="py-3.5 px-4 text-center font-mono font-semibold">{item.quantity}</td>
-                      <td className="py-3.5 px-4 text-right font-mono">₹{item.unitCost.toLocaleString('en-IN')}</td>
-                      <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">
-                        ₹{item.discountAmount.toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">{item.taxRate}%</td>
-                      <td className="py-3.5 px-4 text-right font-mono font-semibold text-foreground">
-                        ₹{item.totalAmount.toLocaleString('en-IN')}
-                      </td>
-                    </tr>
-                  ))}
+                  {purchase.items?.map((item: any) => {
+                    const taxRate = item.taxRate || 18;
+                    const taxableLine = Math.max(0, (item.unitCost * item.quantity) - (item.discountAmount || 0));
+                    const lineTaxAmount = item.taxAmount !== undefined && item.taxAmount > 0
+                      ? item.taxAmount
+                      : Math.round(((taxableLine * taxRate) / 100) * 100) / 100;
+
+                    return (
+                      <tr key={item.id} className="hover:bg-secondary/20 transition-colors">
+                        <td className="py-3.5 px-4 font-semibold text-foreground">{item.productNameSnapshot}</td>
+                        <td className="py-3.5 px-4 font-mono text-muted-foreground">{item.skuSnapshot}</td>
+                        <td className="py-3.5 px-4 text-center font-mono font-semibold">{item.quantity}</td>
+                        <td className="py-3.5 px-4 text-right font-mono">₹{item.unitCost.toLocaleString('en-IN')}</td>
+                        <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">
+                          ₹{(item.discountAmount || 0).toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono text-muted-foreground font-semibold">
+                          {taxRate}%
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">
+                          ₹{lineTaxAmount.toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono font-semibold text-foreground">
+                          ₹{item.totalAmount.toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 
               {/* Cost Breakdown Footer */}
               <div className="p-4 border-t border-border/60 bg-secondary/10 flex flex-col items-end space-y-1.5 text-xs font-mono">
                 <div className="flex justify-between w-64">
-                  <span className="text-muted-foreground">Subtotal:</span>
+                  <span className="text-muted-foreground">Taxable Subtotal:</span>
                   <span>₹{purchase.subtotal.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between w-64 text-muted-foreground">
-                  <span>Total Discount:</span>
-                  <span>- ₹{purchase.discountAmount.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="flex justify-between w-64 text-muted-foreground">
-                  <span>Total Tax (GST):</span>
-                  <span>+ ₹{purchase.taxAmount.toLocaleString('en-IN')}</span>
-                </div>
+                {purchase.discountAmount > 0 && (
+                  <div className="flex justify-between w-64 text-muted-foreground">
+                    <span>Total Discount:</span>
+                    <span>- ₹{purchase.discountAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                {(() => {
+                  const totalTax = purchase.taxAmount || 0;
+                  const halfTax = Math.round((totalTax / 2) * 100) / 100;
+                  return (
+                    <>
+                      <div className="flex justify-between w-64 text-muted-foreground">
+                        <span>CGST (Central Tax):</span>
+                        <span>+ ₹{halfTax.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between w-64 text-muted-foreground">
+                        <span>SGST (State Tax):</span>
+                        <span>+ ₹{halfTax.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between w-64 text-muted-foreground font-semibold">
+                        <span>Total GST Amount:</span>
+                        <span>+ ₹{totalTax.toLocaleString('en-IN')}</span>
+                      </div>
+                    </>
+                  );
+                })()}
                 <div className="border-t border-border/60 pt-2 flex justify-between w-64 text-sm font-bold text-foreground font-sans">
                   <span>Grand Total Cost:</span>
                   <span className="text-primary font-mono">₹{purchase.totalAmount.toLocaleString('en-IN')}</span>
