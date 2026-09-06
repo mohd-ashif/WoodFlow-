@@ -15,6 +15,9 @@ import Link from 'next/link';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useWorkOrders } from '../../hooks/useWorkOrders';
 import { TableCard, TableCardBody } from '../../components/ui/TableCard';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { AppIcon } from '../../components/ui/AppIcon';
 
 export default function WorkOrdersListPage() {
   const [search, setSearch] = useState('');
@@ -39,35 +42,35 @@ export default function WorkOrdersListPage() {
   return (
     <AppShell>
       <div className="h-full flex flex-col space-y-3 sm:space-y-4 min-h-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Work Orders Directory</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              View all manufacturing jobs, custom furniture specifications, progress, and material status.
-            </p>
-          </div>
-          <Link href="/work-orders/new" className="self-start sm:self-auto">
-            <Button className="gap-2 shadow-lg shadow-primary/20 text-xs sm:text-sm">
-              <Plus className="h-4 w-4" />
-              <span>Create Work Order</span>
-            </Button>
-          </Link>
-        </div>
+        <PageHeader
+          icon={Hammer}
+          title="Work Orders Directory"
+          description="View all manufacturing jobs, custom furniture specifications, progress, and material status."
+          actions={
+            <Link href="/work-orders/new">
+              <Button size="md" className="gap-2 shadow-lg shadow-primary/20">
+                <AppIcon icon={Plus} size="sm" />
+                <span>Create Work Order</span>
+              </Button>
+            </Link>
+          }
+        />
 
         {/* Search & Filters */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-card/30 border border-border p-3 sm:p-4 rounded-xl shrink-0">
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search WO number, title..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="pl-9 text-xs h-9"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search WO number, title..."
+            value={search}
+            onChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            onClear={() => {
+              setSearch('');
+              setPage(1);
+            }}
+            wrapperClassName="w-full md:w-80"
+          />
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
             <select
               value={status}

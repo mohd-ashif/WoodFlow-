@@ -29,6 +29,10 @@ import {
 } from 'lucide-react';
 
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { AppIcon } from '../../components/ui/AppIcon';
+import { Tooltip } from '../../components/ui/Tooltip';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { useSales } from '../../hooks/useSales';
@@ -73,29 +77,25 @@ export default function SalesListPage() {
   return (
     <AppShell>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-            Sales & Orders
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Manage sales orders, issue invoices, and track revenue.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <ImportButton
-            module="SALES"
-            moduleTitle="Sales"
-            onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['sales'] })}
-          />
-          <Link href="/sales/new">
-            <Button size="sm" className="gap-2 font-semibold text-xs">
-              <Plus className="h-4 w-4" /> Create Sale
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        icon={ShoppingCart}
+        title="Sales & Orders"
+        description="Manage sales orders, issue invoices, and track revenue."
+        actions={
+          <>
+            <ImportButton
+              module="SALES"
+              moduleTitle="Sales"
+              onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['sales'] })}
+            />
+            <Link href="/sales/new">
+              <Button size="md" className="gap-2 font-semibold">
+                <AppIcon icon={Plus} size="sm" /> Create Sale
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Metrics Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 flex-shrink-0">
@@ -106,7 +106,7 @@ export default function SalesListPage() {
               <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-foreground">{totalCount}</h3>
             </div>
             <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0">
-              <FileText className="h-4 w-4" />
+              <AppIcon icon={FileText} size="md" />
             </div>
           </CardContent>
         </Card>
@@ -120,7 +120,7 @@ export default function SalesListPage() {
               </h3>
             </div>
             <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg shrink-0">
-              <DollarSign className="h-4 w-4" />
+              <AppIcon icon={DollarSign} size="md" />
             </div>
           </CardContent>
         </Card>
@@ -134,7 +134,7 @@ export default function SalesListPage() {
               </h3>
             </div>
             <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg shrink-0">
-              <Calendar className="h-4 w-4" />
+              <AppIcon icon={Calendar} size="md" />
             </div>
           </CardContent>
         </Card>
@@ -143,15 +143,13 @@ export default function SalesListPage() {
       {/* Search & Filter Bar */}
       <Card className="border-border/80 p-3 flex-shrink-0 min-w-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search sale no., customer name, invoice..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 text-xs h-9"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search sale no., customer name, invoice..."
+            value={searchTerm}
+            onChange={(val) => { setSearchTerm(val); setPage(1); }}
+            onClear={() => { setSearchTerm(''); setPage(1); }}
+            wrapperClassName="flex-1 max-w-md"
+          />
 
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             {[
@@ -258,30 +256,36 @@ export default function SalesListPage() {
                           {sale.paymentStatus}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-4 text-right min-w-[120px] pr-4">
                         <div className="flex items-center justify-end gap-1.5">
-                          <Link href={`/sales/${sale.id}`}>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" title="View Sale">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          {sale.invoices?.[0] && (
-                            <Link href={`/invoices/${sale.invoices[0].id}`}>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" title="View Invoice">
-                                <Printer className="h-4 w-4" />
+                          <Tooltip content="View Sale">
+                            <Link href={`/sales/${sale.id}`}>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View sale ${sale.saleNumber}`}>
+                                <Eye className="h-4 w-4" />
                               </Button>
                             </Link>
+                          </Tooltip>
+                          {sale.invoices?.[0] && (
+                            <Tooltip content="View Invoice">
+                              <Link href={`/invoices/${sale.invoices[0].id}`}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View invoice for sale ${sale.saleNumber}`}>
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
                           )}
                           {sale.status === 'CONFIRMED' && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
-                              title="Cancel Order"
-                              onClick={() => setCancelModalSale(sale)}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
+                            <Tooltip content="Cancel Order">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
+                                aria-label={`Cancel order ${sale.saleNumber}`}
+                                onClick={() => setCancelModalSale(sale)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </Tooltip>
                           )}
                         </div>
                       </td>

@@ -16,6 +16,7 @@ import { stockAdjustmentSchema } from '@furniture-os/shared';
 import { AppShell } from '../../../components/layout/AppShell';
 import { TableCard, TableCardBody, TableCardFooter } from '../../../components/ui/TableCard';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { PageHeader } from '../../../components/ui/PageHeader';
 
 import { useOutOfStock } from '../../../hooks/useInventory';
 
@@ -105,14 +106,11 @@ export default function OutOfStockPage() {
 
   return (
     <AppShell>
-      <div className="flex-shrink-0">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <Flame className="h-6 w-6 text-red-500 shrink-0" /> Out of Stock Alerts
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-          Items currently at zero balance requiring immediate inventory replenishment.
-        </p>
-      </div>
+      <PageHeader
+        icon={Flame}
+        title="Out of Stock Alerts"
+        description="Items currently at zero balance requiring immediate inventory replenishment."
+      />
 
       <TableCard>
         {isLoading ? (

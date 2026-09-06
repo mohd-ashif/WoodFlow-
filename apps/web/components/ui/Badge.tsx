@@ -19,11 +19,10 @@ export function Badge({ children, variant = 'default', className, ...props }: Ba
     info: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
   };
 
-
   return (
     <span
       className={clsx(
-        'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] sm:text-xs font-semibold transition-colors whitespace-nowrap',
+        'inline-flex items-center justify-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors whitespace-nowrap leading-none shrink-0 select-none',
         variantStyles[variant],
         className
       )}

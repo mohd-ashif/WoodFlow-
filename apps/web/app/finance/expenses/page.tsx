@@ -11,7 +11,6 @@ import { Badge } from '../../../components/ui/Badge';
 import { Dialog } from '../../../components/ui/Dialog';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { Input } from '../../../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 import toast from '../../../components/ui/Toast';
 import {
   Receipt,
@@ -23,6 +22,8 @@ import {
   Wallet,
   Loader2,
 } from 'lucide-react';
+import { PageHeader } from '../../../components/ui/PageHeader';
+import { AppIcon } from '../../../components/ui/AppIcon';
 
 export default function ExpensesPage() {
   const queryClient = useQueryClient();
@@ -198,17 +199,16 @@ export default function ExpensesPage() {
   return (
     <AppShell>
       <div className="h-full flex flex-col space-y-4 min-h-0">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Business Expenses</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Track rent, electricity, transportation, wages, and operational costs.
-            </p>
-          </div>
-          <Button onClick={handleOpenAddModal} className="gap-2">
-            <Plus className="h-4 w-4" /> Add Expense
-          </Button>
-        </div>
+        <PageHeader
+          icon={Receipt}
+          title="Business Expenses"
+          description="Track rent, electricity, transportation, wages, and operational costs."
+          actions={
+            <Button onClick={handleOpenAddModal} size="md" className="gap-2">
+              <AppIcon icon={Plus} size="sm" /> Add Expense
+            </Button>
+          }
+        />
 
         {/* Expenses Table Card */}
         <TableCard>

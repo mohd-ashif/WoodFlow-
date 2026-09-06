@@ -3,21 +3,24 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService } from '../../../services/inventoryService';
+import { AppShell } from '../../../components/layout/AppShell';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../components/ui/Table';
+import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Dialog } from '../../../components/ui/Dialog';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { Tooltip } from '../../../components/ui/Tooltip';
 import { Input } from '../../../components/ui/Input';
-import { Search, Plus, Edit2, PowerOff, RotateCcw, Ruler, Hash } from 'lucide-react';
+import { PageHeader } from '../../../components/ui/PageHeader';
+import { SearchInput } from '../../../components/ui/SearchInput';
+import { AppIcon } from '../../../components/ui/AppIcon';
+import { Plus, Edit2, PowerOff, RotateCcw, Ruler, Hash } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createUnitSchema } from '@furniture-os/shared';
 import toast from '@/components/ui/Toast';
 import { ImportButton } from '../../../components/import/ImportButton';
-import { AppShell } from '../../../components/layout/AppShell';
-import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
 
 function UnitSkeletonRow() {
   return (
@@ -183,41 +186,35 @@ export default function UnitsPage() {
   return (
     <AppShell>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Ruler className="h-6 w-6 text-primary flex-shrink-0" aria-hidden="true" />
-            Units of Measurement
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Manage stock counts, package formats, sheet layouts, and material dimensions.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <ImportButton
-            module="UNITS"
-            moduleTitle="Units of Measurement"
-            onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['units'] })}
-          />
-          <Button onClick={handleOpenCreate} size="sm" className="gap-2 text-xs">
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Add Unit
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Units of Measurement"
+        description="Manage stock counts, package formats, sheet layouts, and material dimensions."
+        icon={Ruler}
+        actions={
+          <>
+            <ImportButton
+              module="UNITS"
+              moduleTitle="Units of Measurement"
+              onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['units'] })}
+            />
+            <Button onClick={handleOpenCreate} size="md">
+              <AppIcon name="Plus" size="sm" />
+              Add Unit
+            </Button>
+          </>
+        }
+      />
 
       {/* Search */}
-      <div className="bg-card/45 border border-border p-3 sm:p-3.5 rounded-xl flex-shrink-0 min-w-0">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-          <Input
-            placeholder="Search unit name or short code…"
-            value={search}
-            onChange={handleSearchChange}
-            className="pl-9 bg-background/50 border-border/85 text-xs h-9"
-            aria-label="Search units"
-          />
-        </div>
+      <div className="bg-card/40 border border-border/80 p-3 sm:p-3.5 rounded-xl shrink-0">
+        <SearchInput
+          placeholder="Search unit name or short code…"
+          value={search}
+          onChange={(val) => {
+            setSearch(val);
+            setDebouncedSearch(val);
+          }}
+        />
       </div>
 
       {/* Table */}
@@ -266,7 +263,7 @@ export default function UnitsPage() {
                   <TableHead>Unit Name</TableHead>
                   <TableHead>Short Code</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-24 text-right">Actions</TableHead>
+                  <TableHead className="min-w-[120px] text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

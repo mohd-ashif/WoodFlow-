@@ -28,6 +28,10 @@ import {
 } from 'lucide-react';
 
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { AppIcon } from '../../components/ui/AppIcon';
+import { Tooltip } from '../../components/ui/Tooltip';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { usePurchases } from '../../hooks/usePurchases';
@@ -74,34 +78,30 @@ export default function PurchasesListPage() {
     <AppShell>
       <div className="h-full flex flex-col space-y-3 sm:space-y-4 min-h-0">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-              Purchase Orders
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Manage supplier purchases, track stock acquisitions, and record Stock IN movements.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-            <ImportButton
-              module="PURCHASES"
-              moduleTitle="Purchases"
-              onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['purchases'] })}
-            />
-            <Link href="/purchases/overview">
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs">
-                <LayoutDashboard className="h-4 w-4" /> Overview
-              </Button>
-            </Link>
-            <Link href="/purchases/new">
-              <Button size="sm" className="gap-2 font-semibold text-xs">
-                <Plus className="h-4 w-4" /> Create PO
-              </Button>
-            </Link>
-          </div>
-        </div>
+        <PageHeader
+          icon={ShoppingBag}
+          title="Purchase Orders"
+          description="Manage supplier purchases, track stock acquisitions, and record Stock IN movements."
+          actions={
+            <>
+              <ImportButton
+                module="PURCHASES"
+                moduleTitle="Purchases"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['purchases'] })}
+              />
+              <Link href="/purchases/overview">
+                <Button size="md" variant="outline" className="gap-1.5">
+                  <AppIcon icon={LayoutDashboard} size="sm" /> Overview
+                </Button>
+              </Link>
+              <Link href="/purchases/new">
+                <Button size="md" className="gap-2 font-semibold">
+                  <AppIcon icon={Plus} size="sm" /> Create PO
+                </Button>
+              </Link>
+            </>
+          }
+        />
 
         {/* Metrics Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 flex-shrink-0">
@@ -112,7 +112,7 @@ export default function PurchasesListPage() {
                 <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-foreground">{totalCount}</h3>
               </div>
               <div className="p-2 bg-primary/10 text-primary rounded-lg shrink-0">
-                <FileText className="h-4 w-4" />
+                <AppIcon icon={FileText} size="md" />
               </div>
             </CardContent>
           </Card>
@@ -124,7 +124,7 @@ export default function PurchasesListPage() {
                 <h3 className="text-lg sm:text-xl font-bold mt-0.5 text-foreground font-mono">₹{pageTotal.toLocaleString('en-IN')}</h3>
               </div>
               <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg shrink-0">
-                <TrendingUp className="h-4 w-4" />
+                <AppIcon icon={TrendingUp} size="md" />
               </div>
             </CardContent>
           </Card>
@@ -138,7 +138,7 @@ export default function PurchasesListPage() {
                 </h3>
               </div>
               <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg shrink-0">
-                <ShoppingBag className="h-4 w-4" />
+                <AppIcon icon={ShoppingBag} size="md" />
               </div>
             </CardContent>
           </Card>
@@ -147,19 +147,17 @@ export default function PurchasesListPage() {
         {/* Search & Filter Bar */}
         <Card className="border-border/80 p-3 flex-shrink-0 min-w-0">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Search purchase no., reference, supplier..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 bg-background text-xs h-9"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search purchase no., reference, supplier..."
+              value={searchTerm}
+              onChange={(val) => { setSearchTerm(val); setPage(1); }}
+              onClear={() => { setSearchTerm(''); setPage(1); }}
+              wrapperClassName="flex-1 max-w-md"
+            />
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground font-medium flex items-center gap-1 shrink-0">
-                <Filter className="h-3.5 w-3.5" /> Filter:
+                <AppIcon icon={Filter} size="xs" /> Filter:
               </span>
               <select
                 value={statusFilter}
@@ -269,23 +267,27 @@ export default function PurchasesListPage() {
                             {purchase.status}
                           </Badge>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right min-w-[120px] pr-4">
                           <div className="flex items-center justify-end gap-1.5">
-                            <Link href={`/purchases/${purchase.id}`}>
-                              <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" title="View Purchase">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </Link>
+                            <Tooltip content="View Purchase">
+                              <Link href={`/purchases/${purchase.id}`}>
+                                <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View purchase ${purchase.purchaseNumber}`}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
                             {purchase.status !== 'CANCELLED' && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="text-destructive hover:bg-destructive/15 transition-colors"
-                                title="Cancel Purchase"
-                                onClick={() => setCancelModalPurchase(purchase)}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
+                              <Tooltip content="Cancel Purchase">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-destructive hover:bg-destructive/15 transition-colors"
+                                  aria-label={`Cancel purchase ${purchase.purchaseNumber}`}
+                                  onClick={() => setCancelModalPurchase(purchase)}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </Tooltip>
                             )}
                           </div>
                         </td>

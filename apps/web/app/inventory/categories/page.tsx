@@ -3,21 +3,24 @@
 import React, { useState, useCallback, useId } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService } from '../../../services/inventoryService';
+import { AppShell } from '../../../components/layout/AppShell';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../../components/ui/Table';
+import { TableCard, TableCardBody, TableCardFooter } from '../../../components/ui/TableCard';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Dialog } from '../../../components/ui/Dialog';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { Tooltip } from '../../../components/ui/Tooltip';
 import { Input } from '../../../components/ui/Input';
-import { Search, Plus, Edit2, PowerOff, RotateCcw, FolderHeart, Tag } from 'lucide-react';
+import { PageHeader } from '../../../components/ui/PageHeader';
+import { SearchInput } from '../../../components/ui/SearchInput';
+import { AppIcon } from '../../../components/ui/AppIcon';
+import { Plus, Edit2, PowerOff, RotateCcw, FolderHeart, Tag } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createCategorySchema } from '@furniture-os/shared';
 import toast from '@/components/ui/Toast';
 import { ImportButton } from '../../../components/import/ImportButton';
-import { AppShell } from '../../../components/layout/AppShell';
-import { TableCard, TableCardBody } from '../../../components/ui/TableCard';
 
 // ─── Skeleton Row ──────────────────────────────────────────────────────────────
 function CategorySkeletonRow() {
@@ -209,46 +212,39 @@ export default function CategoriesPage() {
   return (
     <AppShell>
       {/* ─── Page Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <FolderHeart className="h-6 w-6 text-primary flex-shrink-0" aria-hidden="true" />
-            Product Categories
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Classify your items to organize catalogs and structure metrics.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <ImportButton
-            module="CATEGORIES"
-            moduleTitle="Categories"
-            onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['categories'] })}
-          />
-          <Button
-            onClick={handleOpenCreate}
-            size="sm"
-            className="gap-2 text-xs"
-            id="create-category-btn"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Add Category
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Product Categories"
+        description="Classify your items to organize catalogs and structure metrics."
+        icon={FolderHeart}
+        actions={
+          <>
+            <ImportButton
+              module="CATEGORIES"
+              moduleTitle="Categories"
+              onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['categories'] })}
+            />
+            <Button
+              onClick={handleOpenCreate}
+              size="md"
+              id="create-category-btn"
+            >
+              <AppIcon name="Plus" size="sm" />
+              Add Category
+            </Button>
+          </>
+        }
+      />
 
       {/* ─── Search Bar ──────────────────────────────────────────────────── */}
-      <div className="bg-card/45 border border-border p-3 sm:p-3.5 rounded-xl flex-shrink-0 min-w-0">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-          <Input
-            placeholder="Search categories…"
-            value={search}
-            onChange={handleSearchChange}
-            className="pl-9 bg-background/50 border-border/85 text-xs h-9"
-            aria-label="Search categories"
-          />
-        </div>
+      <div className="bg-card/40 border border-border/80 p-3 sm:p-3.5 rounded-xl shrink-0">
+        <SearchInput
+          placeholder="Search categories…"
+          value={search}
+          onChange={(val) => {
+            setSearch(val);
+            setDebouncedSearch(val);
+          }}
+        />
       </div>
 
       {/* ─── Table ───────────────────────────────────────────────────────── */}
@@ -261,7 +257,7 @@ export default function CategoriesPage() {
                   <TableHead>Category Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-24 text-right">Actions</TableHead>
+                  <TableHead className="min-w-[120px] text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -299,7 +295,7 @@ export default function CategoriesPage() {
                   <TableHead>Category Name</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-24 text-right">Actions</TableHead>
+                  <TableHead className="min-w-[120px] text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

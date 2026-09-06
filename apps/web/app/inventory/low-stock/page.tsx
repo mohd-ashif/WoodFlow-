@@ -15,6 +15,8 @@ import { stockAdjustmentSchema } from '@furniture-os/shared';
 import { AppShell } from '../../../components/layout/AppShell';
 import { TableCard, TableCardBody, TableCardFooter } from '../../../components/ui/TableCard';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { PageHeader } from '../../../components/ui/PageHeader';
+import { AppIcon } from '../../../components/ui/AppIcon';
 
 import { useLowStock } from '../../../hooks/useInventory';
 
@@ -104,14 +106,11 @@ export default function LowStockPage() {
 
   return (
     <AppShell>
-      <div className="flex-shrink-0">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <AlertTriangle className="h-6 w-6 text-yellow-500 shrink-0" /> Low Stock Warning
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-          These items are currently running below their designated minimum threshold levels.
-        </p>
-      </div>
+      <PageHeader
+        icon={AlertTriangle}
+        title="Low Stock Warning"
+        description="These items are currently running below their designated minimum threshold levels."
+      />
 
       <TableCard>
         {isLoading ? (

@@ -19,6 +19,10 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { AppIcon } from '../../components/ui/AppIcon';
+import { Tooltip } from '../../components/ui/Tooltip';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { useInvoices } from '../../hooks/useInvoices';
@@ -43,27 +47,21 @@ export default function InvoicesListPage() {
     <AppShell>
       <div className="h-full flex flex-col space-y-3 sm:space-y-4 min-h-0">
         {/* Header */}
-        <div className="flex-shrink-0">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-            Tax Invoices
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Issued customer invoices, printable receipts, and tax records.
-          </p>
-        </div>
+        <PageHeader
+          icon={FileText}
+          title="Tax Invoices"
+          description="Issued customer invoices, printable receipts, and tax records."
+        />
 
         {/* Search Bar */}
         <Card className="border-border/80 p-3 flex-shrink-0 min-w-0">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search invoice number, customer name, phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-background text-xs h-9"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search invoice number, customer name, phone..."
+            value={searchTerm}
+            onChange={(val) => { setSearchTerm(val); setPage(1); }}
+            onClear={() => { setSearchTerm(''); setPage(1); }}
+            wrapperClassName="max-w-md"
+          />
         </Card>
 
         {/* Invoices Table Card — Flex 1 to fill available resolution height */}
@@ -149,13 +147,15 @@ export default function InvoicesListPage() {
                             {inv.status}
                           </Badge>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right min-w-[120px] pr-4">
                           <div className="flex items-center justify-end gap-1.5">
-                            <Link href={`/invoices/${inv.id}`}>
-                              <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" title="Print Invoice">
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </Link>
+                            <Tooltip content="Print Invoice">
+                              <Link href={`/invoices/${inv.id}`}>
+                                <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`Print invoice ${inv.invoiceNumber}`}>
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
                           </div>
                         </td>
                       </tr>

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from './Button';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { AppIcon } from './AppIcon';
 
 interface DataTablePaginationProps {
   currentPage: number;
@@ -28,23 +28,23 @@ export function DataTablePagination({
   const endItem = Math.min(currentPage * limit, totalItems);
 
   return (
-    <div className="p-2.5 sm:p-3.5 border-t border-border/60 bg-card/40 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 text-xs w-full min-w-0">
+    <div className="px-4 py-3 border-t border-border/80 bg-card/80 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-3 text-xs w-full shrink-0">
       {/* Items range summary */}
-      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 text-muted-foreground w-full sm:w-auto">
+      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-muted-foreground w-full sm:w-auto">
         <span className="text-center sm:text-left">
-          Showing <strong className="font-mono text-foreground">{startItem}</strong>–
-          <strong className="font-mono text-foreground">{endItem}</strong> of{' '}
-          <strong className="font-mono text-foreground">{totalItems}</strong> {itemLabel}
+          Showing <strong className="font-mono font-semibold text-foreground">{startItem}</strong>–
+          <strong className="font-mono font-semibold text-foreground">{endItem}</strong> of{' '}
+          <strong className="font-mono font-semibold text-foreground">{totalItems}</strong> {itemLabel}
         </span>
 
         {/* Rows per page selector */}
         {onLimitChange && (
-          <div className="flex items-center gap-1.5 border-l border-border/60 pl-2 sm:pl-3">
-            <span className="text-muted-foreground/80 text-[11px] sm:text-xs">Rows:</span>
+          <div className="flex items-center gap-1.5 border-l border-border/60 pl-3">
+            <span className="text-muted-foreground text-xs font-medium">Rows:</span>
             <select
               value={limit}
               onChange={(e) => onLimitChange(Number(e.target.value))}
-              className="bg-secondary/60 border border-border/80 rounded px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="bg-secondary/40 border border-border/80 rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -56,50 +56,46 @@ export function DataTablePagination({
       </div>
 
       {/* Page controls */}
-      <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-        <span className="text-muted-foreground text-[11px] sm:text-xs">
-          Page <strong className="font-mono text-foreground">{currentPage}</strong> /{' '}
-          <strong className="font-mono text-foreground">{safeTotalPages}</strong>
+      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+        <span className="text-muted-foreground text-xs font-medium">
+          Page <strong className="font-mono font-semibold text-foreground">{currentPage}</strong> /{' '}
+          <strong className="font-mono font-semibold text-foreground">{safeTotalPages}</strong>
         </span>
 
         <div className="flex items-center gap-1">
           <Button
-            size="icon"
+            size="icon-sm"
             variant="outline"
-            className="h-7 w-7 sm:h-8 sm:w-8"
             disabled={currentPage <= 1}
             onClick={() => onPageChange(1)}
             title="First Page"
           >
-            <ChevronsLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <AppIcon name="ChevronsLeft" size="sm" />
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="h-7 px-2 text-xs sm:h-8 sm:px-2.5 gap-1"
             disabled={currentPage <= 1}
             onClick={() => onPageChange(currentPage - 1)}
           >
-            <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Prev</span>
+            <AppIcon name="ChevronLeft" size="sm" /> <span className="hidden xs:inline">Prev</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="h-7 px-2 text-xs sm:h-8 sm:px-2.5 gap-1"
             disabled={currentPage >= safeTotalPages}
             onClick={() => onPageChange(currentPage + 1)}
           >
-            <span className="hidden xs:inline">Next</span> <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Next</span> <AppIcon name="ChevronRight" size="sm" />
           </Button>
           <Button
-            size="icon"
+            size="icon-sm"
             variant="outline"
-            className="h-7 w-7 sm:h-8 sm:w-8"
             disabled={currentPage >= safeTotalPages}
             onClick={() => onPageChange(safeTotalPages)}
             title="Last Page"
           >
-            <ChevronsRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <AppIcon name="ChevronsRight" size="sm" />
           </Button>
         </div>
       </div>

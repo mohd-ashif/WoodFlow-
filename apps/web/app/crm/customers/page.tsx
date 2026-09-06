@@ -25,6 +25,10 @@ import {
   Mail,
   AlertTriangle,
 } from 'lucide-react';
+import { PageHeader } from '../../../components/ui/PageHeader';
+import { SearchInput } from '../../../components/ui/SearchInput';
+import { AppIcon } from '../../../components/ui/AppIcon';
+import { Tooltip } from '../../../components/ui/Tooltip';
 import { ImportButton } from '../../../components/import/ImportButton';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 
@@ -63,55 +67,46 @@ export default function CustomersListPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
-            Customers
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Furniture shop customer database and contact profiles.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <ImportButton
-            module="CUSTOMERS"
-            moduleTitle="Customers"
-            onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['crm'] })}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCSV}
-            className="gap-2 border-border/80 text-xs"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-          <Link href="/crm/customers/new">
-            <Button size="sm" className="gap-2 shadow-sm text-xs">
-              <Plus className="h-4 w-4" />
-              Add Customer
+      <PageHeader
+        title="Customers"
+        description="Furniture shop customer database and contact profiles."
+        icon={Users}
+        actions={
+          <>
+            <ImportButton
+              module="CUSTOMERS"
+              moduleTitle="Customers"
+              onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['crm'] })}
+            />
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handleExportCSV}
+            >
+              <AppIcon name="Download" size="sm" />
+              Export CSV
             </Button>
-          </Link>
-        </div>
-      </div>
+            <Link href="/crm/customers/new">
+              <Button size="md">
+                <AppIcon name="Plus" size="sm" />
+                Add Customer
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Search and Filters Bar */}
-      <Card className="border-border/80 p-3 sm:p-3.5 flex-shrink-0 min-w-0">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search name, phone, email, code or GST..."
-              value={searchTerm}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-background text-xs h-9"
-            />
-          </div>
+      <Card className="border-border/80 p-3 sm:p-3.5 shrink-0">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <SearchInput
+            placeholder="Search name, phone, email, code or GST..."
+            value={searchTerm}
+            onChange={setSearchTerm}
+          />
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             <span className="text-xs text-muted-foreground font-medium flex items-center gap-1 shrink-0">
-              <Filter className="h-3.5 w-3.5" /> Filter:
+              <AppIcon name="Filter" size="sm" /> Filter:
             </span>
             {(['ALL', 'ACTIVE', 'INACTIVE', 'ARCHIVED'] as const).map((st) => (
               <Button
@@ -240,28 +235,34 @@ export default function CustomersListPage() {
                             {cust.status}
                           </Badge>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4 text-right min-w-[120px] pr-4">
                           <div className="flex items-center justify-end gap-1 sm:gap-2">
-                            <Link href={`/crm/customers/${cust.id}`}>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" title="View Profile">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                            <Link href={`/crm/customers/${cust.id}/edit`}>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" title="Edit Customer">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </Link>
+                            <Tooltip content="View Profile">
+                              <Link href={`/crm/customers/${cust.id}`}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View ${cust.name} profile`}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
+                            <Tooltip content="Edit customer">
+                              <Link href={`/crm/customers/${cust.id}/edit`}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`Edit ${cust.name}`}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </Tooltip>
                             {cust.status !== 'ARCHIVED' && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
-                                title="Archive Customer"
-                                onClick={() => setArchiveModalCustomer(cust)}
-                              >
-                                <Archive className="h-4 w-4" />
-                              </Button>
+                              <Tooltip content="Archive customer">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
+                                  aria-label={`Archive ${cust.name}`}
+                                  onClick={() => setArchiveModalCustomer(cust)}
+                                >
+                                  <Archive className="h-4 w-4" />
+                                </Button>
+                              </Tooltip>
                             )}
                           </div>
                         </td>

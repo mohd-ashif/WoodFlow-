@@ -30,20 +30,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const variantStyles = {
       primary: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20',
       default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20',
-      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-      outline: 'border border-border bg-transparent hover:bg-secondary/50 text-foreground',
+      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/40',
+      outline: 'border border-border bg-card/40 hover:bg-secondary/60 text-foreground shadow-2xs',
       danger: 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm',
       destructive: 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm',
-      ghost: 'hover:bg-secondary/50 text-foreground',
+      ghost: 'hover:bg-secondary/60 text-foreground',
     };
 
     const sizeStyles = {
-      sm: 'h-7 sm:h-8 px-2.5 sm:px-3 text-xs rounded-md',
-      md: 'h-8 sm:h-9 md:h-10 px-3 sm:px-4 text-xs sm:text-sm rounded-lg',
-      lg: 'h-9 sm:h-10 md:h-12 px-4 sm:px-6 text-xs sm:text-sm md:text-base rounded-xl',
-      icon: 'h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-lg',
-      'icon-sm': 'h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-md',
-      'icon-lg': 'h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-lg',
+      sm: 'h-8 px-3 text-xs rounded-lg gap-1.5',
+      md: 'h-9 px-3.5 sm:px-4 text-xs sm:text-sm rounded-lg gap-2',
+      lg: 'h-10 px-5 text-sm font-semibold rounded-xl gap-2',
+      icon: 'h-9 w-9 p-0 rounded-lg justify-center',
+      'icon-sm': 'h-8 w-8 p-0 rounded-lg justify-center',
+      'icon-lg': 'h-10 w-10 p-0 rounded-xl justify-center',
     };
 
     return (
@@ -52,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         className={twMerge(
           clsx(
-            'inline-flex items-center justify-center font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
+            'inline-flex items-center justify-center font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] shrink-0 select-none cursor-pointer',
             variantStyles[variant],
             sizeStyles[size],
             className
@@ -60,7 +60,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+        {isLoading && <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden="true" />}
         {children}
       </button>
     );

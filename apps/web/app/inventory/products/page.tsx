@@ -22,6 +22,9 @@ import { stockAdjustmentSchema } from '@furniture-os/shared';
 import toast from '@/components/ui/Toast';
 import { ImportButton } from '../../../components/import/ImportButton';
 import { ProductImage } from '../../../components/ui/ProductImage';
+import { PageHeader } from '../../../components/ui/PageHeader';
+import { SearchInput } from '../../../components/ui/SearchInput';
+import { AppIcon } from '../../../components/ui/AppIcon';
 
 
 // ─── Skeleton Row ──────────────────────────────────────────────────────────────
@@ -254,43 +257,38 @@ export default function ProductsListPage() {
   return (
     <AppShell>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            Products Database
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            View and manage cataloged furniture items and raw materials.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <ImportButton
-            module="PRODUCTS"
-            moduleTitle="Products"
-            onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
-          />
-          <Link href="/inventory/products/new">
-            <Button size="sm" className="gap-2 text-xs">
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Add Product
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        icon={Package}
+        title="Products Database"
+        description="View and manage cataloged furniture items and raw materials."
+        actions={
+          <>
+            <ImportButton
+              module="PRODUCTS"
+              moduleTitle="Products"
+              onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
+            />
+            <Link href="/inventory/products/new">
+              <Button size="md" className="gap-2">
+                <AppIcon icon={Plus} size="sm" />
+                Add Product
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Search & Filters */}
       <div className="bg-card/40 border border-border p-3 sm:p-3.5 rounded-xl space-y-3 flex-shrink-0 min-w-0">
         <div className="flex flex-col md:flex-row md:items-center gap-2.5 sm:gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
-            <Input
-              placeholder="Search by name, SKU…"
-              value={search}
-              onChange={handleSearchChange}
-              className="pl-9 bg-background/50 border-border/80 text-xs h-9"
-              aria-label="Search products"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search by name, SKU…"
+            value={search}
+            onChange={(val) => { setSearch(val); setPage(1); }}
+            onClear={() => { setSearch(''); setPage(1); }}
+            wrapperClassName="flex-1 max-w-md"
+            aria-label="Search products"
+          />
           <select
             value={categoryId}
             onChange={(e) => { setCategoryId(e.target.value); setPage(1); }}
@@ -307,14 +305,14 @@ export default function ProductsListPage() {
         {/* Filter pills */}
         <div className="flex items-center gap-1.5 flex-wrap min-w-0 pt-2 border-t border-border/50">
           <span className="text-xs text-muted-foreground font-medium shrink-0 mr-1 flex items-center gap-1">
-            <Filter className="h-3 w-3" aria-hidden="true" />
+            <AppIcon icon={Filter} size="xs" />
             Filter:
           </span>
           {FILTER_TABS.map((t) => (
             <button
               key={t.val}
               onClick={() => { setFilterType(t.val); setPage(1); }}
-              className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                 filterType === t.val
                   ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                   : 'bg-secondary/40 text-muted-foreground border-border/60 hover:text-foreground hover:bg-secondary'
@@ -341,7 +339,7 @@ export default function ProductsListPage() {
                   <TableHead className="text-right">Stock Qty</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="min-w-[140px] text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -412,7 +410,7 @@ export default function ProductsListPage() {
                       </span>
                     </TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="min-w-[140px] text-right pr-4">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -18,6 +18,10 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { useWorkers } from '../../hooks/useWorkers';
 
 import { TableCard, TableCardBody } from '../../components/ui/TableCard';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { SearchInput } from '../../components/ui/SearchInput';
+import { AppIcon } from '../../components/ui/AppIcon';
+import { Tooltip } from '../../components/ui/Tooltip';
 
 export default function WorkersListPage() {
   const queryClient = useQueryClient();
@@ -90,31 +94,30 @@ export default function WorkersListPage() {
   return (
     <AppShell>
       <div className="h-full flex flex-col space-y-3 sm:space-y-4 min-h-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Workers Directory</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Manage factory workers, skills, departments, wages, and active production status.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-            <ImportButton
-              module="WORKERS"
-              moduleTitle="Workers"
-              onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['workers'] })}
-            />
-            <Link href="/workers/departments">
-              <Button variant="outline" size="sm" className="gap-2 text-xs">
-                <Building2 className="h-4 w-4" />
-                <span>Departments</span>
+        <PageHeader
+          icon={Users}
+          title="Workers Directory"
+          description="Manage factory workers, skills, departments, wages, and active production status."
+          actions={
+            <>
+              <ImportButton
+                module="WORKERS"
+                moduleTitle="Workers"
+                onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['workers'] })}
+              />
+              <Link href="/workers/departments">
+                <Button variant="outline" size="md" className="gap-2">
+                  <AppIcon icon={Building2} size="sm" />
+                  <span>Departments</span>
+                </Button>
+              </Link>
+              <Button size="md" onClick={() => setIsAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20">
+                <AppIcon icon={Plus} size="sm" />
+                <span>Add Worker</span>
               </Button>
-            </Link>
-            <Button size="sm" onClick={() => setIsAddOpen(true)} className="gap-2 shadow-lg shadow-primary/20 text-xs">
-              <Plus className="h-4 w-4" />
-              <span>Add Worker</span>
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* Add Worker Dialog Modal */}
         {isAddOpen && (
@@ -219,18 +222,19 @@ export default function WorkersListPage() {
 
         {/* Search & Filter Bar */}
         <div className="flex flex-wrap gap-3 items-center justify-between bg-card/30 border border-border p-3 sm:p-4 rounded-xl shrink-0">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search worker name, code, phone..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="pl-9 text-xs h-9"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search worker name, code, phone..."
+            value={search}
+            onChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            onClear={() => {
+              setSearch('');
+              setPage(1);
+            }}
+            wrapperClassName="w-full sm:w-80"
+          />
           <div className="flex items-center gap-3">
             <select
               value={departmentId}
@@ -276,7 +280,7 @@ export default function WorkersListPage() {
                   <TableHead>Employment</TableHead>
                   <TableHead>Phone / Email</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="min-w-[120px] text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -337,13 +341,15 @@ export default function WorkersListPage() {
                           {worker.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Link href={`/workers/${worker.id}`}>
-                          <Button variant="outline" size="sm" className="gap-1.5">
-                            <Eye className="h-3.5 w-3.5" />
-                            <span>View Profile</span>
-                          </Button>
-                        </Link>
+                      <TableCell className="text-right min-w-[120px] pr-4">
+                        <Tooltip content="View worker profile">
+                          <Link href={`/workers/${worker.id}`}>
+                            <Button variant="outline" size="sm" className="gap-1.5" aria-label={`View ${worker.firstName} ${worker.lastName} profile`}>
+                              <Eye className="h-3.5 w-3.5" />
+                              <span>View Profile</span>
+                            </Button>
+                          </Link>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))

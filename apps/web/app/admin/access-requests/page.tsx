@@ -11,7 +11,10 @@ import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Dialog } from '../../../components/ui/Dialog';
 import { Input } from '../../../components/ui/Input';
-import { CheckCircle2, XCircle, Clock, Loader2, Search, ArrowRight, Building } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Loader2, Search, ArrowRight, Building, UserCheck } from 'lucide-react';
+import { PageHeader } from '../../../components/ui/PageHeader';
+import { SearchInput } from '../../../components/ui/SearchInput';
+import { AppIcon } from '../../../components/ui/AppIcon';
 
 export default function AdminAccessRequestsPage() {
   const queryClient = useQueryClient();
@@ -136,27 +139,27 @@ export default function AdminAccessRequestsPage() {
   return (
     <AppShell>
       <div className="h-full flex flex-col space-y-3 sm:space-y-4 min-h-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Access Requests</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Review user requests for furniture company onboardings.</p>
-          </div>
-        </div>
+        <PageHeader
+          icon={UserCheck}
+          title="Access Requests"
+          description="Review user requests for furniture company onboardings."
+        />
 
         {/* Search & Filter Bar */}
         <div className="flex flex-wrap gap-3 items-center justify-between bg-card/25 border border-border/80 p-3 sm:p-4 rounded-xl shrink-0">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search user, email or company..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-9 bg-secondary/20 text-xs h-9"
-            />
-          </div>
+          <SearchInput
+            placeholder="Search user, email or company..."
+            value={searchQuery}
+            onChange={(val) => {
+              setSearchQuery(val);
+              setCurrentPage(1);
+            }}
+            onClear={() => {
+              setSearchQuery('');
+              setCurrentPage(1);
+            }}
+            wrapperClassName="w-full sm:w-80"
+          />
 
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground uppercase font-semibold">Status:</span>

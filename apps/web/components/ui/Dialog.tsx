@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { AppIcon } from './AppIcon';
 import { clsx } from 'clsx';
 
 export interface DialogProps {
@@ -66,12 +66,12 @@ export function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       role="presentation"
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200"
         onClick={!loading ? onClose : undefined}
         aria-hidden="true"
       />
@@ -84,16 +84,16 @@ export function Dialog({
         aria-labelledby="dialog-title"
         aria-describedby={description ? 'dialog-description' : undefined}
         className={clsx(
-          'relative w-full max-w-[calc(100vw-1.25rem)] rounded-xl sm:rounded-2xl border border-border bg-card shadow-2xl',
+          'relative w-full max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border/80 bg-card shadow-2xl',
           'animate-in zoom-in-95 fade-in duration-200',
-          'flex flex-col max-h-[92vh] sm:max-h-[90vh] my-auto',
+          'flex flex-col max-h-[90vh] my-auto overflow-hidden',
           maxWidthClass
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-border flex-shrink-0">
+        <div className="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-border/80 shrink-0">
           <div>
-            <h2 id="dialog-title" className="text-base sm:text-lg font-semibold text-foreground">
+            <h2 id="dialog-title" className="text-base sm:text-lg font-bold tracking-tight text-foreground">
               {title}
             </h2>
             {description && (
@@ -106,14 +106,14 @@ export function Dialog({
             onClick={!loading ? onClose : undefined}
             disabled={loading}
             aria-label="Close dialog"
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0 cursor-pointer"
           >
-            <X className="h-5 w-5" aria-hidden="true" />
+            <AppIcon name="X" size="lg" />
           </button>
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6 flex-1">
+        <div className="overflow-y-auto px-5 sm:px-6 py-5 flex-1 custom-scrollbar">
           {children}
         </div>
       </div>

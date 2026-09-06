@@ -39,7 +39,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             type={inputType}
             className={clsx(
-              'flex h-8 sm:h-9 md:h-10 w-full rounded-lg border border-border bg-secondary/30 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-foreground ring-offset-background placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all',
+              'flex h-9 w-full rounded-lg border border-border bg-secondary/30 px-3 py-1.5 text-xs sm:text-sm text-foreground ring-offset-background placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 transition-all',
               isPassword && 'pr-10',
               errorMessage && 'border-destructive focus-visible:ring-destructive',
               className
@@ -55,9 +55,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               tabIndex={-1}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4" />
+                <EyeOff className="h-4 w-4 shrink-0" />
               ) : (
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 shrink-0" />
               )}
             </button>
           )}
@@ -73,4 +73,3 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
-

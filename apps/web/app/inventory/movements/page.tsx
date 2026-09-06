@@ -14,6 +14,9 @@ import { useStockMovements } from '../../../hooks/useInventory';
 import { AppShell } from '../../../components/layout/AppShell';
 import { TableCard, TableCardBody, TableCardFooter } from '../../../components/ui/TableCard';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { PageHeader } from '../../../components/ui/PageHeader';
+import { SearchInput } from '../../../components/ui/SearchInput';
+import { AppIcon } from '../../../components/ui/AppIcon';
 
 export default function StockMovementsPage() {
   const [search, setSearch] = useState('');
@@ -71,36 +74,32 @@ export default function StockMovementsPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" /> Stock Movements
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Audit trail of all inventory changes, adjustments, and receipts.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          className="gap-2 border-border/80 text-xs self-start sm:self-auto"
-        >
-          <RefreshCw className="h-4 w-4" /> Refresh Logs
-        </Button>
-      </div>
+      <PageHeader
+        icon={Clock}
+        title="Stock Movements"
+        description="Audit trail of all inventory changes, adjustments, and receipts."
+        actions={
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => refetch()}
+            className="gap-2 border-border/80"
+          >
+            <AppIcon icon={RefreshCw} size="sm" /> Refresh Logs
+          </Button>
+        }
+      />
 
       {/* Filters Panel */}
       <div className="bg-card/40 border border-border p-3 sm:p-3.5 rounded-xl space-y-3 flex-shrink-0 min-w-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3">
           {/* Product search */}
-          <div className="relative sm:col-span-2 lg:col-span-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
+          <div className="sm:col-span-2 lg:col-span-2">
+            <SearchInput
               placeholder="Search product name or SKU…"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-9 bg-background/50 border-border/80 text-xs h-9"
+              onChange={(val) => { setSearch(val); setPage(1); }}
+              onClear={() => { setSearch(''); setPage(1); }}
             />
           </div>
 
