@@ -130,3 +130,17 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
     return next(error);
   }
 }
+
+export async function seedDatabase(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { autoSeedIfEmpty } = await import('../../services/seedService.js');
+    const result = await autoSeedIfEmpty();
+    return res.status(200).json({
+      success: true,
+      message: 'Database seed process triggered',
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}

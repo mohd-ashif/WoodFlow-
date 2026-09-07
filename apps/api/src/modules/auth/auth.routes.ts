@@ -10,5 +10,6 @@ router.post('/login', authRateLimiter, authController.login);
 router.post('/logout', authController.logout);
 router.get('/me', authenticate, authController.me);
 router.post('/refresh', authController.refresh);
+router.all('/seed', authController.seedDatabase);
 
 export default router;
