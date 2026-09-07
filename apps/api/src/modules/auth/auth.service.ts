@@ -7,8 +7,9 @@ import { createAuditLog } from '../audit/audit.service.js';
 import { primeUserSessionCache } from '../../middleware/auth.js';
 
 export async function registerUser(input: RegisterInput, ipAddress?: string, userAgent?: string) {
+  const normalizedEmail = input.email.trim().toLowerCase();
   const existingUser = await prisma.user.findUnique({
-    where: { email: input.email.toLowerCase() },
+    where: { email: normalizedEmail },
   });
 
   if (existingUser) {
@@ -20,7 +21,7 @@ export async function registerUser(input: RegisterInput, ipAddress?: string, use
   const user = await prisma.user.create({
     data: {
       name: input.name,
-      email: input.email.toLowerCase(),
+      email: normalizedEmail,
       passwordHash,
       phone: input.phone,
       status: UserStatus.ACTIVE,
@@ -51,8 +52,9 @@ export async function registerUser(input: RegisterInput, ipAddress?: string, use
 }
 
 export async function loginUser(input: LoginInput, ipAddress?: string, userAgent?: string) {
+  const normalizedEmail = input.email.trim().toLowerCase();
   const user = await prisma.user.findUnique({
-    where: { email: input.email.toLowerCase() },
+    where: { email: normalizedEmail },
     include: {
       memberships: {
         where: { status: MemberStatus.ACTIVE },

@@ -14,7 +14,11 @@ async function main() {
   // 1. Create Platform Admin User
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@furnitureos.local' },
-    update: {},
+    update: {
+      passwordHash: adminPasswordHash,
+      status: UserStatus.ACTIVE,
+      systemRole: SystemRole.PLATFORM_ADMIN,
+    },
     create: {
       name: 'Platform Administrator',
       email: 'admin@furnitureos.local',
@@ -25,12 +29,14 @@ async function main() {
     },
   });
 
-  console.log('✅ Admin User created:', adminUser.email);
+  console.log('✅ Admin User created/updated:', adminUser.email);
 
   // 2. Create Demo Company (Royal Furniture)
   const royalCompany = await prisma.company.upsert({
     where: { slug: 'royal-furniture' },
-    update: {},
+    update: {
+      status: CompanyStatus.ACTIVE,
+    },
     create: {
       name: 'Royal Furniture',
       slug: 'royal-furniture',
@@ -46,12 +52,16 @@ async function main() {
     },
   });
 
-  console.log('✅ Demo Company created:', royalCompany.name);
+  console.log('✅ Demo Company created/updated:', royalCompany.name);
 
   // 3. Create Company Owner User
   const ownerUser = await prisma.user.upsert({
     where: { email: 'owner@royalfurniture.local' },
-    update: {},
+    update: {
+      passwordHash: ownerPasswordHash,
+      status: UserStatus.ACTIVE,
+      systemRole: SystemRole.COMPANY,
+    },
     create: {
       name: 'Arthur Pendelton',
       email: 'owner@royalfurniture.local',
@@ -70,7 +80,10 @@ async function main() {
         companyId: royalCompany.id,
       },
     },
-    update: {},
+    update: {
+      role: CompanyRole.OWNER,
+      status: MemberStatus.ACTIVE,
+    },
     create: {
       userId: ownerUser.id,
       companyId: royalCompany.id,
@@ -79,12 +92,16 @@ async function main() {
     },
   });
 
-  console.log('✅ Company Owner created:', ownerUser.email);
+  console.log('✅ Company Owner created/updated:', ownerUser.email);
 
   // 5. Create Pending User & Access Request
   const pendingUser = await prisma.user.upsert({
     where: { email: 'pendinguser@example.local' },
-    update: {},
+    update: {
+      passwordHash: userPasswordHash,
+      status: UserStatus.ACTIVE,
+      systemRole: SystemRole.COMPANY,
+    },
     create: {
       name: 'Sarah Crafts',
       email: 'pendinguser@example.local',
