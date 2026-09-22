@@ -1,6 +1,8 @@
 import { fetchApi } from '../lib/api';
 import { PurchaseSummary, CreatePurchaseInput } from '@furniture-os/shared';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+
 export const purchasesService = {
   async getPurchases(filters: Record<string, any> = {}) {
     const params = new URLSearchParams();
@@ -39,5 +41,19 @@ export const purchasesService = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
+  },
+
+  async sharePurchaseWhatsApp(id: string) {
+    return fetchApi<any>(`/purchases/${id}/share/whatsapp`, {
+      method: 'POST',
+    });
+  },
+
+  getPdfPreviewUrl(id: string) {
+    return `${API_BASE_URL}/purchases/${id}/pdf/preview`;
+  },
+
+  getPdfDownloadUrl(id: string) {
+    return `${API_BASE_URL}/purchases/${id}/pdf?download=true`;
   },
 };

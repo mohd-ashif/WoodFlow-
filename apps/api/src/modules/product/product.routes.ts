@@ -9,8 +9,10 @@ router.use(authenticate, tenantContext);
 
 router.get('/', controller.getProducts);
 router.post('/', controller.createProduct);
+router.post('/cleanup-bogus', controller.cleanupBogusProducts);
 router.get('/:id', controller.getProductById);
 router.patch('/:id', controller.updateProduct);
+router.delete('/:id', controller.deleteProduct);
 router.post('/:id/deactivate', controller.deactivateProduct);
 router.post('/:id/activate', controller.activateProduct);
 

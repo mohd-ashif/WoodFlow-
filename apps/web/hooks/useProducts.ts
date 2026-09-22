@@ -80,3 +80,28 @@ export function useActivateProduct() {
     },
   });
 }
+
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => inventoryService.deleteProduct(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all(undefined) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all(undefined) });
+    },
+  });
+}
+
+export function useCleanupBogusProducts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => inventoryService.cleanupBogusProducts(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all(undefined) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all(undefined) });
+    },
+  });
+}
+

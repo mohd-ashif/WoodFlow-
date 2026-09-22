@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { updateCompanySchema } from '@furniture-os/shared';
+import { updateCompanySchema, updateBrandingSchema } from '@furniture-os/shared';
 import * as service from './company.service.js';
+import * as brandingService from './branding.service.js';
 import { CompanyRole, MemberStatus } from '@prisma/client';
 import { z } from 'zod';
 import { hashPassword } from '../../utils/auth.js';
+import { BadRequestError } from '../../utils/errors.js';
 
 const createMemberSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -36,12 +38,150 @@ export async function updateMyCompany(req: Request, res: Response, next: NextFun
   try {
     const companyId = req.tenantId!;
     const input = updateCompanySchema.parse(req.body);
-    const company = await service.updateTenantCompany(companyId, input);
+    const company = await service.updateTenantCompany(companyId, input, req.user?.id);
 
     return res.status(200).json({
       success: true,
       message: 'Company details updated',
       data: { company },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function getCompanyProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const company = await service.getTenantCompany(companyId);
+    const branding = await brandingService.getTenantBranding(companyId);
+
+    return res.status(200).json({
+      success: true,
+      data: { company, branding },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function updateCompanyProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const input = updateCompanySchema.parse(req.body);
+    const company = await service.updateTenantCompany(companyId, input, req.user?.id);
+    const branding = await brandingService.getTenantBranding(companyId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Company profile updated successfully',
+      data: { company, branding },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function getBranding(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const branding = await brandingService.getTenantBranding(companyId);
+
+    return res.status(200).json({
+      success: true,
+      data: { branding },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function updateBranding(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const input = updateBrandingSchema.parse(req.body);
+    const branding = await brandingService.updateTenantBranding(companyId, input, req.user!.id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Branding updated successfully',
+      data: { branding },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function uploadCompanyLogo(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const file = (req as any).uploadedFile;
+
+    if (!file) {
+      throw new BadRequestError('No image file provided. Form field must contain image file.');
+    }
+
+    const result = await brandingService.uploadCompanyLogo(companyId, file, req.user!.id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Company logo updated successfully',
+      logoUrl: result.logoUrl,
+      logoObjectKey: result.logoObjectKey,
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function removeCompanyLogo(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const result = await brandingService.removeCompanyLogo(companyId, req.user!.id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Company logo removed successfully',
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function uploadInvoiceLogo(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const file = (req as any).uploadedFile;
+
+    if (!file) {
+      throw new BadRequestError('No image file provided. Form field must contain image file.');
+    }
+
+    const result = await brandingService.uploadInvoiceLogo(companyId, file, req.user!.id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Invoice logo updated successfully',
+      invoiceLogoUrl: result.invoiceLogoUrl,
+      invoiceLogoObjectKey: result.invoiceLogoObjectKey,
+      data: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function removeInvoiceLogo(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const result = await brandingService.removeInvoiceLogo(companyId, req.user!.id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Invoice logo removed successfully',
+      data: result,
     });
   } catch (error) {
     return next(error);

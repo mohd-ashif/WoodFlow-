@@ -18,22 +18,52 @@ export interface UserSummary {
   memberships?: CompanyMemberInfo[];
 }
 
+export interface TenantBrandingSummary {
+  id: string;
+  companyId: string;
+  logoUrl?: string | null;
+  logoObjectKey?: string | null;
+  invoiceLogoUrl?: string | null;
+  invoiceLogoObjectKey?: string | null;
+  faviconUrl?: string | null;
+  faviconObjectKey?: string | null;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TenantBrandingDTO = TenantBrandingSummary;
+
 export interface CompanySummary {
   id: string;
   name: string;
   slug: string;
+  displayName?: string | null;
   logo?: string | null;
+  logoObjectKey?: string | null;
   email?: string | null;
   phone?: string | null;
+  alternatePhone?: string | null;
   address?: string | null;
+  addressLine2?: string | null;
   city?: string | null;
   state?: string | null;
   country?: string | null;
   postalCode?: string | null;
+  website?: string | null;
   gstNumber?: string | null;
+  taxId?: string | null;
+  businessRegistrationNumber?: string | null;
   status: CompanyStatus;
   createdAt: string;
+  branding?: TenantBrandingSummary | null;
 }
+
+export interface CompanyProfileDTO extends CompanySummary {
+  updatedAt?: string;
+}
+
 
 export interface CompanyMemberInfo {
   id: string;

@@ -8,6 +8,9 @@ import {
   getPurchaseDetails,
   getPurchasesOverview,
 } from './purchase.service.js';
+import { generatePurchaseInvoiceHtml } from './purchase-invoice-pdf.service.js';
+import { preparePurchaseWhatsAppShare, resolvePublicShareToken } from './purchase-share.service.js';
+import { createAuditLog } from '../audit/audit.service.js';
 
 export async function createPurchase(req: Request, res: Response, next: NextFunction) {
   try {
@@ -96,6 +99,69 @@ export async function getPurchasesOverviewController(req: Request, res: Response
       success: true,
       data: overview,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// PDF & PRINT PREVIEW HANDLERS
+export async function getPurchasePdfHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const purchaseId = req.params.id;
+    const tenantId = req.tenantId!;
+    const isDownload = req.query.download === 'true';
+
+    const html = await generatePurchaseInvoiceHtml(tenantId, purchaseId);
+
+    await createAuditLog({
+      userId: req.user!.id,
+      companyId: tenantId,
+      action: isDownload ? 'PURCHASE_INVOICE_DOWNLOADED' : 'PURCHASE_INVOICE_PREVIEWED',
+      entity: 'Purchase',
+      entityId: purchaseId,
+    });
+
+    const disposition = isDownload
+      ? `attachment; filename="Purchase-Bill-${purchaseId}.html"`
+      : 'inline';
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', disposition);
+    return res.send(html);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function sharePurchaseWhatsAppHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const purchaseId = req.params.id;
+    const tenantId = req.tenantId!;
+    const userId = req.user!.id;
+    const protocol = req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3000';
+    const baseUrl = `${protocol}://${host}`;
+
+    const payload = await preparePurchaseWhatsAppShare(tenantId, purchaseId, userId, baseUrl);
+
+    return res.json({
+      success: true,
+      data: payload,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPublicPurchasePdfHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = req.params.token;
+    const record = resolvePublicShareToken(token);
+    const html = await generatePurchaseInvoiceHtml(record.companyId, record.purchaseId);
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', 'inline');
+    return res.send(html);
   } catch (error) {
     next(error);
   }

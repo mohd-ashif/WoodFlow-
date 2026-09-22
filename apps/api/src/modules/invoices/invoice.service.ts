@@ -124,6 +124,12 @@ export async function getPublicInvoiceDetailsByToken(token: string) {
       taxAmount: true,
       totalAmount: true,
       status: true,
+      companyNameSnapshot: true,
+      companyAddressSnapshot: true,
+      companyPhoneSnapshot: true,
+      companyEmailSnapshot: true,
+      companyTaxNumberSnapshot: true,
+      companyLogoUrlSnapshot: true,
       createdAt: true,
       company: {
         select: {

@@ -9,10 +9,13 @@ import { LogOut, User, Building2, Menu, X } from 'lucide-react';
 
 import { GlobalSearch } from '../common/GlobalSearch';
 import { NotificationCenter } from '../common/NotificationCenter';
+import { useCompanyBranding } from '../../hooks/useCompanyBranding';
+import { CompanyLogo } from '../branding/CompanyLogo';
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const { isMobileOpen, toggleMobileMenu } = useLayout();
+  const { logoUrl, primaryColor } = useCompanyBranding();
 
   const isPlatformAdmin = user?.isPlatformAdmin;
   const activeCompany = user?.activeMembership?.company;
@@ -32,9 +35,19 @@ export function Navbar() {
           {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
 
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
-          <Building2 className="h-5 w-5" />
-        </div>
+        {isPlatformAdmin ? (
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
+            <Building2 className="h-5 w-5" />
+          </div>
+        ) : (
+          <CompanyLogo
+            logoUrl={logoUrl}
+            companyName={activeCompany?.name}
+            size="sm"
+            rounded="md"
+            primaryColor={primaryColor}
+          />
+        )}
         <div className="min-w-0">
           <h1 className="text-xs sm:text-base font-semibold tracking-tight text-foreground flex items-center gap-1.5 truncate">
             {isPlatformAdmin ? (

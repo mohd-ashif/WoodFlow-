@@ -65,6 +65,13 @@ enum StockMovementType {
   PRODUCTION_ISSUE
   PRODUCTION_RETURN
   PRODUCTION_OUTPUT
+  PURCHASE_RECEIPT
+  SALES_DELIVERY
+  TRANSFER_OUT
+  TRANSFER_IN
+  SCRAP
+  RETURN_IN
+  RETURN_OUT
 }
 
 model User {
@@ -99,6 +106,11 @@ model User {
   transfersCreated        AccountTransfer[]      @relation("AccountTransferCreatedBy")
   importJobs              ImportJob[]
   notifications           Notification[]
+  customerDesignsCreated  CustomerDesign[]       @relation("CustomerDesignCreatedBy")
+  quotationsCreated       Quotation[]            @relation("QuotationCreatedBy")
+  purchaseRequestsCreated PurchaseRequest[]      @relation("PurchaseRequestCreatedBy")
+  goodsReceiptsCreated    GoodsReceipt[]         @relation("GoodsReceiptCreatedBy")
+  deliveriesCreated       Delivery[]             @relation("DeliveryCreatedBy")
 
   @@map("users")
 }
@@ -116,12 +128,20 @@ model Company {
   country            String?
   postalCode         String?
   gstNumber          String?
+  displayName        String?
+  alternatePhone     String?
+  addressLine2       String?
+  website            String?
+  taxId              String?
+  businessRegistrationNumber String?
+  logoObjectKey      String?
   status             CompanyStatus   @default(ACTIVE)
   allowNegativeStock Boolean         @default(false)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   members           CompanyMember[]
+  branding          TenantBranding?
   auditLogs         AuditLog[]
   categories        Category[]
   units             Unit[]
@@ -155,6 +175,21 @@ model Company {
   importJobs           ImportJob[]
   mediaAssets          MediaAsset[]
   notifications        Notification[]
+  productTemplates     ProductTemplate[]
+  customerDesigns      CustomerDesign[]
+  quotations           Quotation[]
+  salesDemands         SalesDemand[]
+  boms                 BOM[]
+  inventoryLocations   InventoryLocation[]
+  inventoryReservations InventoryReservation[]
+  purchaseRequests     PurchaseRequest[]
+  goodsReceipts        GoodsReceipt[]
+  workCenters          WorkCenter[]
+  productionRoutings   ProductionRouting[]
+  productionOutputs    ProductionOutput[]
+  productionScraps     ProductionScrap[]
+  deliveries           Delivery[]
+  manufacturingSettings ManufacturingSettings?
 
   @@map("companies")
 }
@@ -244,6 +279,18 @@ model Product {
   purchaseItems PurchaseItem[]
   workOrderItems WorkOrderItem[]
   workOrderMaterials WorkOrderMaterial[]
+  templateId    String?
+  template      ProductTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  boms          BOM[]
+  bomItems      BOMItem[]
+  customerDesigns CustomerDesign[]
+  salesDemands  SalesDemand[]
+  reservations  InventoryReservation[]
+  purchaseRequestItems PurchaseRequestItem[]
+  goodsReceiptItems GoodsReceiptItem[]
+  productionOutputs ProductionOutput[]
+  productionScraps ProductionScrap[]
+  deliveryItems DeliveryItem[]
 
   @@unique([companyId, sku])
   @@index([companyId])
@@ -410,6 +457,9 @@ model Customer {
   invoices  Invoice[]
   workOrders WorkOrder[]
   customerPayments CustomerPayment[]
+  designs       CustomerDesign[]
+  quotations    Quotation[]
+  deliveries    Delivery[]
 
   @@unique([companyId, customerCode])
   @@index([companyId])
@@ -487,6 +537,8 @@ model Supplier {
   tags      SupplierTag[]
   purchases Purchase[]
   supplierPayments SupplierPayment[]
+  purchaseRequests PurchaseRequest[]
+  goodsReceipts    GoodsReceipt[]
 
   @@unique([companyId, supplierCode])
   @@index([companyId])
@@ -651,6 +703,16 @@ model Sale {
   items     SaleItem[]
   invoices  Invoice[]
   customerPayments CustomerPayment[]
+  quotationId      String?         @unique
+  quotation        Quotation?      @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  customerDesignId String?
+  customerDesign   CustomerDesign? @relation(fields: [customerDesignId], references: [id], onDelete: SetNull)
+  demands          SalesDemand[]
+  reservations     InventoryReservation[]
+  purchaseRequests PurchaseRequest[]
+  workOrders       WorkOrder[]
+  deliveries       Delivery[]
+  purchases        Purchase[]      @relation("PurchaseSalesOrder")
 
   @@unique([companyId, saleNumber])
   @@index([companyId])
@@ -676,6 +738,12 @@ model SaleItem {
   taxRate             Float    @default(0)
   taxAmount           Float    @default(0)
   totalAmount         Float
+  fulfillmentStrategy FulfillmentStrategy @default(STOCK_ITEM)
+  customerDesignId    String?
+  customerDesign      CustomerDesign?     @relation(fields: [customerDesignId], references: [id], onDelete: SetNull)
+  demands             SalesDemand[]
+  workOrderItems      WorkOrderItem[]
+  deliveryItems       DeliveryItem[]
   createdAt           DateTime @default(now())
 
   sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
@@ -705,6 +773,15 @@ model Invoice {
   totalAmount            Float
   status                 InvoiceStatus @default(ISSUED)
   publicToken            String?       @unique
+
+  // Company Snapshot at invoice issue time (Section 18)
+  companyNameSnapshot      String?
+  companyAddressSnapshot   String?
+  companyPhoneSnapshot     String?
+  companyEmailSnapshot     String?
+  companyTaxNumberSnapshot String?
+  companyLogoUrlSnapshot   String?
+
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
 
@@ -757,6 +834,13 @@ model Purchase {
   creator  User?          @relation("PurchaseCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   items    PurchaseItem[]
   supplierPayments SupplierPayment[]
+  purchaseRequestId String?
+  purchaseRequest   PurchaseRequest? @relation(fields: [purchaseRequestId], references: [id], onDelete: SetNull)
+  salesOrderId      String?
+  salesOrder        Sale?            @relation("PurchaseSalesOrder", fields: [salesOrderId], references: [id], onDelete: SetNull)
+  workOrderId       String?
+  workOrder         WorkOrder?       @relation("PurchaseWorkOrder", fields: [workOrderId], references: [id], onDelete: SetNull)
+  goodsReceipts     GoodsReceipt[]
 
   @@unique([companyId, purchaseNumber])
   @@index([companyId])
@@ -782,6 +866,9 @@ model PurchaseItem {
   taxRate             Float    @default(0)
   taxAmount           Float    @default(0)
   totalAmount         Float
+  purchaseRequestItemId String?
+  purchaseRequestItem   PurchaseRequestItem? @relation(fields: [purchaseRequestItemId], references: [id], onDelete: SetNull)
+  goodsReceiptItems     GoodsReceiptItem[]
   createdAt           DateTime @default(now())
 
   purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
@@ -957,6 +1044,24 @@ model WorkOrder {
   completedDate   DateTime?
   estimatedCost   Float               @default(0)
   actualCost      Float               @default(0)
+  salesOrderId     String?
+  salesOrder       Sale?              @relation(fields: [salesOrderId], references: [id], onDelete: SetNull)
+  salesOrderLineId String?
+  salesOrderLine   SaleItem?          @relation(fields: [salesOrderLineId], references: [id], onDelete: SetNull)
+  customerDesignId String?
+  customerDesign   CustomerDesign?    @relation(fields: [customerDesignId], references: [id], onDelete: SetNull)
+  bomVersionId     String?
+  bomVersion       BOMVersion?        @relation(fields: [bomVersionId], references: [id], onDelete: SetNull)
+  routingId        String?
+  routing          ProductionRouting? @relation(fields: [routingId], references: [id], onDelete: SetNull)
+  plannedQuantity  Float              @default(1)
+  producedQuantity Float              @default(0)
+  rejectedQuantity Float              @default(0)
+  purchases        Purchase[]         @relation("PurchaseWorkOrder")
+  purchaseRequests PurchaseRequest[]
+  reservations     InventoryReservation[]
+  outputs          ProductionOutput[]
+  scraps           ProductionScrap[]
   createdBy       String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
@@ -990,6 +1095,8 @@ model WorkOrderItem {
   estimatedUnitCost   Float    @default(0)
   actualUnitCost      Float    @default(0)
   notes               String?
+  salesOrderLineId    String?
+  salesOrderLine      SaleItem? @relation(fields: [salesOrderLineId], references: [id], onDelete: SetNull)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -1054,6 +1161,10 @@ model WorkOrderMaterial {
   consumedQuantity Float          @default(0)
   returnedQuantity Float          @default(0)
   unitCost         Float          @default(0)
+  reservedQuantity Float          @default(0)
+  wastageQuantity  Float          @default(0)
+  operationId      String?
+  operation        RoutingOperation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
   status           MaterialStatus @default(PLANNED)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -1075,6 +1186,12 @@ model QualityCheck {
   status      QualityStatus @default(PENDING)
   checkedBy   String?
   checkedAt   DateTime?
+  qcStatus           QCStatus      @default(PENDING)
+  quantityChecked    Float         @default(0)
+  quantityPassed     Float         @default(0)
+  quantityRejected   Float         @default(0)
+  reworkInstructions String?
+  isRework           Boolean       @default(false)
   notes       String?
   issuesFound String?
   createdAt   DateTime      @default(now())
@@ -1457,6 +1574,625 @@ model Notification {
   @@index([createdAt])
   @@map("notifications")
 }
+
+// INTEGRATED FURNITURE ERP ENUMS & MODELS
+
+enum FulfillmentStrategy {
+  STOCK_ITEM
+  MAKE_TO_STOCK
+  MAKE_TO_ORDER
+  CUSTOM_PRODUCT
+}
+
+enum CustomerDesignStatus {
+  DRAFT
+  DESIGNING
+  APPROVAL_PENDING
+  APPROVED
+  REJECTED
+  CONVERTED_TO_ORDER
+  CANCELLED
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
+enum DemandSourceType {
+  SALES_ORDER
+  REORDER
+  MANUAL
+  PRODUCTION_PLAN
+}
+
+enum DemandStatus {
+  PENDING
+  MRP_PROCESSED
+  IN_PRODUCTION
+  FULFILLED
+  CANCELLED
+}
+
+enum MRPRequirementStatus {
+  READY
+  PARTIAL
+  SHORTAGE
+  PURCHASE_REQUIRED
+  ORDERED
+  FULFILLED
+}
+
+enum ReservationStatus {
+  RESERVED
+  ALLOCATED
+  RELEASED
+  CONSUMED
+}
+
+enum PurchaseRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PO_CREATED
+  CANCELLED
+}
+
+enum GoodsReceiptStatus {
+  RECEIVED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+enum QCStatus {
+  PENDING
+  PASSED
+  FAILED
+  REWORK
+  PARTIAL_PASS
+}
+
+model ProductTemplate {
+  id                    String    @id @default(cuid())
+  companyId             String
+  name                  String
+  code                  String
+  description           String?
+  defaultDimensions     String?
+  defaultMaterial       String?
+  defaultFinish         String?
+  defaultSellingPrice   Float     @default(0)
+  defaultProductionDays Int       @default(1)
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products Product[]
+  designs  CustomerDesign[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("product_templates")
+}
+
+model CustomerDesign {
+  id                String               @id @default(cuid())
+  companyId         String
+  customerId        String
+  productTemplateId String?
+  designNumber      String
+  name              String
+  description       String?
+  width             Float?
+  height            Float?
+  depth             Float?
+  finish            String?
+  material          String?
+  color             String?
+  style             String?
+  notes             String?
+  attachments       Json?
+  drawings          Json?
+  images            Json?
+  status            CustomerDesignStatus @default(DRAFT)
+  createdBy         String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productTemplate ProductTemplate? @relation(fields: [productTemplateId], references: [id], onDelete: SetNull)
+  creator         User?            @relation("CustomerDesignCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  products        Product[]
+  quotations      Quotation[]
+  sales           Sale[]
+  saleItems       SaleItem[]
+  workOrders      WorkOrder[]
+
+  @@unique([companyId, designNumber])
+  @@index([companyId])
+  @@index([companyId, customerId])
+  @@index([companyId, status])
+  @@map("customer_designs")
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  companyId       String
+  quotationNumber String
+  customerId      String
+  designId        String?
+  status          QuotationStatus @default(DRAFT)
+  validUntil      DateTime?
+  subtotal        Float           @default(0)
+  discountAmount  Float           @default(0)
+  taxAmount       Float           @default(0)
+  totalAmount     Float           @default(0)
+  notes           String?
+  createdBy       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  company  Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  design   CustomerDesign? @relation(fields: [designId], references: [id], onDelete: SetNull)
+  creator  User?           @relation("QuotationCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  items    QuotationItem[]
+  sale     Sale?
+
+  @@unique([companyId, quotationNumber])
+  @@index([companyId])
+  @@index([companyId, customerId])
+  @@index([companyId, status])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id             String   @id @default(cuid())
+  quotationId    String
+  productId      String?
+  productName    String
+  description    String?
+  quantity       Float    @default(1)
+  unitPrice      Float    @default(0)
+  discountAmount Float    @default(0)
+  taxRate        Float    @default(0)
+  taxAmount      Float    @default(0)
+  totalAmount    Float    @default(0)
+  createdAt      DateTime @default(now())
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@map("quotation_items")
+}
+
+model SalesDemand {
+  id           String           @id @default(cuid())
+  companyId    String
+  sourceType   DemandSourceType @default(SALES_ORDER)
+  sourceId     String
+  sourceLineId String?
+  productId    String
+  quantity     Float            @default(1)
+  requiredDate DateTime?
+  status       DemandStatus     @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sale       Sale?     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  saleItem   SaleItem? @relation(fields: [sourceLineId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([companyId, productId])
+  @@index([companyId, status])
+  @@index([companyId, sourceType, sourceId])
+  @@map("sales_demands")
+}
+
+model BOM {
+  id          String   @id @default(cuid())
+  companyId   String
+  productId   String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company  Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product  Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  versions BOMVersion[]
+
+  @@index([companyId])
+  @@index([companyId, productId])
+  @@map("boms")
+}
+
+model BOMVersion {
+  id            String    @id @default(cuid())
+  bomId         String
+  version       Int       @default(1)
+  status        String    @default("ACTIVE")
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+  quantity      Float     @default(1)
+  uom           String?   @default("pcs")
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bom        BOM         @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  items      BOMItem[]
+  workOrders WorkOrder[]
+
+  @@unique([bomId, version])
+  @@index([bomId])
+  @@map("bom_versions")
+}
+
+model BOMItem {
+  id               String   @id @default(cuid())
+  bomVersionId     String
+  materialProductId String
+  quantity         Float    @default(1)
+  uom              String?  @default("pcs")
+  wastePercentage  Float    @default(0)
+  scrapPercentage  Float    @default(0)
+  operation        String?
+  isOptional       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  bomVersion      BOMVersion @relation(fields: [bomVersionId], references: [id], onDelete: Cascade)
+  materialProduct Product    @relation(fields: [materialProductId], references: [id], onDelete: Restrict)
+
+  @@index([bomVersionId])
+  @@index([materialProductId])
+  @@map("bom_items")
+}
+
+model InventoryLocation {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  code        String
+  description String?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("inventory_locations")
+}
+
+model InventoryReservation {
+  id           String            @id @default(cuid())
+  companyId    String
+  productId    String
+  locationId   String?
+  sourceType   String
+  sourceId     String
+  sourceLineId String?
+  quantity     Float             @default(0)
+  status       ReservationStatus @default(RESERVED)
+  workOrderId  String?
+  salesOrderId String?
+  releasedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  workOrder  WorkOrder? @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  salesOrder Sale?      @relation(fields: [salesOrderId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([companyId, productId])
+  @@index([companyId, status])
+  @@index([companyId, sourceType, sourceId])
+  @@map("inventory_reservations")
+}
+
+model PurchaseRequest {
+  id               String                @id @default(cuid())
+  companyId        String
+  requestNumber    String
+  supplierId       String?
+  mrpRequirementId String?
+  workOrderId      String?
+  salesOrderId     String?
+  status           PurchaseRequestStatus @default(DRAFT)
+  notes            String?
+  createdBy        String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  company    Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier   Supplier?             @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  workOrder  WorkOrder?            @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  salesOrder Sale?                 @relation(fields: [salesOrderId], references: [id], onDelete: SetNull)
+  creator    User?                 @relation("PurchaseRequestCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  items      PurchaseRequestItem[]
+  purchases  Purchase[]
+
+  @@unique([companyId, requestNumber])
+  @@index([companyId])
+  @@index([companyId, status])
+  @@map("purchase_requests")
+}
+
+model PurchaseRequestItem {
+  id                String   @id @default(cuid())
+  purchaseRequestId String
+  productId         String
+  requiredQuantity  Float
+  estimatedUnitCost Float    @default(0)
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  purchaseRequest PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  purchaseItems   PurchaseItem[]
+
+  @@index([purchaseRequestId])
+  @@index([productId])
+  @@map("purchase_request_items")
+}
+
+model GoodsReceipt {
+  id            String             @id @default(cuid())
+  companyId     String
+  grnNumber     String
+  purchaseId    String
+  supplierId    String?
+  status        GoodsReceiptStatus @default(RECEIVED)
+  receivedDate  DateTime           @default(now())
+  notes         String?
+  createdBy     String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  company  Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  purchase Purchase           @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  supplier Supplier?          @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  creator  User?              @relation("GoodsReceiptCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  items    GoodsReceiptItem[]
+
+  @@unique([companyId, grnNumber])
+  @@index([companyId])
+  @@index([companyId, purchaseId])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id             String   @id @default(cuid())
+  goodsReceiptId String
+  purchaseItemId String?
+  productId      String
+  receivedQty    Float
+  rejectedQty    Float    @default(0)
+  unitCost       Float    @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  goodsReceipt GoodsReceipt  @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  purchaseItem PurchaseItem? @relation(fields: [purchaseItemId], references: [id], onDelete: SetNull)
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([goodsReceiptId])
+  @@index([productId])
+  @@map("goods_receipt_items")
+}
+
+model WorkCenter {
+  id            String   @id @default(cuid())
+  companyId     String
+  code          String
+  name          String
+  description   String?
+  hourlyLaborRate Float  @default(0)
+  hourlyMachineRate Float @default(0)
+  capacityPerDay Float   @default(8)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  operations RoutingOperation[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("work_centers")
+}
+
+model ProductionRouting {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  operations RoutingOperation[]
+  workOrders WorkOrder[]
+
+  @@index([companyId])
+  @@map("production_routings")
+}
+
+model RoutingOperation {
+  id               String   @id @default(cuid())
+  routingId        String
+  workCenterId     String?
+  sequence         Int      @default(1)
+  operationName    String
+  description      String?
+  estimatedMinutes Float    @default(0)
+  laborRate        Float    @default(0)
+  machineRate      Float    @default(0)
+  createdAt        DateTime @default(now())
+
+  routing            ProductionRouting   @relation(fields: [routingId], references: [id], onDelete: Cascade)
+  workCenter         WorkCenter?         @relation(fields: [workCenterId], references: [id], onDelete: SetNull)
+  workOrderMaterials WorkOrderMaterial[]
+
+  @@index([routingId])
+  @@index([workCenterId])
+  @@map("routing_operations")
+}
+
+model ProductionOutput {
+  id             String   @id @default(cuid())
+  companyId      String
+  workOrderId    String
+  productId      String
+  quantity       Float
+  locationId     String?
+  batchNumber    String?
+  serialNumber   String?
+  productionDate DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([workOrderId])
+  @@index([productId])
+  @@map("production_outputs")
+}
+
+model ProductionScrap {
+  id          String   @id @default(cuid())
+  companyId   String
+  workOrderId String
+  materialId  String
+  quantity    Float
+  reason      String
+  cost        Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  material  Product   @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
+  @@index([workOrderId])
+  @@index([materialId])
+  @@map("production_scraps")
+}
+
+model Delivery {
+  id             String         @id @default(cuid())
+  companyId      String
+  deliveryNumber String
+  salesOrderId   String
+  customerId     String
+  status         DeliveryStatus @default(PENDING)
+  dispatchDate   DateTime?
+  deliveryDate   DateTime?
+  trackingNumber String?
+  notes          String?
+  createdBy      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  company    Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  salesOrder Sale           @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  customer   Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  creator    User?          @relation("DeliveryCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  items      DeliveryItem[]
+
+  @@unique([companyId, deliveryNumber])
+  @@index([companyId])
+  @@index([companyId, salesOrderId])
+  @@index([companyId, customerId])
+  @@map("deliveries")
+}
+
+model DeliveryItem {
+  id          String   @id @default(cuid())
+  deliveryId  String
+  saleItemId  String?
+  productId   String
+  quantity    Float
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  delivery  Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  saleItem  SaleItem? @relation(fields: [saleItemId], references: [id], onDelete: SetNull)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([deliveryId])
+  @@index([productId])
+  @@map("delivery_items")
+}
+
+model ManufacturingSettings {
+  id                           String   @id @default(cuid())
+  companyId                    String   @unique
+  defaultRawMaterialLocation  String?
+  defaultWipLocation          String?
+  defaultFinishedGoodsLocation String?
+  requireQC                    Boolean  @default(true)
+  allowNegativeStock           Boolean  @default(false)
+  autoRunMRP                   Boolean  @default(false)
+  autoReserveStock             Boolean  @default(false)
+  autoCreatePurchaseRequest    Boolean  @default(false)
+  autoCreateWorkOrder          Boolean  @default(false)
+  requireProductionApproval   Boolean  @default(false)
+  requireQCBeforeFinishedStock Boolean  @default(true)
+  defaultWastagePercent        Float    @default(2.0)
+  defaultOverheadPercent       Float    @default(5.0)
+  defaultCostingMethod         String   @default("ACTUAL")
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("manufacturing_settings")
+}
+
+model TenantBranding {
+  id                   String   @id @default(cuid())
+  companyId            String   @unique @map("company_id")
+  logoUrl              String?  @map("logo_url")
+  logoObjectKey        String?  @map("logo_object_key")
+  invoiceLogoUrl       String?  @map("invoice_logo_url")
+  invoiceLogoObjectKey String?  @map("invoice_logo_object_key")
+  faviconUrl           String?  @map("favicon_url")
+  faviconObjectKey     String?  @map("favicon_object_key")
+  primaryColor         String?  @default("#2563eb") @map("primary_color")
+  secondaryColor       String?  @default("#1e293b") @map("secondary_color")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("tenant_branding")
+}
+
 
 
 

@@ -31,12 +31,18 @@ import {
   ShieldCheck,
   X,
 } from 'lucide-react';
+import { useCompanyBranding } from '../../hooks/useCompanyBranding';
+import { CompanyLogo } from '../branding/CompanyLogo';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const { isMobileOpen, closeMobileMenu } = useLayout();
+  const { logoUrl, primaryColor } = useCompanyBranding();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const activeCompany = user?.activeMembership?.company;
+  const role = user?.activeMembership?.role;
 
   const isPlatformAdmin = user ? Boolean(user.isPlatformAdmin) : false;
 
@@ -73,6 +79,26 @@ export function Sidebar() {
         ref={scrollContainerRef}
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-4 space-y-6"
       >
+        {!isPlatformAdmin && activeCompany && (
+          <div className="rounded-xl border border-border/80 bg-secondary/20 p-3 flex items-center gap-3 shadow-sm">
+            <CompanyLogo
+              logoUrl={logoUrl}
+              companyName={activeCompany.name}
+              size="md"
+              rounded="lg"
+              primaryColor={primaryColor}
+            />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-xs text-foreground truncate" title={activeCompany.name}>
+                {activeCompany.name}
+              </h3>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {role ? role.replace('_', ' ') : 'Member'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {isPlatformAdmin ? (
           <>
             <div>
@@ -215,6 +241,7 @@ export function Sidebar() {
                   { name: 'Overview', href: '/crm', icon: LayoutDashboard, exact: true },
                   { name: 'Customers', href: '/crm/customers', icon: UserCheck, exact: false },
                   { name: 'Suppliers', href: '/crm/suppliers', icon: Building2, exact: false },
+                  { name: 'Custom Designs', href: '/crm/designs', icon: FileText, exact: false },
                   { name: 'Activities', href: '/crm/activities', icon: Clock, exact: false },
                   { name: 'Tags', href: '/crm/tags', aliasHref: '/crm/settings/tags', icon: Settings, exact: false },
                 ].map((item) => {
@@ -250,7 +277,7 @@ export function Sidebar() {
               </h2>
               <nav className="space-y-1">
                 {[
-                  { name: 'Quotations / Estimates', href: '/sales/estimates', icon: FileText, exact: false },
+                  { name: 'Quotations / Estimates', href: '/sales/quotations', icon: FileText, exact: false },
                   { name: 'Sales Orders', href: '/sales', icon: ShoppingCart, exact: true },
                   { name: 'Invoices', href: '/invoices', icon: FileCheck, exact: false },
                   { name: 'Payments', href: '/sales/payments', icon: DollarSign, exact: false },
@@ -319,6 +346,7 @@ export function Sidebar() {
               <nav className="space-y-1">
                 {[
                   { name: 'Overview', href: '/production', icon: LayoutDashboard, exact: true },
+                  { name: 'MRP Engine', href: '/mrp', icon: LayoutDashboard, exact: false },
                   { name: 'Work Orders', href: '/work-orders', icon: Hammer, exact: false },
                   { name: 'Workers', href: '/workers', icon: Users, exact: false },
                   { name: 'My Work', href: '/my-work', icon: Clock, exact: false },
@@ -442,6 +470,7 @@ export function Sidebar() {
                 </h2>
                 <nav className="space-y-1">
                   {[
+                    { name: 'Company Profile', href: '/settings/company-profile', icon: Building2 },
                     { name: 'Users', href: '/settings/users', icon: Users },
                     { name: 'Import History', href: '/imports/history', icon: Upload },
                     { name: 'System Health', href: '/settings/system-health', icon: ShieldCheck },

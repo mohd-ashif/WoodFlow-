@@ -13,7 +13,7 @@ import { Badge } from '../../../components/ui/Badge';
 import {
   Search, Plus, Filter, ArrowUpDown, ChevronLeft, ChevronRight,
   Eye, Edit2, ShieldAlert, ShieldCheck, SlidersHorizontal,
-  Package, PackageSearch,
+  Package, PackageSearch, Trash2, Sparkles, AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -82,6 +82,10 @@ export default function ProductsListPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<any>(null);
 
+  // Delete Confirm
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     setPage(1);
@@ -130,6 +134,33 @@ export default function ProductsListPage() {
     },
     onError: (err: any) => {
       toast.error(err.message || 'Failed to reactivate product.');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => inventoryService.deleteProduct(id),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+      setDeleteConfirmOpen(false);
+      setDeleteTarget(null);
+      toast.success(`Product "${res?.name || 'Item'}" deleted successfully`);
+    },
+    onError: (err: any) => {
+      setDeleteConfirmOpen(false);
+      toast.error(err.message || 'Failed to delete product.');
+    },
+  });
+
+  const cleanupMutation = useMutation({
+    mutationFn: () => inventoryService.cleanupBogusProducts(),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+      toast.success(res?.message || `Cleaned up ${res?.count || 0} bogus template products.`);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to clean up template products.');
     },
   });
 
@@ -226,6 +257,15 @@ export default function ProductsListPage() {
     [activateMutation]
   );
 
+  const handleDeleteClick = useCallback((product: any) => {
+    setDeleteTarget(product);
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+  }, [deleteTarget, deleteMutation]);
+
   const handleSort = useCallback(
     (field: string) => {
       setSortBy((prev) => {
@@ -278,6 +318,35 @@ export default function ProductsListPage() {
           </>
         }
       />
+
+      {/* Bogus template import detection banner */}
+      {products.some((p: any) =>
+        ['cost price*', 'unit*', 'category*', 'sku*', 'product name*', 'selling price*'].includes(p.name?.toLowerCase()) ||
+        p.sku?.toUpperCase().includes('REQUIRED') ||
+        p.sku?.toUpperCase().includes('MUST BE')
+      ) && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-600 dark:text-amber-400 text-xs">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500" />
+            <div>
+              <p className="font-semibold text-sm">Template Instruction Rows Detected</p>
+              <p className="text-muted-foreground mt-0.5">
+                Some rows imported earlier contain template guidance notes (e.g. &quot;Cost Price*&quot;, &quot;Unit*&quot;). Click clean to purge them safely from your inventory.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => cleanupMutation.mutate()}
+            isLoading={cleanupMutation.isPending}
+            className="flex-shrink-0 gap-1.5"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Clean Up Bogus Products
+          </Button>
+        </div>
+      )}
 
       {/* Search & Filters */}
       <div className="bg-card/40 border border-border p-3 sm:p-3.5 rounded-xl space-y-3 flex-shrink-0 min-w-0">
@@ -472,6 +541,17 @@ export default function ProductsListPage() {
                           <ShieldCheck className="h-4 w-4" />
                         </Button>
                       )}
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClick(product)}
+                        className="h-9 w-9 min-w-[36px] text-destructive hover:bg-destructive/15"
+                        isLoading={deleteMutation.isPending && deleteTarget?.id === product.id}
+                        aria-label="Delete product"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -623,6 +703,19 @@ export default function ProductsListPage() {
                                 </Button>
                               </Tooltip>
                             )}
+
+                            <Tooltip content="Delete product permanently">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteClick(product)}
+                                aria-label={`Delete ${product.name}`}
+                                className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
+                                isLoading={deleteMutation.isPending && deleteTarget?.id === product.id}
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              </Button>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -771,6 +864,19 @@ export default function ProductsListPage() {
             confirmLabel="Deactivate"
             confirmingLabel="Deactivating…"
             isLoading={deactivateMutation.isPending}
+          />
+
+          {/* Delete Confirm */}
+          <ConfirmDialog
+            isOpen={deleteConfirmOpen}
+            onClose={() => { setDeleteConfirmOpen(false); setDeleteTarget(null); }}
+            onConfirm={handleConfirmDelete}
+            title="Delete Product?"
+            description={`Are you sure you want to permanently delete "${deleteTarget?.name}"? This action cannot be undone.`}
+            confirmLabel="Delete Permanently"
+            confirmingLabel="Deleting…"
+            variant="danger"
+            isLoading={deleteMutation.isPending}
           />
     </AppShell>
   );

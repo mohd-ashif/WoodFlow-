@@ -21,7 +21,13 @@ import {
   AlertTriangle,
   Package,
   Printer,
+  Eye,
+  Download,
+  Share2,
 } from 'lucide-react';
+import { PurchasePdfPreviewModal } from '../../../components/purchases/PurchasePdfPreviewModal';
+import { PurchaseShareModal } from '../../../components/purchases/PurchaseShareModal';
+import { DocumentTimeline } from '../../../components/DocumentTimeline';
 
 export default function PurchaseDetailsPage() {
   const params = useParams();
@@ -30,6 +36,8 @@ export default function PurchaseDetailsPage() {
   const purchaseId = params.id as string;
 
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -116,8 +124,31 @@ export default function PurchaseDetailsPage() {
             </Link>
 
             <div className="flex items-center gap-3 print:hidden">
+              <Button size="sm" variant="outline" onClick={() => setIsPreviewOpen(true)} className="gap-1.5 font-medium">
+                <Eye className="h-4 w-4" /> Preview Bill
+              </Button>
+
+              <a
+                href={purchasesService.getPdfDownloadUrl(purchaseId)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Button size="sm" variant="outline" className="gap-1.5 font-medium">
+                  <Download className="h-4 w-4" /> Download PDF
+                </Button>
+              </a>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsShareOpen(true)}
+                className="gap-1.5 font-medium border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              >
+                <Share2 className="h-4 w-4" /> Share WhatsApp
+              </Button>
+
               <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2 font-semibold">
-                <Printer className="h-4 w-4" /> Print Purchase Order
+                <Printer className="h-4 w-4" /> Print
               </Button>
 
               {purchase.status === 'DRAFT' && (
@@ -345,6 +376,29 @@ export default function PurchaseDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Audit & Activity Timeline */}
+          <Card className="border-border/80 p-6">
+            <CardHeader className="px-0 pt-0 pb-4">
+              <CardTitle className="text-sm font-semibold">Document History & Audit Trail</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <DocumentTimeline entityType="purchase" entityId={purchaseId} />
+            </CardContent>
+          </Card>
+
+          {/* Modals */}
+          <PurchasePdfPreviewModal
+            isOpen={isPreviewOpen}
+            onClose={() => setIsPreviewOpen(false)}
+            purchase={purchase}
+          />
+
+          <PurchaseShareModal
+            isOpen={isShareOpen}
+            onClose={() => setIsShareOpen(false)}
+            purchase={purchase}
+          />
 
           {/* Cancellation Modal */}
           {cancelModalOpen && (

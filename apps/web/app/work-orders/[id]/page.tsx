@@ -13,6 +13,7 @@ import { Input } from '../../../components/ui/Input';
 import { useToast } from '../../../components/ui/Toast';
 import { Hammer, Plus, CheckCircle2, Clock, AlertTriangle, ShieldCheck, ArrowLeft, Loader2, UserCheck, Package } from 'lucide-react';
 import Link from 'next/link';
+import { DocumentTimeline } from '../../../components/DocumentTimeline';
 
 export default function WorkOrderDetailPage({ params }: { params: { id: string } }) {
   const queryClient = useQueryClient();
@@ -505,6 +506,10 @@ export default function WorkOrderDetailPage({ params }: { params: { id: string }
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          <div className="mt-8">
+            <DocumentTimeline entityType="work-order" entityId={woId} />
           </div>
       </div>
     </AppShell>

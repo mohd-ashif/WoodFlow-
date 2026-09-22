@@ -110,8 +110,36 @@ export class FileParserService {
 
     for (let idx = startIdx; idx < parsedRows.length; idx++) {
       const values = parsedRows[idx];
-      if (values[0] && values[0].toLowerCase().includes('instruction')) continue;
-      if (values.every((v) => !v || !String(v).trim())) continue;
+      if (!values || values.every((v) => !v || !String(v).trim())) continue;
+
+      const firstCell = String(values[0] || '').trim().toLowerCase();
+      const secondCell = String(values[1] || '').trim().toLowerCase();
+
+      // Skip instruction/rules title or metadata rows
+      if (
+        firstCell.includes('instruction') ||
+        firstCell.includes('validation rule') ||
+        firstCell.includes('field instructions')
+      ) {
+        continue;
+      }
+
+      // Skip template documentation note rows (e.g. "Cost Price*" | "Required. Must be >= 0.")
+      const isHeaderLabel =
+        firstCell.endsWith('*') ||
+        headers.some((h) => h.toLowerCase() === firstCell.replace(/[*_]/g, ''));
+      const isInstructionText =
+        secondCell.startsWith('required') ||
+        secondCell.startsWith('optional') ||
+        secondCell.includes('must be') ||
+        secondCell.includes('e.g.') ||
+        secondCell.includes('unique') ||
+        secondCell.includes('auto-created') ||
+        secondCell.includes('10-digit mobile');
+
+      if (isHeaderLabel && isInstructionText) {
+        continue;
+      }
 
       const rowObj: Record<string, any> = { _rowNum: idx + 1 };
       headers.forEach((header, colIdx) => {
@@ -251,12 +279,21 @@ export class FileParserService {
       );
     }
 
-    // Extract worksheet XML (case-insensitive sheet search)
-    let sheetXml = '';
-    for (const [name, content] of filesMap.entries()) {
-      if (name.includes('sheet') && name.endsWith('.xml') && !name.includes('_rels')) {
-        sheetXml = content;
-        break;
+    // Extract worksheet XML: prioritize sheet1.xml or first non-instruction data sheet
+    let sheetXml = filesMap.get('xl/worksheets/sheet1.xml') || '';
+    if (!sheetXml) {
+      for (const [name, content] of filesMap.entries()) {
+        if (
+          name.includes('sheet') &&
+          name.endsWith('.xml') &&
+          !name.includes('_rels') &&
+          !name.includes('instruction') &&
+          !name.includes('rule') &&
+          !name.includes('note')
+        ) {
+          sheetXml = content;
+          break;
+        }
       }
     }
 
@@ -341,7 +378,27 @@ export class FileParserService {
   }
 
   private parseXmlOrHtml(rawText: string): { headers: string[]; rows: Record<string, any>[] } {
-    const rowMatches = rawText.match(/<(Row|tr)[\s\S]*?<\/\1>/gi);
+    // Isolate data worksheet if multiple worksheets exist (SpreadsheetML)
+    let targetXml = rawText;
+    const worksheetMatches = rawText.match(/<Worksheet[\s\S]*?<\/Worksheet>/gi);
+    if (worksheetMatches && worksheetMatches.length > 0) {
+      // Find the first worksheet that is NOT an instruction / rule sheet
+      const dataSheet = worksheetMatches.find((ws) => {
+        const nameMatch = ws.match(/ss:Name=["']([^"']+)["']/i);
+        if (!nameMatch) return true;
+        const name = nameMatch[1].toLowerCase();
+        return (
+          !name.includes('instruction') &&
+          !name.includes('rule') &&
+          !name.includes('note') &&
+          !name.includes('help') &&
+          !name.includes('guide')
+        );
+      });
+      targetXml = dataSheet || worksheetMatches[0];
+    }
+
+    const rowMatches = targetXml.match(/<(Row|tr)[\s\S]*?<\/\1>/gi);
     if (!rowMatches || rowMatches.length === 0) {
       throw new BadRequestError('Uploaded Excel document contains no valid rows.');
     }

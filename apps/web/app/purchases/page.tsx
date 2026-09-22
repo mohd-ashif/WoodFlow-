@@ -25,7 +25,12 @@ import {
   ChevronRight,
   Truck,
   LayoutDashboard,
+  Download,
+  Share2,
 } from 'lucide-react';
+
+import { PurchasePdfPreviewModal } from '../../components/purchases/PurchasePdfPreviewModal';
+import { PurchaseShareModal } from '../../components/purchases/PurchaseShareModal';
 
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { PageHeader } from '../../components/ui/PageHeader';
@@ -46,6 +51,8 @@ export default function PurchasesListPage() {
 
   const [cancelModalPurchase, setCancelModalPurchase] = useState<any | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [previewPurchase, setPreviewPurchase] = useState<any | null>(null);
+  const [sharePurchase, setSharePurchase] = useState<any | null>(null);
 
   const { data: responseData, isLoading } = usePurchases({
     page,
@@ -268,21 +275,43 @@ export default function PurchasesListPage() {
                             {purchase.status}
                           </Badge>
                         </td>
-                        <td className="py-3.5 px-4 text-right min-w-[120px] pr-4">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="py-3.5 px-4 text-right min-w-[140px] pr-4">
+                          <div className="flex items-center justify-end gap-1">
                             <Tooltip content="View Purchase">
                               <Link href={`/purchases/${purchase.id}`}>
-                                <Button size="icon" variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View purchase ${purchase.purchaseNumber}`}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`View purchase ${purchase.purchaseNumber}`}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </Link>
+                            </Tooltip>
+                            <Tooltip content="Download PDF Bill">
+                              <a
+                                href={purchasesService.getPdfDownloadUrl(purchase.id)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors" aria-label={`Download PDF ${purchase.purchaseNumber}`}>
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </a>
+                            </Tooltip>
+                            <Tooltip content="Share WhatsApp">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-emerald-600 hover:bg-emerald-500/15 transition-colors"
+                                aria-label={`Share purchase ${purchase.purchaseNumber}`}
+                                onClick={() => setSharePurchase(purchase)}
+                              >
+                                <Share2 className="h-4 w-4" />
+                              </Button>
                             </Tooltip>
                             {purchase.status !== 'CANCELLED' && (
                               <Tooltip content="Cancel Purchase">
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="text-destructive hover:bg-destructive/15 transition-colors"
+                                  className="h-8 w-8 text-destructive hover:bg-destructive/15 transition-colors"
                                   aria-label={`Cancel purchase ${purchase.purchaseNumber}`}
                                   onClick={() => setCancelModalPurchase(purchase)}
                                 >
@@ -364,6 +393,24 @@ export default function PurchasesListPage() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* PDF Preview Modal */}
+        {previewPurchase && (
+          <PurchasePdfPreviewModal
+            isOpen={Boolean(previewPurchase)}
+            onClose={() => setPreviewPurchase(null)}
+            purchase={previewPurchase}
+          />
+        )}
+
+        {/* WhatsApp Share Modal */}
+        {sharePurchase && (
+          <PurchaseShareModal
+            isOpen={Boolean(sharePurchase)}
+            onClose={() => setSharePurchase(null)}
+            purchase={sharePurchase}
+          />
         )}
       </div>
     </AppShell>

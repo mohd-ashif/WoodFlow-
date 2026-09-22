@@ -8,6 +8,9 @@ export * from './schemas/purchase.js';
 export * from './schemas/worker.js';
 export * from './schemas/workOrder.js';
 export * from './schemas/finance.js';
+export * from './schemas/customerDesign.js';
+export * from './schemas/quotation.js';
+export * from './schemas/bom.js';
+export * from './schemas/mrp.js';
+export * from './schemas/delivery.js';
 export * from './types/index.js';
-
-

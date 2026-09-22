@@ -112,10 +112,22 @@ export interface InvoiceSummary {
   taxAmount: number;
   totalAmount: number;
   status: 'DRAFT' | 'ISSUED' | 'CANCELLED';
+  publicToken?: string | null;
+  companyNameSnapshot?: string | null;
+  companyAddressSnapshot?: string | null;
+  companyPhoneSnapshot?: string | null;
+  companyEmailSnapshot?: string | null;
+  companyTaxNumberSnapshot?: string | null;
+  companyLogoUrlSnapshot?: string | null;
+  company?: any;
   createdAt: string;
   updatedAt: string;
   sale?: {
+    id?: string;
     saleNumber: string;
+    paymentStatus?: string;
+    paidAmount?: number;
+    dueAmount?: number;
     items?: SaleItemSummary[];
   };
 }

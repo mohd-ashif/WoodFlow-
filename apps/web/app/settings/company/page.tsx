@@ -12,7 +12,8 @@ import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { Building2, Save, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Building2, Save, Loader2, Sparkles } from 'lucide-react';
 
 export default function CompanySettingsPage() {
   const { user } = useAuth();
@@ -70,10 +71,17 @@ export default function CompanySettingsPage() {
   return (
     <AppShell>
       <div className="max-w-4xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Company Settings</h2>
             <p className="text-sm text-muted-foreground">Manage your furniture business profile and billing details.</p>
           </div>
+          <Link href="/settings/company-profile">
+            <Button variant="outline" className="gap-2 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/10">
+              <Sparkles className="h-4 w-4" /> Company Profile & Branding
+            </Button>
+          </Link>
+        </div>
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">

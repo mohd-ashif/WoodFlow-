@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import Link from 'next/link';
 import { Printer, ArrowLeft, Download, Building2, AlertTriangle, MessageCircle } from 'lucide-react';
 import { ShareInvoiceModal } from '../../../components/invoices/ShareInvoiceModal';
+import { InvoiceCompanyHeader } from '../../../components/branding/InvoiceCompanyHeader';
 
 export default function InvoicePrintPage() {
   const params = useParams();
@@ -91,22 +92,8 @@ export default function InvoicePrintPage() {
       <div className="w-full max-w-4xl bg-card border border-border/80 rounded-2xl shadow-2xl p-8 sm:p-12 print:shadow-none print:border-none print:rounded-none print:p-0 print:max-w-none print:w-full print:bg-white print:text-black">
         {/* Header: Company Info & Invoice Label */}
         <div className="flex flex-col sm:flex-row justify-between items-start border-b border-border/60 pb-6 gap-6">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <Building2 className="h-7 w-7 text-primary print:text-black" />
-              <h1 className="text-2xl font-bold tracking-tight text-foreground print:text-black">
-                {company.name || 'Furniture Shop'}
-              </h1>
-            </div>
-            {company.address && (
-              <p className="text-xs text-muted-foreground print:text-neutral-700 mt-1 max-w-sm">
-                {company.address}, {company.city}, {company.state} {company.postalCode}
-              </p>
-            )}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground print:text-neutral-700 mt-2">
-              {company.phone && <span>Phone: {company.phone}</span>}
-              {company.gstNumber && <span className="font-mono">GSTIN: {company.gstNumber}</span>}
-            </div>
+          <div className="space-y-3">
+            <InvoiceCompanyHeader invoice={invoice} />
             {sale.saleNumber && (
               <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/50 border border-border/60 text-xs text-muted-foreground print:border-none">
                 <span>Related Order:</span>

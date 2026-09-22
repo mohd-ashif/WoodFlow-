@@ -230,14 +230,8 @@ export class ImportTemplateService {
    <Interior ss:Color="#4F46E5" ss:Pattern="Solid"/>
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
   </Style>
-  <Style ss:ID="TitleStyle">
-   <Font ss:FontName="Calibri" ss:Size="13" ss:Color="#1E293B" ss:Bold="1"/>
-  </Style>
   <Style ss:ID="TextStyle">
    <Font ss:FontName="Calibri" ss:Size="11"/>
-  </Style>
-  <Style ss:ID="NoteStyle">
-   <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#475569" ss:Italic="1"/>
   </Style>
  </Styles>
  <Worksheet ss:Name="${module} Template">
@@ -248,12 +242,6 @@ export class ImportTemplateService {
    <Row ss:Height="20">
     ${sampleCells.map((v) => `<Cell ss:StyleID="TextStyle"><Data ss:Type="String">${escapeXml(v)}</Data></Cell>`).join('')}
    </Row>
-  </Table>
- </Worksheet>
- <Worksheet ss:Name="Field Instructions & Rules">
-  <Table>
-   <Row ss:Height="24"><Cell ss:StyleID="TitleStyle"><Data ss:Type="String">Field Instructions & Required Validation Rules</Data></Cell></Row>
-   ${notesRows.map((n) => `<Row ss:Height="20"><Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">${escapeXml(n.label)}</Data></Cell><Cell ss:StyleID="NoteStyle"><Data ss:Type="String">${escapeXml(n.value)}</Data></Cell></Row>`).join('')}
   </Table>
  </Worksheet>
 </Workbook>`;

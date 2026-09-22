@@ -4,6 +4,7 @@ import { CompanyStatus, MemberStatus, CompanyRole, SystemRole, UserStatus } from
 import { ConflictError, NotFoundError, BadRequestError } from '../../utils/errors.js';
 import { createAuditLog } from '../audit/audit.service.js';
 import { hashPassword } from '../../utils/auth.js';
+import { getTenantBranding, ensureTenantBrandingSchema } from './branding.service.js';
 
 export async function createCompanyWithOnboarding(
   input: CreateCompanyInput,
@@ -209,16 +210,48 @@ export async function setCompanyStatus(
 
 // Tenant Specific Scoped Queries
 export async function getTenantCompany(companyId: string) {
-  return prisma.company.findUnique({
+  await ensureTenantBrandingSchema();
+  const company = await prisma.company.findUnique({
     where: { id: companyId },
   });
+
+  if (!company) {
+    throw new NotFoundError('Company not found');
+  }
+
+  const branding = await getTenantBranding(companyId);
+
+  return {
+    ...company,
+    branding,
+  };
 }
 
-export async function updateTenantCompany(companyId: string, input: UpdateCompanyInput) {
-  return prisma.company.update({
+export async function updateTenantCompany(companyId: string, input: UpdateCompanyInput, actorUserId?: string) {
+  await ensureTenantBrandingSchema();
+
+  const company = await prisma.company.update({
     where: { id: companyId },
     data: input,
   });
+
+  if (actorUserId) {
+    await createAuditLog({
+      userId: actorUserId,
+      companyId,
+      action: 'COMPANY_PROFILE_UPDATED',
+      entity: 'Company',
+      entityId: companyId,
+      metadata: { changes: input },
+    });
+  }
+
+  const branding = await getTenantBranding(companyId);
+
+  return {
+    ...company,
+    branding,
+  };
 }
 
 export async function getCompanyMembers(companyId: string) {

@@ -58,6 +58,18 @@ export const inventoryService = {
     });
   },
 
+  async deleteProduct(id: string) {
+    return fetchApi<{ id: string; name: string; sku: string }>(`/products/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async cleanupBogusProducts() {
+    return fetchApi<{ count: number; products: Array<{ id: string; name: string; sku: string }> }>('/products/cleanup-bogus', {
+      method: 'POST',
+    });
+  },
+
   // Categories
   async getCategories(filters: Record<string, any> = {}) {
     const params = new URLSearchParams();

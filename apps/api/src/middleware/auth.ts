@@ -60,7 +60,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
           memberships: {
             include: {
               company: {
-                select: { id: true, name: true, slug: true, status: true },
+                select: { id: true, name: true, slug: true, status: true, logo: true },
               },
             },
           },

@@ -352,3 +352,123 @@ export async function getProductCount(companyId: string) {
     where: { companyId, isActive: true },
   });
 }
+
+export async function deleteProduct(companyId: string, id: string, userId: string) {
+  const product = await prisma.product.findFirst({
+    where: { id, companyId },
+    include: {
+      saleItems: { select: { id: true }, take: 1 },
+      purchaseItems: { select: { id: true }, take: 1 },
+      workOrderItems: { select: { id: true }, take: 1 },
+      workOrderMaterials: { select: { id: true }, take: 1 },
+    },
+  });
+
+  if (!product) {
+    throw new NotFoundError('Product not found');
+  }
+
+  const hasBusinessTransactions =
+    product.saleItems.length > 0 ||
+    product.purchaseItems.length > 0 ||
+    product.workOrderItems.length > 0 ||
+    product.workOrderMaterials.length > 0;
+
+  if (hasBusinessTransactions) {
+    throw new BadRequestError(
+      'Cannot delete product that has existing transactions (sales, purchases, or work orders). Please deactivate it instead.'
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Delete stock movements
+    await tx.stockMovement.deleteMany({
+      where: { productId: id, companyId },
+    });
+    // Delete inventory
+    await tx.inventory.deleteMany({
+      where: { productId: id, companyId },
+    });
+    // Delete product
+    await tx.product.delete({
+      where: { id },
+    });
+  });
+
+  await createAuditLog({
+    userId,
+    companyId,
+    action: 'PRODUCT_DELETED',
+    entity: 'Product',
+    entityId: id,
+    metadata: { name: product.name, sku: product.sku },
+  });
+
+  return { id, name: product.name, sku: product.sku };
+}
+
+export async function cleanupBogusProducts(companyId: string, userId: string) {
+  const bogusProducts = await prisma.product.findMany({
+    where: {
+      companyId,
+      OR: [
+        {
+          name: {
+            in: [
+              'Cost Price*',
+              'Unit*',
+              'Category*',
+              'SKU*',
+              'Product Name*',
+              'Selling Price*',
+              'Opening Stock*',
+              'Minimum Stock*',
+            ],
+          },
+        },
+        { sku: { contains: 'REQUIRED', mode: 'insensitive' } },
+        { sku: { contains: 'MUST BE', mode: 'insensitive' } },
+        { sku: { contains: 'UNIQUE PRODUCT', mode: 'insensitive' } },
+        { sku: { contains: 'AUTO-CREATED', mode: 'insensitive' } },
+        { sku: { contains: 'E.G. PIECE', mode: 'insensitive' } },
+      ],
+    },
+    select: { id: true, name: true, sku: true },
+  });
+
+  if (bogusProducts.length === 0) {
+    return { count: 0, products: [] };
+  }
+
+  const ids = bogusProducts.map((p) => p.id);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.stockMovement.deleteMany({
+      where: { productId: { in: ids }, companyId },
+    });
+    await tx.inventory.deleteMany({
+      where: { productId: { in: ids }, companyId },
+    });
+    await tx.product.deleteMany({
+      where: { id: { in: ids }, companyId },
+    });
+  });
+
+  await createAuditLog({
+    userId,
+    companyId,
+    action: 'BOGUS_PRODUCTS_CLEANED',
+    entity: 'Product',
+    entityId: companyId,
+    metadata: {
+      cleanedCount: bogusProducts.length,
+      cleanedProducts: bogusProducts.map((p) => ({ name: p.name, sku: p.sku })),
+    },
+  });
+
+  return {
+    count: bogusProducts.length,
+    products: bogusProducts,
+  };
+}
+

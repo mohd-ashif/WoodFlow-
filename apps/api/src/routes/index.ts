@@ -24,6 +24,16 @@ import searchRoutes from '../modules/search/search.routes.js';
 import notificationRoutes from '../modules/notifications/notification.routes.js';
 import systemRoutes from '../modules/system/system.routes.js';
 
+import bomRoutes from '../modules/bom/bom.routes.js';
+import mrpRoutes from '../modules/mrp/mrp.routes.js';
+import customerDesignRoutes from '../modules/customerDesigns/customerDesign.routes.js';
+import quotationRoutes from '../modules/quotations/quotation.routes.js';
+import purchaseRequestRoutes from '../modules/purchases/purchase-request.routes.js';
+import goodsReceiptRoutes from '../modules/purchases/goods-receipt.routes.js';
+import deliveryRoutes from '../modules/sales/delivery.routes.js';
+import traceabilityRoutes from '../modules/traceability/traceability.routes.js';
+import manufacturingSettingsRoutes from '../modules/company/manufacturing-settings.routes.js';
+
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -54,6 +64,14 @@ router.use('/search', searchRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/system', systemRoutes);
 
+router.use('/bom', bomRoutes);
+router.use('/mrp', mrpRoutes);
+router.use('/customer-designs', customerDesignRoutes);
+router.use('/quotations', quotationRoutes);
+router.use('/purchase-requests', purchaseRequestRoutes);
+router.use('/goods-receipts', goodsReceiptRoutes);
+router.use('/deliveries', deliveryRoutes);
+router.use('/traceability', traceabilityRoutes);
+router.use('/settings/manufacturing', manufacturingSettingsRoutes);
+
 export default router;
-
-

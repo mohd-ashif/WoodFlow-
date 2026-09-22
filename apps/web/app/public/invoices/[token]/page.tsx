@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Building2, Printer, CheckCircle2, AlertCircle, FileText, Download } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
+import { InvoiceCompanyHeader } from '../../../../components/branding/InvoiceCompanyHeader';
 
 export default function PublicInvoicePage() {
   const params = useParams();
@@ -80,23 +81,7 @@ export default function PublicInvoicePage() {
       <div className="w-full max-w-3xl bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-6 sm:p-10 print:shadow-none print:border-none print:rounded-none print:p-0 print:max-w-none print:w-full print:bg-white print:text-black">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start border-b border-neutral-800 print:border-neutral-300 pb-6 gap-6">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <Building2 className="h-7 w-7 text-primary print:text-black" />
-              <h1 className="text-2xl font-bold tracking-tight text-white print:text-black">
-                {company.name || 'Furniture OS'}
-              </h1>
-            </div>
-            {company.address && (
-              <p className="text-xs text-neutral-400 print:text-neutral-700 mt-1 max-w-sm">
-                {company.address}, {company.city}, {company.state} {company.postalCode}
-              </p>
-            )}
-            <div className="flex items-center gap-4 text-xs text-neutral-400 print:text-neutral-700 mt-2">
-              {company.phone && <span>Phone: {company.phone}</span>}
-              {company.gstNumber && <span className="font-mono">GSTIN: {company.gstNumber}</span>}
-            </div>
-          </div>
+          <InvoiceCompanyHeader invoice={invoice} />
 
           <div className="sm:text-right space-y-1">
             <h2 className="text-xl font-black uppercase tracking-wider text-emerald-400 print:text-black">

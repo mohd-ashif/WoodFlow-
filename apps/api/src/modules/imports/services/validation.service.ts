@@ -187,22 +187,42 @@ export class ValidationService {
       if (!hasContent) return;
 
       // Detect and skip template instructions / notes rows
-      const isInstructionRow = Object.entries(mappedRow).every(([k, v]) => {
-        if (k === '_rowNum') return true;
+      const nameVal = String(mappedRow.name || mappedRow['Product Name'] || mappedRow['Col 1'] || '').trim().toLowerCase();
+      const skuVal = String(mappedRow.sku || mappedRow['SKU'] || mappedRow['Col 2'] || '').trim().toLowerCase();
+
+      const hasInstructionKeyword = Object.entries(mappedRow).some(([k, v]) => {
+        if (k === '_rowNum') return false;
         const str = String(v || '').trim().toLowerCase();
-        if (!str) return true;
         return (
-          str === 'required.' ||
-          str === 'optional.' ||
-          str.startsWith('required.') ||
-          str.startsWith('optional.') ||
-          str.startsWith('e.g.') ||
           str.includes('field instructions') ||
-          str.includes('validation rules') ||
-          str.includes('10-digit mobile')
+          str.includes('validation rule') ||
+          str.startsWith('required. unique') ||
+          str.startsWith('required. must be') ||
+          str.startsWith('required. e.g.') ||
+          str.startsWith('required. must exist') ||
+          str.startsWith('required. full unit') ||
+          str.startsWith('required. unique category') ||
+          str.startsWith('required. 10-digit') ||
+          str.startsWith('required. full name')
         );
       });
-      if (isInstructionRow) return;
+
+      const isHeaderLabelRow =
+        [
+          'product name', 'product name*', 'sku', 'sku*', 'category', 'category*',
+          'unit', 'unit*', 'cost price', 'cost price*', 'selling price', 'selling price*',
+          'opening stock', 'opening stock*', 'minimum stock', 'minimum stock*',
+          'supplier name', 'supplier name*', 'customer name', 'customer name*',
+          'unit name', 'unit name*', 'short code', 'short code*', 'category name', 'category name*'
+        ].includes(nameVal) &&
+        (skuVal.startsWith('require') ||
+         skuVal.startsWith('optional') ||
+         skuVal.includes('must be') ||
+         skuVal.includes('unique') ||
+         skuVal.includes('auto-created') ||
+         skuVal.includes('e.g.'));
+
+      if (hasInstructionKeyword || isHeaderLabelRow) return;
 
       const rowErrors = this.validateSingleRow(module, mappedRow, rowNum);
 

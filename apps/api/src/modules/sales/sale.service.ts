@@ -188,8 +188,45 @@ export async function confirmSale(companyId: string, saleId: string, userId: str
       });
     }
 
-    // 4. Generate Invoice Number & Create Invoice
+    // 4. Generate Invoice Number & Create Invoice with Company Snapshot (Section 18)
     const invoiceNumber = await generateNextInvoiceNumber(tx, companyId);
+
+    const companyRecord = await tx.company.findUnique({
+      where: { id: companyId },
+    });
+
+    let brandingRecord: any = null;
+    try {
+      const brandingRows: any[] = await tx.$queryRawUnsafe(
+        `SELECT * FROM "tenant_branding" WHERE "company_id" = $1 LIMIT 1`,
+        companyId
+      );
+      if (brandingRows && brandingRows.length > 0) {
+        brandingRecord = brandingRows[0];
+      }
+    } catch {
+      // Fallback gracefully if table not yet migrated
+    }
+
+    const companyNameSnapshot = (companyRecord as any)?.displayName || companyRecord?.name || 'Company';
+    const addressParts = [
+      (companyRecord as any)?.address,
+      (companyRecord as any)?.addressLine2,
+      (companyRecord as any)?.city,
+      (companyRecord as any)?.state,
+      (companyRecord as any)?.postalCode,
+      (companyRecord as any)?.country,
+    ].filter(Boolean);
+    const companyAddressSnapshot = addressParts.length > 0 ? addressParts.join(', ') : null;
+    const companyPhoneSnapshot = companyRecord?.phone || (companyRecord as any)?.alternatePhone || null;
+    const companyEmailSnapshot = companyRecord?.email || null;
+    const companyTaxNumberSnapshot = companyRecord?.gstNumber || (companyRecord as any)?.taxId || null;
+    const companyLogoUrlSnapshot =
+      brandingRecord?.invoice_logo_url ||
+      brandingRecord?.logo_url ||
+      companyRecord?.logo ||
+      null;
+
     const invoice = await tx.invoice.create({
       data: {
         companyId,
@@ -205,10 +242,33 @@ export async function confirmSale(companyId: string, saleId: string, userId: str
         taxAmount: sale.taxAmount,
         totalAmount: sale.totalAmount,
         status: 'ISSUED',
+        companyNameSnapshot,
+        companyAddressSnapshot,
+        companyPhoneSnapshot,
+        companyEmailSnapshot,
+        companyTaxNumberSnapshot,
+        companyLogoUrlSnapshot,
       },
     });
 
-    // 5. Update Sale status to CONFIRMED
+    // 5. Create SalesDemand records for MRP engine
+    for (const item of sale.items) {
+      if (item.productId) {
+        await tx.salesDemand.create({
+          data: {
+            companyId,
+            sourceType: 'SALES_ORDER',
+            sourceId: sale.id,
+            sourceLineId: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            status: 'PENDING',
+          },
+        });
+      }
+    }
+
+    // 6. Update Sale status to CONFIRMED
     const updatedSale = await tx.sale.update({
       where: { id: sale.id },
       data: {

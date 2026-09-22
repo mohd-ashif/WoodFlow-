@@ -24,6 +24,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { RecordPaymentModal } from '../../../components/sales/RecordPaymentModal';
+import { DocumentTimeline } from '../../../components/DocumentTimeline';
 
 export default function SaleDetailsPage() {
   const params = useParams();
@@ -355,6 +356,9 @@ export default function SaleDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* End-to-End ERP Document Traceability Timeline */}
+          <DocumentTimeline entityType="sales-order" entityId={saleId} />
 
           {/* Cancellation Modal */}
           {cancelModalOpen && (

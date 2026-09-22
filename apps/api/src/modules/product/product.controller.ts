@@ -126,3 +126,39 @@ export async function activateProduct(req: Request, res: Response, next: NextFun
     next(error);
   }
 }
+
+export async function deleteProduct(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const userId = req.user!.id;
+    const { id } = req.params;
+
+    const result = await service.deleteProduct(companyId, id, userId);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+      message: 'Product deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function cleanupBogusProducts(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.tenantId!;
+    const userId = req.user!.id;
+
+    const result = await service.cleanupBogusProducts(companyId, userId);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+      message: `Cleaned up ${result.count} template instruction products.`,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
